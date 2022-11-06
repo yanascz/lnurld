@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" media="all" href="/ln/static/stylesheet.css">
+
+    <title>⚡Raffle Draw</title>
+
+</head>
+<body>
+
+<h1>⚡Raffle Draw</h1>
+
+<h2 id="ticket">???</h2>
+<p id="prize">???</p>
+
+<div class="buttons">
+    <button id="next-prize" accesskey="p">Next prize</button>
+    <button id="next-ticket" accesskey="t">Next ticket</button>
+</div>
+
+<script>
+    const prizes = {{.Prizes}}
+    const drawnTickets = {{.DrawnTickets}}
+
+    const prizeElement = document.getElementById("prize")
+    const ticketElement = document.getElementById("ticket")
+    const nextPrizeButton = document.getElementById("next-prize")
+    const nextTicketButton = document.getElementById("next-ticket")
+
+    nextPrizeButton.onclick = nextPrize
+    nextTicketButton.onclick = nextTicket
+    disableAndHide(nextTicketButton, true)
+
+    function nextPrize() {
+        prizeElement.innerText = prizes.pop()
+        nextTicket()
+    }
+
+    function nextTicket() {
+        ticketElement.innerText = drawnTickets.shift()
+        disableAndHide(nextPrizeButton, prizes.length === 0 || drawnTickets.length === 0)
+        disableAndHide(nextTicketButton, drawnTickets.length === 0)
+    }
+
+    function disableAndHide(element, disabledAndHidden) {
+        element.disabled = disabledAndHidden
+        element.hidden = disabledAndHidden
+    }
+</script>
+
+</body>
+</html>

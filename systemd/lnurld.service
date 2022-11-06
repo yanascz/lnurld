@@ -1,0 +1,20 @@
+[Unit]
+Description=LNURL Daemon
+Wants=lnd.service
+After=lnd.service
+
+[Service]
+Environment="GIN_MODE=release"
+ExecStart=/usr/local/bin/lnurld
+
+User=bitcoin
+Group=bitcoin
+Type=simple
+KillMode=process
+LimitNOFILE=128000
+TimeoutSec=240
+Restart=always
+RestartSec=60
+
+[Install]
+WantedBy=multi-user.target

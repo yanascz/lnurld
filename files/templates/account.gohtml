@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" media="all" href="/ln/static/stylesheet.css">
+
+    <title>⛺️ {{.AccountKey}}</title>
+
+</head>
+<body>
+
+<h1>⛺️ {{.AccountKey}}</h1>
+
+<ul>
+    <li><strong>{{number .InvoicesIssued}}</strong> invoice{{if ne .InvoicesIssued 1}}s{{end}} issued</li>
+    <li><strong>{{number .InvoicesSettled}}</strong> invoice{{if ne .InvoicesSettled 1}}s{{end}} settled</li>
+    <li><strong>{{number .TotalSatsReceived}}</strong> sat{{if ne .TotalSatsReceived 1}}s{{end}} received</li>
+</ul>
+
+{{if .Raffle}}
+    <h2>⚡Raffle</h2>
+    {{with .Raffle}}
+        <ul>
+            <li><strong>{{number .TicketPrice}}</strong> sats per ticket</li>
+            <li><strong>{{number .PrizesCount}}</strong> prizes configured</li>
+        </ul>
+    {{end}}
+    {{if ge .InvoicesSettled .Raffle.PrizesCount}}
+        <form action="/ln/accounts/{{.AccountKey}}/raffle" method="get" class="buttons">
+            <button type="submit">Draw</button>
+        </form>
+    {{end}}
+{{end}}
+
+</body>
+</html>
