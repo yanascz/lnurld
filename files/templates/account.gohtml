@@ -19,6 +19,9 @@
     <li><strong>{{number .InvoicesSettled}}</strong> invoice{{if ne .InvoicesSettled 1}}s{{end}} settled</li>
     <li><strong>{{number .TotalSatsReceived}}</strong> sat{{if ne .TotalSatsReceived 1}}s{{end}} received</li>
 </ul>
+<div class="buttons">
+    <button onclick="location.href='/ln/pay/{{.AccountKey}}/qr-code?size=768'">QR Code</button>
+</div>
 
 {{if .Raffle}}
     <h2>⚡Raffle</h2>
@@ -29,9 +32,9 @@
         </ul>
     {{end}}
     {{if ge .InvoicesSettled .Raffle.PrizesCount}}
-        <form action="/ln/accounts/{{.AccountKey}}/raffle" method="get" class="buttons">
-            <button type="submit">Draw</button>
-        </form>
+        <div class="buttons">
+            <button onclick="location.href='/ln/accounts/{{.AccountKey}}/raffle'">Draw</button>
+        </div>
     {{end}}
 {{end}}
 

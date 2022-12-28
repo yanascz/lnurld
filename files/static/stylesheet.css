@@ -59,17 +59,13 @@ a {
     color: #f7931a;
 }
 
-.buttons {
+div.buttons {
     display: flex;
     flex-direction: column;
     margin-top: 1em;
 }
 
-div.buttons {
-    margin-top: 3em;
-}
-
-.buttons button {
+div.buttons button {
     margin-bottom: 1em;
     border: none;
     border-radius: .5em;
@@ -81,6 +77,10 @@ div.buttons {
     cursor: pointer;
 }
 
-.buttons button:first-child {
+div.buttons button:first-child {
     background-color: #f7931a;
+}
+
+div.raffle {
+    margin-top: 3em;
 }
