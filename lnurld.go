@@ -6,7 +6,6 @@ import (
 	"flag"
 	"github.com/fiatjaf/go-lnurl"
 	"github.com/gin-gonic/gin"
-	"github.com/skip2/go-qrcode"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 	"html/template"
@@ -176,7 +175,7 @@ func lnPayHandler(context *gin.Context) {
 }
 
 func lnPayQrCodeHandler(context *gin.Context) {
-	accountKey, _ := getAccount(context)
+	accountKey, account := getAccount(context)
 	if accountKey == "" {
 		return
 	}
@@ -197,7 +196,15 @@ func lnPayQrCodeHandler(context *gin.Context) {
 		return
 	}
 
-	pngData, err := qrcode.Encode("lightning:"+encodedLnUrl, qrcode.Medium, int(size))
+	var thumbnail *Thumbnail
+	if account.Thumbnail != "" {
+		thumbnail, err = repository.loadThumbnail(account.Thumbnail)
+		if err != nil {
+			log.Println("Thumbnail not readable:", err)
+		}
+	}
+
+	pngData, err := encodeQrCode("lightning:"+encodedLnUrl, thumbnail, int(size))
 	if err != nil {
 		log.Println("Error creating QR code:", err)
 		context.String(http.StatusInternalServerError, "500 internal server error")

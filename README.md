@@ -64,26 +64,26 @@ accounts:
 
 Available configuration properties:
 
-| Property | Description | Default value |
-| :------- | :---------- | :------------ |
-| `listen` | Host and port to listen on. | `127.0.0.1:8088` |
-| `thumbnail-dir` | Directory where to look for thumbnails. | `/etc/lnurld/thumbnails` |
-| `data-dir` | Directory where invoice payment hashes per account will be stored. | `/var/lib/lnurld` |
-| `lnd` | Configuration of your LND node. | _see below_ |
-| `lnd.address` | Host and port of gRPC API interface. | `127.0.0.1:10009` |
-| `lnd.cert-file` | Path to TLS certificate.  | `/var/lib/lnd/tls.cert` |
-| `lnd.macaroon-file` | Path to invoice macaroon. | `/var/lib/lnd/data/chain/bitcoin/mainnet/invoice.macaroon` |
-| `credentials` | Map of username/password pairs authorized to access accounts. | _none_ |
-| `accounts` | Map of available accounts. | _none_ |
-| `accounts.*.max-sendable` | Maximum sendable amount in sats. _(not available for raffle)_ | _none_ |
-| `accounts.*.min-sendable` | Minimum sendable amount in sats. _(not available for raffle)_ | _none_ |
-| `accounts.*.description` | Description of the account. | _none_ |
-| `accounts.*.thumbnail` | Name of PNG/JPEG thumbnail file to use. _(optional)_ | _none_ |
-| `accounts.*.is-also-email` | Does the account match an email address? _(optional)_ | `false` |
-| `accounts.*.comment-allowed` | Maximum length of invoice comment. _(optional)_ | `0` |
-| `accounts.*.raffle` | Raffle configuration. _(optional)_ | _none_ |
-| `accounts.*.raffle.ticket-price` | Price of a ticket in sats. | _none_ |
-| `accounts.*.raffle.prizes` | List of prizes. | _none_ |
+| Property                         | Description                                                                 | Default value                                              |
+|:---------------------------------|:----------------------------------------------------------------------------|:-----------------------------------------------------------|
+| `listen`                         | Host and port to listen on.                                                 | `127.0.0.1:8088`                                           |
+| `thumbnail-dir`                  | Directory where to look for thumbnails.                                     | `/etc/lnurld/thumbnails`                                   |
+| `data-dir`                       | Directory where invoice payment hashes per account will be stored.          | `/var/lib/lnurld`                                          |
+| `lnd`                            | Configuration of your LND node.                                             | _see below_                                                |
+| `lnd.address`                    | Host and port of gRPC API interface.                                        | `127.0.0.1:10009`                                          |
+| `lnd.cert-file`                  | Path to TLS certificate.                                                    | `/var/lib/lnd/tls.cert`                                    |
+| `lnd.macaroon-file`              | Path to invoice macaroon.                                                   | `/var/lib/lnd/data/chain/bitcoin/mainnet/invoice.macaroon` |
+| `credentials`                    | Map of username/password pairs authorized to access accounts.               | _none_                                                     |
+| `accounts`                       | Map of available accounts.                                                  | _none_                                                     |
+| `accounts.*.max-sendable`        | Maximum sendable amount in sats. _(not available for raffle)_               | _none_                                                     |
+| `accounts.*.min-sendable`        | Minimum sendable amount in sats. _(not available for raffle)_               | _none_                                                     |
+| `accounts.*.description`         | Description of the account.                                                 | _none_                                                     |
+| `accounts.*.thumbnail`           | Name of PNG/JPEG thumbnail to use; 256×256 pixels recommended. _(optional)_ | _none_                                                     |
+| `accounts.*.is-also-email`       | Does the account match an email address? _(optional)_                       | `false`                                                    |
+| `accounts.*.comment-allowed`     | Maximum length of invoice comment. _(optional)_                             | `0`                                                        |
+| `accounts.*.raffle`              | Raffle configuration. _(optional)_                                          | _none_                                                     |
+| `accounts.*.raffle.ticket-price` | Price of a ticket in sats.                                                  | _none_                                                     |
+| `accounts.*.raffle.prizes`       | List of prizes.                                                             | _none_                                                     |
 
 If a property is marked as optional or has a default value, you don’t have to specify it explicitly.
 
