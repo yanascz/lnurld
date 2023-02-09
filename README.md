@@ -37,11 +37,14 @@ $ sudo chown bitcoin:bitcoin /etc/lnurld
 $ sudo -u bitcoin vim /etc/lnurld/config.yaml
 ```
 
-Example configuration with one admin, one donate account and one raffle account:
+Example configuration with one admin, one user with restricted access, one donate account and one raffle account:
 
 ```yaml
 credentials:
-  admin: S3cr3t
+  admin: 4dm!nS3cr3t
+  guest: S3cr3t
+access-control:
+  guest: [raffle]
 accounts:
   satoshi:
     min-sendable: 1
@@ -73,7 +76,8 @@ Available configuration properties:
 | `lnd.address`                    | Host and port of gRPC API interface.                                        | `127.0.0.1:10009`                                          |
 | `lnd.cert-file`                  | Path to TLS certificate.                                                    | `/var/lib/lnd/tls.cert`                                    |
 | `lnd.macaroon-file`              | Path to invoice macaroon.                                                   | `/var/lib/lnd/data/chain/bitcoin/mainnet/invoice.macaroon` |
-| `credentials`                    | Map of username/password pairs authorized to access accounts.               | _none_                                                     |
+| `credentials`                    | Map of users authorized to access the admin user interface.                 | _none_                                                     |
+| `access-control`                 | Map of accounts accessible by non-admin users.                              | _none, i.e. all users have full admin access_              |
 | `accounts`                       | Map of available accounts.                                                  | _none_                                                     |
 | `accounts.*.max-sendable`        | Maximum sendable amount in sats. _(not available for raffle)_               | _none_                                                     |
 | `accounts.*.min-sendable`        | Minimum sendable amount in sats. _(not available for raffle)_               | _none_                                                     |

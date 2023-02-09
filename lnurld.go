@@ -42,7 +42,7 @@ var (
 	//go:embed files/templates
 	templatesFs embed.FS
 
-	accounts   map[string]Account
+	config     *Config
 	repository *Repository
 	lndClient  *LndClient
 )
@@ -56,9 +56,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	config := loadConfig(configFileName)
+	config = loadConfig(configFileName)
 
-	accounts = config.Accounts
 	repository = newRepository(config.ThumbnailDir, config.DataDir)
 	if client, err := newLndClient(config.Lnd); err != nil {
 		log.Fatal(err)
@@ -221,8 +220,10 @@ func lnStaticFileHandler(context *gin.Context) {
 
 func lnAccountsHandler(context *gin.Context) {
 	var accountKeys []string
-	for accountKey := range accounts {
-		accountKeys = append(accountKeys, accountKey)
+	for accountKey := range config.Accounts {
+		if config.isUserAuthorized(context, accountKey) {
+			accountKeys = append(accountKeys, accountKey)
+		}
 	}
 	sort.Strings(accountKeys)
 
@@ -232,6 +233,10 @@ func lnAccountsHandler(context *gin.Context) {
 func lnAccountHandler(context *gin.Context) {
 	accountKey, account := getAccount(context)
 	if accountKey == "" {
+		return
+	}
+	if !config.isUserAuthorized(context, accountKey) {
+		context.String(http.StatusNotFound, "404 page not found")
 		return
 	}
 
@@ -269,7 +274,7 @@ func lnAccountRaffleHandler(context *gin.Context) {
 	if accountKey == "" {
 		return
 	}
-	if account.Raffle == nil {
+	if !config.isUserAuthorized(context, accountKey) || account.Raffle == nil {
 		context.String(http.StatusNotFound, "404 page not found")
 		return
 	}
@@ -300,7 +305,7 @@ func lnAccountRaffleHandler(context *gin.Context) {
 
 func getAccount(context *gin.Context) (string, *Account) {
 	accountKey := context.Param("name")
-	if account, accountExists := accounts[accountKey]; accountExists {
+	if account, accountExists := config.Accounts[accountKey]; accountExists {
 		return accountKey, &account
 	}
 

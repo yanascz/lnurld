@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
+	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v3"
 	"log"
 	"os"
@@ -9,12 +10,20 @@ import (
 )
 
 type Config struct {
-	Listen       string
-	ThumbnailDir string `yaml:"thumbnail-dir"`
-	DataDir      string `yaml:"data-dir"`
-	Lnd          LndConfig
-	Credentials  gin.Accounts
-	Accounts     map[string]Account
+	Listen        string
+	ThumbnailDir  string `yaml:"thumbnail-dir"`
+	DataDir       string `yaml:"data-dir"`
+	Lnd           LndConfig
+	Credentials   gin.Accounts
+	AccessControl map[string][]string `yaml:"access-control"`
+	Accounts      map[string]Account
+}
+
+func (config *Config) isUserAuthorized(context *gin.Context, accountKey string) bool {
+	user := context.GetString(gin.AuthUserKey)
+	allowedAccounts, accessRestricted := config.AccessControl[user]
+
+	return !accessRestricted || slices.Contains(allowedAccounts, accountKey)
 }
 
 type Account struct {
@@ -78,11 +87,25 @@ func loadConfig(configFileName string) *Config {
 		config.DataDir += pathSeparator
 	}
 
+	validateAccessControl(&config)
 	for accountKey, account := range config.Accounts {
 		validateAccount(accountKey, &account)
 	}
 
 	return &config
+}
+
+func validateAccessControl(config *Config) {
+	for user, allowedAccounts := range config.AccessControl {
+		if _, userExists := config.Credentials[user]; !userExists {
+			log.Fatal("Unknown user in property access-control: ", user)
+		}
+		for _, accountKey := range allowedAccounts {
+			if _, accountExists := config.Accounts[accountKey]; !accountExists {
+				log.Fatal("Unknown account in property access-control.", user, ": ", accountKey)
+			}
+		}
+	}
 }
 
 func validateAccount(accountKey string, account *Account) {
@@ -95,10 +118,10 @@ func validateAccount(accountKey string, account *Account) {
 		}
 	} else {
 		if account.MaxSendable > 0 {
-			logInvalidAccountConfig(accountKey, "max-sendable", "raffle")
+			logInvalidAccountConfig(accountKey, "max-sendable")
 		}
 		if account.MinSendable > 0 {
-			logInvalidAccountConfig(accountKey, "min-sendable", "raffle")
+			logInvalidAccountConfig(accountKey, "min-sendable")
 		}
 		if ticketPrice := raffle.TicketPrice; ticketPrice < 1 {
 			logInvalidAccountValue(accountKey, "raffle.ticket-price", ticketPrice)
@@ -119,6 +142,6 @@ func logInvalidAccountValue(accountKey string, property string, value any) {
 	log.Fatal("Invalid config value accounts.", accountKey, ".", property, ": ", value)
 }
 
-func logInvalidAccountConfig(accountKey string, property string, feature string) {
-	log.Fatal("Cannot set accounts.", accountKey, ".", property, " when ", feature, " is enabled")
+func logInvalidAccountConfig(accountKey string, property string) {
+	log.Fatal("Cannot set accounts.", accountKey, ".", property, " when raffle is enabled")
 }
