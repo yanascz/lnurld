@@ -51,6 +51,10 @@ ul.accounts {
     list-style-type: disc;
 }
 
+ul.comments {
+    font-size: 1.5em;
+}
+
 ul li {
     margin-bottom: .5em;
 }

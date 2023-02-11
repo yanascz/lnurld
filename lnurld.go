@@ -6,9 +6,6 @@ import (
 	"flag"
 	"github.com/fiatjaf/go-lnurl"
 	"github.com/gin-gonic/gin"
-	"golang.org/x/text/language"
-	"golang.org/x/text/message"
-	"html/template"
 	"log"
 	"math/rand"
 	"net/http"
@@ -16,6 +13,7 @@ import (
 	"path"
 	"sort"
 	"strconv"
+	"time"
 )
 
 type LnAccount struct {
@@ -24,11 +22,18 @@ type LnAccount struct {
 	InvoicesSettled   int
 	TotalSatsReceived int64
 	Raffle            *LnAccountRaffle
+	Comments          []LnAccountComment
 }
 
 type LnAccountRaffle struct {
 	TicketPrice uint32
 	PrizesCount int
+}
+
+type LnAccountComment struct {
+	Amount     int64
+	SettleDate time.Time
+	Comment    string
 }
 
 type LnRaffle struct {
@@ -80,22 +85,6 @@ func main() {
 	authorized.GET("/ln/accounts/:name/raffle", lnAccountRaffleHandler)
 
 	log.Fatal(lnurld.Run(config.Listen))
-}
-
-func loadTemplates(engine *gin.Engine, pattern string) {
-	printer := message.NewPrinter(language.English)
-	funcMap := template.FuncMap{
-		"number": func(number any) string {
-			return printer.Sprintf("%v", number)
-		},
-	}
-
-	templates, err := template.New("templates").Funcs(funcMap).ParseFS(templatesFs, pattern)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	engine.SetHTMLTemplate(templates)
 }
 
 func lnPayHandler(context *gin.Context) {
@@ -244,11 +233,19 @@ func lnAccountHandler(context *gin.Context) {
 
 	var invoicesSettled int
 	var totalSatsReceived int64
+	var comments []LnAccountComment
 	for _, paymentHash := range paymentHashes {
 		invoice, err := lndClient.getInvoice(paymentHash)
-		if err == nil && invoice.settled {
+		if err == nil && invoice.isSettled() {
 			invoicesSettled++
 			totalSatsReceived += invoice.amount
+			if invoice.memo != "" {
+				comments = append(comments, LnAccountComment{
+					Amount:     invoice.amount,
+					SettleDate: invoice.settleDate,
+					Comment:    invoice.memo,
+				})
+			}
 		}
 	}
 
@@ -258,6 +255,10 @@ func lnAccountHandler(context *gin.Context) {
 			TicketPrice: raffle.TicketPrice,
 			PrizesCount: len(raffle.Prizes),
 		}
+	} else {
+		sort.Slice(comments, func(i, j int) bool {
+			return comments[i].SettleDate.After(comments[j].SettleDate)
+		})
 	}
 
 	context.HTML(http.StatusOK, "account.gohtml", LnAccount{
@@ -266,6 +267,7 @@ func lnAccountHandler(context *gin.Context) {
 		InvoicesSettled:   invoicesSettled,
 		TotalSatsReceived: totalSatsReceived,
 		Raffle:            lnAccountRaffle,
+		Comments:          comments,
 	})
 }
 
@@ -287,7 +289,7 @@ func lnAccountRaffleHandler(context *gin.Context) {
 	var drawnTickets []string
 	for _, paymentHash := range paymentHashes {
 		invoice, err := lndClient.getInvoice(paymentHash)
-		if err == nil && invoice.settled {
+		if err == nil && invoice.isSettled() {
 			drawnTickets = append(drawnTickets, invoice.ticket())
 		}
 	}

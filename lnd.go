@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/credentials"
 	"gopkg.in/macaroon.v2"
 	"os"
+	"time"
 )
 
 type LndConfig struct {
@@ -23,7 +24,12 @@ type Invoice struct {
 	paymentHash    []byte
 	paymentRequest string
 	amount         int64
-	settled        bool
+	settleDate     time.Time
+	memo           string
+}
+
+func (invoice *Invoice) isSettled() bool {
+	return !invoice.settleDate.IsZero()
 }
 
 func (invoice *Invoice) ticket() string {
@@ -109,10 +115,16 @@ func (client *LndClient) getInvoice(paymentHash string) (*Invoice, error) {
 		return nil, err
 	}
 
+	var settleDate time.Time
+	if lnInvoice.State == lnrpc.Invoice_SETTLED {
+		settleDate = time.Unix(lnInvoice.SettleDate, 0)
+	}
+
 	return &Invoice{
 		paymentHash:    lnInvoice.RHash,
 		paymentRequest: lnInvoice.PaymentRequest,
 		amount:         lnInvoice.Value,
-		settled:        lnInvoice.State == lnrpc.Invoice_SETTLED,
+		settleDate:     settleDate,
+		memo:           lnInvoice.Memo,
 	}, nil
 }

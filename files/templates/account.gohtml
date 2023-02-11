@@ -38,5 +38,15 @@
     {{end}}
 {{end}}
 
+<ul class="comments">
+    {{range .Comments}}
+        <li>
+            <strong>{{number .Amount}}</strong> sat{{if ne .Amount 1}}s{{end}}
+            on <strong>{{date .SettleDate}}</strong>:<br>
+            <em>{{.Comment}}</em>
+        </li>
+    {{end}}
+</ul>
+
 </body>
 </html>
