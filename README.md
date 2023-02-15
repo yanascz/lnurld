@@ -13,6 +13,7 @@ You may test it by sending some sats to ⚡lnurld@yanas.cz or by scanning the fo
 * [LUD-12: Comments in `payRequest`](https://github.com/fiatjaf/lnurl-rfc/blob/luds/12.md)
 * [LUD-16: Paying to static internet identifiers](https://github.com/fiatjaf/lnurl-rfc/blob/luds/16.md)
 * Multiple customizable accounts
+* Lightning Network terminal
 * Lightning Network raffle
 
 ## Installation
@@ -79,12 +80,13 @@ Available configuration properties:
 | `credentials`                    | Map of users authorized to access the admin user interface.                 | _none_                                                     |
 | `access-control`                 | Map of accounts accessible by non-admin users.                              | _none, i.e. all users have full admin access_              |
 | `accounts`                       | Map of available accounts.                                                  | _none_                                                     |
+| `accounts.*.currency`            | Terminal currency; `cad`, `chf`, `czk`, `eur`, `gbp` and `usd` supported.   | `eur`                                                      |
 | `accounts.*.max-sendable`        | Maximum sendable amount in sats. _(not available for raffle)_               | _none_                                                     |
 | `accounts.*.min-sendable`        | Minimum sendable amount in sats. _(not available for raffle)_               | _none_                                                     |
 | `accounts.*.description`         | Description of the account.                                                 | _none_                                                     |
 | `accounts.*.thumbnail`           | Name of PNG/JPEG thumbnail to use; 256×256 pixels recommended. _(optional)_ | _none_                                                     |
-| `accounts.*.is-also-email`       | Does the account match an email address? _(optional)_                       | `false`                                                    |
-| `accounts.*.comment-allowed`     | Maximum length of invoice comment. _(optional)_                             | `0`                                                        |
+| `accounts.*.is-also-email`       | Does the account match an email address?                                    | `false`                                                    |
+| `accounts.*.comment-allowed`     | Maximum length of invoice comment.                                          | `0`                                                        |
 | `accounts.*.raffle`              | Raffle configuration. _(optional)_                                          | _none_                                                     |
 | `accounts.*.raffle.ticket-price` | Price of a ticket in sats.                                                  | _none_                                                     |
 | `accounts.*.raffle.prizes`       | List of prizes.                                                             | _none_                                                     |
@@ -175,8 +177,9 @@ These allow anyone to purchase as many raffle tickets for the configured price a
 Once enough tickets are sold, i.e. at least the same number as there are prizes, you may start drawing winning tickets
 from the account’s detail page.
 
-To see amount of received sats or raffle for configured accounts, navigate to https://nakamoto.example/ln/accounts.
-You’ll need to authenticate using one of the configured username/password pairs.
+To see amount of received sats or raffle for accessible accounts, navigate to https://nakamoto.example/ln/accounts.
+You’ll need to authenticate using one of the configured username/password pairs. Account stats, QR code and/or payment
+terminal are accessible from the account’s detail page.
 
 **The raffle is stateless so refreshing its page restarts the draw and may produce different winning tickets!**
 

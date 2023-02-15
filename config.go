@@ -27,13 +27,21 @@ func (config *Config) isUserAuthorized(context *gin.Context, accountKey string) 
 }
 
 type Account struct {
-	MaxSendable    uint32 `yaml:"max-sendable"`
-	MinSendable    uint32 `yaml:"min-sendable"`
+	Currency       Currency `yaml:"currency"`
+	MaxSendable    uint32   `yaml:"max-sendable"`
+	MinSendable    uint32   `yaml:"min-sendable"`
 	Description    string
 	Thumbnail      string
 	IsAlsoEmail    bool   `yaml:"is-also-email"`
 	CommentAllowed uint16 `yaml:"comment-allowed"`
 	Raffle         *Raffle
+}
+
+func (account *Account) getCurrency() Currency {
+	if currency := account.Currency; currency != "" {
+		return currency
+	}
+	return EUR
 }
 
 func (account *Account) getMinSendable() int64 {
@@ -109,6 +117,9 @@ func validateAccessControl(config *Config) {
 }
 
 func validateAccount(accountKey string, account *Account) {
+	if !slices.Contains(supportedCurrencies(), account.getCurrency()) {
+		logInvalidAccountValue(accountKey, "currency", account.Currency)
+	}
 	if raffle := account.Raffle; raffle == nil {
 		if account.MaxSendable < 1 {
 			logInvalidAccountValue(accountKey, "max-sendable", account.MaxSendable)

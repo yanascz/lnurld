@@ -3,7 +3,7 @@ package main
 import (
 	"crypto/sha256"
 	"embed"
-	"encoding/hex"
+	"encoding/base64"
 	"flag"
 	"github.com/fiatjaf/go-lnurl"
 	"github.com/gin-gonic/gin"
@@ -14,6 +14,7 @@ import (
 	"path"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -47,15 +48,36 @@ type LnRaffleTicket struct {
 	PaymentHash string `json:"paymentHash"`
 }
 
+type LnTerminal struct {
+	AccountKey string
+	Currency   Currency
+	Title      string
+}
+
+type LnCreateInvoice struct {
+	AccountKey string `json:"accountKey"`
+	Amount     string `json:"amount"`
+}
+
+type LnInvoice struct {
+	PaymentHash string `json:"paymentHash"`
+	QrCode      string `json:"qrCode"`
+}
+
+type LnInvoiceStatus struct {
+	Settled bool `json:"settled"`
+}
+
 var (
 	//go:embed files/static
 	staticFs embed.FS
 	//go:embed files/templates
 	templatesFs embed.FS
 
-	config     *Config
-	repository *Repository
-	lndClient  *LndClient
+	config       *Config
+	repository   *Repository
+	lndClient    *LndClient
+	ratesService *RatesService
 )
 
 func main() {
@@ -68,13 +90,9 @@ func main() {
 	}
 
 	config = loadConfig(configFileName)
-
 	repository = newRepository(config.ThumbnailDir, config.DataDir)
-	if client, err := newLndClient(config.Lnd); err != nil {
-		log.Fatal(err)
-	} else {
-		lndClient = client
-	}
+	lndClient = newLndClient(config.Lnd)
+	ratesService = newRatesService(21 * time.Second)
 
 	lnurld := gin.Default()
 	_ = lnurld.SetTrustedProxies(nil)
@@ -89,6 +107,9 @@ func main() {
 	authorized.GET("/ln/accounts", lnAccountsHandler)
 	authorized.GET("/ln/accounts/:name", lnAccountHandler)
 	authorized.GET("/ln/accounts/:name/raffle", lnAccountRaffleHandler)
+	authorized.GET("/ln/accounts/:name/terminal", lnAccountTerminalHandler)
+	authorized.POST("/ln/invoices", lnInvoicesHandler)
+	authorized.GET("/ln/invoices/:paymentHash", lnInvoiceStatusHandler)
 
 	log.Fatal(lnurld.Run(config.Listen))
 }
@@ -144,21 +165,14 @@ func lnPayHandler(context *gin.Context) {
 	}
 
 	metadataHash := sha256.Sum256([]byte(lnurlMetadata.Encode()))
-	invoice, err := lndClient.createInvoice(msats, comment, metadataHash[:])
-	if err != nil {
-		log.Println("Error creating invoice:", err)
-		context.JSON(http.StatusInternalServerError, lnurl.ErrorResponse("Error creating invoice"))
-		return
-	}
-	if err := repository.storePaymentHash(accountKey, invoice.paymentHash); err != nil {
-		log.Println("Error storing payment hash:", err)
-		context.JSON(http.StatusInternalServerError, lnurl.ErrorResponse("Error storing payment hash"))
+	invoice := createInvoice(context, accountKey, msats, comment, metadataHash[:])
+	if invoice == nil {
 		return
 	}
 
 	successMessage := "Thanks, payment received!"
 	if account.Raffle != nil {
-		successMessage = "Ticket " + invoice.ticket()
+		successMessage = "Ticket " + invoice.getTicketNumber()
 	}
 
 	context.JSON(http.StatusOK, lnurl.LNURLPayValues{
@@ -190,15 +204,8 @@ func lnPayQrCodeHandler(context *gin.Context) {
 		return
 	}
 
-	var thumbnail *Thumbnail
-	if account.Thumbnail != "" {
-		thumbnail, err = repository.loadThumbnail(account.Thumbnail)
-		if err != nil {
-			log.Println("Thumbnail not readable:", err)
-		}
-	}
-
-	pngData, err := encodeQrCode("lightning:"+encodedLnUrl, thumbnail, int(size))
+	thumbnail := getAccountThumbnail(account)
+	pngData, err := encodeQrCode(encodedLnUrl, thumbnail, int(size), false)
 	if err != nil {
 		log.Println("Error creating QR code:", err)
 		context.String(http.StatusInternalServerError, "500 internal server error")
@@ -296,9 +303,9 @@ func lnAccountRaffleHandler(context *gin.Context) {
 	for _, paymentHash := range paymentHashes {
 		invoice, err := lndClient.getInvoice(paymentHash)
 		if err == nil && invoice.isSettled() {
-			paymentHash := hex.EncodeToString(invoice.paymentHash)
+			paymentHash := invoice.getPaymentHash()
 			drawnTickets = append(drawnTickets, LnRaffleTicket{
-				Number:      invoice.ticket(),
+				Number:      invoice.getTicketNumber(),
 				PaymentHash: paymentHash[0:5] + "…" + paymentHash[59:],
 			})
 		}
@@ -312,6 +319,77 @@ func lnAccountRaffleHandler(context *gin.Context) {
 	context.HTML(http.StatusOK, "raffle.gohtml", LnRaffle{
 		Prizes:       account.Raffle.Prizes,
 		DrawnTickets: drawnTickets,
+	})
+}
+
+func lnAccountTerminalHandler(context *gin.Context) {
+	accountKey, account := getAccount(context)
+	if accountKey == "" {
+		return
+	}
+	if !config.isUserAuthorized(context, accountKey) || account.Raffle != nil {
+		context.String(http.StatusNotFound, "404 page not found")
+		return
+	}
+
+	context.HTML(http.StatusOK, "terminal.gohtml", LnTerminal{
+		AccountKey: accountKey,
+		Currency:   account.getCurrency(),
+		Title:      account.Description,
+	})
+}
+
+func lnInvoicesHandler(context *gin.Context) {
+	var createRequest LnCreateInvoice
+	if err := context.BindJSON(&createRequest); err != nil {
+		context.String(http.StatusBadRequest, "400 bad request")
+		return
+	}
+
+	accountKey := createRequest.AccountKey
+	account, accountExists := config.Accounts[accountKey]
+	if !accountExists || !config.isUserAuthorized(context, accountKey) {
+		context.String(http.StatusBadRequest, "400 bad request")
+		return
+	}
+
+	amount, err := strconv.ParseFloat(createRequest.Amount, 32)
+	if err != nil || amount <= 0 || amount >= 1_000_000 {
+		log.Println("Invalid amount:", amount)
+		context.String(http.StatusBadRequest, "400 bad request")
+		return
+	}
+
+	msats := msats(ratesService.fiatToSats(account.getCurrency(), amount))
+	invoice := createInvoice(context, accountKey, msats, "", []byte{})
+	if invoice == nil {
+		return
+	}
+
+	thumbnail := getAccountThumbnail(&account)
+	pngData, err := encodeQrCode(strings.ToUpper(invoice.paymentRequest), thumbnail, 1280, true)
+	if err != nil {
+		log.Println("Error creating QR code:", err)
+		context.String(http.StatusInternalServerError, "500 internal server error")
+		return
+	}
+
+	context.JSON(http.StatusOK, LnInvoice{
+		PaymentHash: invoice.getPaymentHash(),
+		QrCode:      "image/png;base64," + base64.StdEncoding.EncodeToString(pngData),
+	})
+}
+
+func lnInvoiceStatusHandler(context *gin.Context) {
+	paymentHash := context.Param("paymentHash")
+	invoice, err := lndClient.getInvoice(paymentHash)
+	if err != nil {
+		context.String(http.StatusNotFound, "404 page not found")
+		return
+	}
+
+	context.JSON(http.StatusOK, LnInvoiceStatus{
+		Settled: invoice.isSettled(),
 	})
 }
 
@@ -338,4 +416,39 @@ func getSchemeAndHost(context *gin.Context) (string, string) {
 	}
 
 	return scheme, host
+}
+
+func getAccountThumbnail(account *Account) *Thumbnail {
+	if account.Thumbnail == "" {
+		return nil
+	}
+
+	thumbnail, err := repository.loadThumbnail(account.Thumbnail)
+	if err != nil {
+		log.Println("Thumbnail not readable:", err)
+	}
+
+	return thumbnail
+}
+
+func createInvoice(context *gin.Context, accountKey string, msats int64, comment string, descriptionHash []byte) *Invoice {
+	if msats == 0 {
+		log.Println("Zero invoice requested")
+		context.JSON(http.StatusInternalServerError, lnurl.ErrorResponse("Internal server error"))
+		return nil
+	}
+
+	invoice, err := lndClient.createInvoice(msats, comment, descriptionHash)
+	if err != nil {
+		log.Println("Error creating invoice:", err)
+		context.JSON(http.StatusInternalServerError, lnurl.ErrorResponse("Error creating invoice"))
+		return nil
+	}
+	if err := repository.storePaymentHash(accountKey, invoice.getPaymentHash()); err != nil {
+		log.Println("Error storing payment hash:", err)
+		context.JSON(http.StatusInternalServerError, lnurl.ErrorResponse("Error storing payment hash"))
+		return nil
+	}
+
+	return invoice
 }

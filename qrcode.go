@@ -13,11 +13,12 @@ import (
 //go:embed files/lightning.png
 var lightningPngData []byte
 
-func encodeQrCode(content string, thumbnail *Thumbnail, size int) ([]byte, error) {
-	qrCode, err := qrcode.New(content, qrcode.Medium)
+func encodeQrCode(content string, thumbnail *Thumbnail, size int, disableBorder bool) ([]byte, error) {
+	qrCode, err := qrcode.New("lightning:"+content, qrcode.Medium)
 	if err != nil {
 		return nil, err
 	}
+	qrCode.DisableBorder = disableBorder
 
 	thumbnailData := lightningPngData
 	if thumbnail != nil {

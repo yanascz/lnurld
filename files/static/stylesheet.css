@@ -1,5 +1,6 @@
 * {
     margin: 0;
+    touch-action: manipulation;
     font-family: system-ui, sans-serif;
 }
 

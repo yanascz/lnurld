@@ -1,0 +1,130 @@
+* {
+    touch-action: manipulation;
+    font-family: system-ui, sans-serif;
+}
+
+div#terminal {
+    max-width: 420px;
+    margin: auto;
+}
+
+div#currency {
+    margin: 3vh 0 0 0;
+    font-size: 3vh;
+    font-weight: bold;
+    text-align: center;
+    text-transform: uppercase;
+    color: darkgray;
+}
+
+div#amount {
+    margin: 0 0 4vh 0;
+    font-size: 8vh;
+    font-weight: bold;
+    text-align: center;
+}
+
+div#amount span {
+    color: darkgray;
+}
+
+div#keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-gap: 2px;
+}
+
+div#keypad button {
+    font-weight: bold;
+}
+
+div#controls {
+    margin: 2vw 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-gap: 2px;
+}
+
+button {
+    border: none;
+    border-radius: .5vh;
+    background-color: darkgray;
+    padding: 2.5vh 0;
+    font-size: 4vh;
+    font-weight: bold;
+    text-align: center;
+    color: white;
+}
+
+button.zero {
+    grid-column: 1 / span 2;
+}
+
+button#clear {
+    background-color: orangered;
+}
+
+button#delete {
+    background-color: orange;
+}
+
+button#charge {
+    background-color: green;
+}
+
+button:disabled {
+    touch-action: manipulation;
+    opacity: .5;
+}
+
+div#loading {
+    text-align: center;
+    font-size: 4vh;
+    color: green;
+}
+
+div#failure {
+    text-align: center;
+    font-size: 4vh;
+    color: orangered;
+}
+
+div#payment {
+    position: relative;
+    max-width: 420px;
+    margin: auto;
+}
+
+div#payment img {
+    max-width: 100%;
+    height: auto;
+}
+
+div#success {
+    visibility: hidden;
+    position: absolute;
+    top: 10%;
+    left: 10%;
+    width: 80%;
+    height: 80%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    background-color: green;
+    font-size: 32vh;
+    font-weight: bold;
+    color: white;
+    opacity: .97;
+}
+
+footer {
+    margin-top: 4vh;
+    text-align: center;
+    font-size: 3vh;
+    color: darkgray;
+}
+
+footer span {
+    font-family: sans-serif;
+}

@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"encoding/hex"
 	"fmt"
 	"log"
 	"net/http"
@@ -44,7 +43,7 @@ func (repository *Repository) loadThumbnail(fileName string) (*Thumbnail, error)
 	}, nil
 }
 
-func (repository *Repository) storePaymentHash(accountKey string, paymentHash []byte) error {
+func (repository *Repository) storePaymentHash(accountKey string, paymentHash string) error {
 	fileName := repository.accountStorageFileName(accountKey)
 	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
@@ -52,7 +51,7 @@ func (repository *Repository) storePaymentHash(accountKey string, paymentHash []
 	}
 	defer file.Close()
 
-	line := hex.EncodeToString(paymentHash) + "\n"
+	line := paymentHash + "\n"
 	if _, err = file.WriteString(line); err != nil {
 		return err
 	}

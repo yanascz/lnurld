@@ -3,13 +3,13 @@ package main
 import (
 	"context"
 	"encoding/hex"
-	"fmt"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lightningnetwork/lnd/macaroons"
 	"github.com/mr-tron/base58"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"gopkg.in/macaroon.v2"
+	"log"
 	"os"
 	"time"
 )
@@ -28,12 +28,16 @@ type Invoice struct {
 	memo           string
 }
 
-func (invoice *Invoice) isSettled() bool {
-	return !invoice.settleDate.IsZero()
+func (invoice *Invoice) getPaymentHash() string {
+	return hex.EncodeToString(invoice.paymentHash)
 }
 
-func (invoice *Invoice) ticket() string {
+func (invoice *Invoice) getTicketNumber() string {
 	return base58.Encode(invoice.paymentHash)[0:5]
+}
+
+func (invoice *Invoice) isSettled() bool {
+	return !invoice.settleDate.IsZero()
 }
 
 type LndClient struct {
@@ -41,30 +45,30 @@ type LndClient struct {
 	ctx      context.Context
 }
 
-func newLndClient(config LndConfig) (*LndClient, error) {
+func newLndClient(config LndConfig) *LndClient {
 	if config.CertFile == "" {
-		return nil, fmt.Errorf("LND certificate file missing")
+		log.Fatal("LND certificate file missing")
 	}
 	if config.MacaroonFile == "" {
-		return nil, fmt.Errorf("LND macaroon file missing")
+		log.Fatal("LND macaroon file missing")
 	}
 
 	transportCredentials, err := credentials.NewClientTLSFromFile(config.CertFile, "")
 	if err != nil {
-		return nil, err
+		log.Fatal(err)
 	}
 
 	macaroonData, err := os.ReadFile(config.MacaroonFile)
 	if err != nil {
-		return nil, err
+		log.Fatal(err)
 	}
 	macaroonInstance := &macaroon.Macaroon{}
 	if err := macaroonInstance.UnmarshalBinary(macaroonData); err != nil {
-		return nil, err
+		log.Fatal(err)
 	}
 	macaroonCredentials, err := macaroons.NewMacaroonCredential(macaroonInstance)
 	if err != nil {
-		return nil, err
+		log.Fatal(err)
 	}
 
 	connection, err := grpc.Dial(config.Address,
@@ -72,13 +76,13 @@ func newLndClient(config LndConfig) (*LndClient, error) {
 		grpc.WithPerRPCCredentials(macaroonCredentials),
 	)
 	if err != nil {
-		return nil, err
+		log.Fatal(err)
 	}
 
 	return &LndClient{
 		lnClient: lnrpc.NewLightningClient(connection),
 		ctx:      context.Background(),
-	}, nil
+	}
 }
 
 func (client *LndClient) createInvoice(msats int64, memo string, descriptionHash []byte) (*Invoice, error) {
@@ -86,6 +90,7 @@ func (client *LndClient) createInvoice(msats int64, memo string, descriptionHash
 		Memo:            memo,
 		DescriptionHash: descriptionHash,
 		ValueMsat:       msats,
+		Expiry:          300,
 	}
 
 	newLnInvoice, err := client.lnClient.AddInvoice(client.ctx, &lnInvoice)

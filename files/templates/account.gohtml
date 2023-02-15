@@ -21,6 +21,9 @@
 </ul>
 <div class="buttons">
     <button onclick="location.href='/ln/pay/{{.AccountKey}}/qr-code?size=1280'">QR Code</button>
+    {{if not .Raffle}}
+        <button onclick="location.href='/ln/accounts/{{.AccountKey}}/terminal'">Terminal</button>
+    {{end}}
 </div>
 
 {{if .Raffle}}

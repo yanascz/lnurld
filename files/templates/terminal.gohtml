@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <link rel="stylesheet" media="all" href="/ln/static/terminal.css">
+
+    <title>{{.Title}}</title>
+
+</head>
+<body>
+
+<div id="currency">{{.Currency}}</div>
+<div id="amount">0</div>
+
+<div id="terminal">
+    <div id="keypad">
+        <button>1</button>
+        <button>2</button>
+        <button>3</button>
+        <button>4</button>
+        <button>5</button>
+        <button>6</button>
+        <button>7</button>
+        <button>8</button>
+        <button>9</button>
+        <button class="zero">0</button>
+        <button>.</button>
+    </div>
+    <div id="controls">
+        <button id="clear">✗</button>
+        <button id="delete">◁</button>
+        <button id="charge" disabled>✓</button>
+    </div>
+</div>
+
+<div id="loading" hidden>Creating invoice…</div>
+<div id="failure" hidden>Something went wrong!</div>
+
+<div id="payment" hidden>
+    <img id="invoice" src="" alt="LN invoice">
+    <div id="success">✓</div>
+</div>
+
+<footer>{{.Title}} <span>⚡</span>Terminal</footer>
+
+<script>
+    const zero = '0'
+    const decimalSeparator = '.'
+    const maxIntegerDigits = 6
+    const maxDecimalDigits = 2
+
+    const amountDiv = element('amount')
+    const keypadDiv = element('keypad')
+    const clearButton = element('clear')
+    const deleteButton = element('delete')
+    const chargeButton = element('charge')
+    const loadingDiv = element('loading')
+
+    for (const key of keypadDiv.children) {
+        key.onclick = () => appendDigit(key.innerText)
+    }
+    keypadDiv.lastElementChild.onclick = appendDecimalSeparator
+    clearButton.onclick = clearAmount
+    deleteButton.onclick = deleteDigit
+    chargeButton.onclick = createInvoice
+
+    let amount = zero
+    let paymentHash
+
+    function appendDigit(digit) {
+        setAmount(amount === zero ? digit : amount + digit)
+    }
+
+    function appendDecimalSeparator() {
+        if (!amount.includes(decimalSeparator)) {
+            setAmount(amount + decimalSeparator)
+        }
+    }
+
+    function clearAmount() {
+        setAmount(zero)
+    }
+
+    function deleteDigit() {
+        setAmount(amount.slice(0, -1) || zero)
+    }
+
+    function setAmount(newAmount) {
+        const [integerPart, decimalPart] = newAmount.split(decimalSeparator)
+        if (integerPart.length > maxIntegerDigits || (decimalPart || '').length > maxDecimalDigits) {
+            return
+        }
+        amount = newAmount
+        amountDiv.innerHTML = amount
+        if (decimalPart !== undefined) {
+            amountDiv.innerHTML += `<span>${zero.repeat(maxDecimalDigits - decimalPart.length)}<span>`
+        }
+        chargeButton.disabled = !(amount > 0)
+    }
+
+    function createInvoice() {
+        const createRequest = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                accountKey: {{.AccountKey}},
+                amount: amount
+            })
+        }
+        fetch('/ln/invoices', createRequest)
+            .then(response => {
+                if (response.ok) {
+                    return response.json()
+                }
+                return Promise.reject(response)
+            })
+            .then(invoice => {
+                paymentHash = invoice.paymentHash
+                element('invoice').src = `data:${invoice.qrCode}`
+                element('payment').hidden = false
+                loadingDiv.hidden = true
+                awaitSettlement()
+            })
+            .catch(() => {
+                loadingDiv.hidden = true
+                element('failure').hidden = false
+            })
+        element('terminal').hidden = true
+        loadingDiv.hidden = false
+    }
+
+    function awaitSettlement() {
+        fetch(`/ln/invoices/${paymentHash}`)
+            .then(response => response.json())
+            .then(invoice => {
+                if (invoice.settled) {
+                    element('success').style.visibility = 'visible'
+                    setTimeout(() => document.location.reload(), 8000)
+                } else {
+                    setTimeout(awaitSettlement, 1000)
+                }
+            })
+    }
+
+    function element(elementId) {
+        return document.getElementById(elementId)
+    }
+</script>
+
+</body>
+</html>
