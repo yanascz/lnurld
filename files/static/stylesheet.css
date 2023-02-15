@@ -1,15 +1,6 @@
 * {
     margin: 0;
-    font-family: sans-serif;
-}
-
-@keyframes appear {
-    from {
-        opacity: 0
-    }
-    to {
-        opacity: 1
-    }
+    font-family: system-ui, sans-serif;
 }
 
 body {
@@ -18,7 +9,6 @@ body {
     align-items: center;
     margin: 0 2em 4em;
     background-color: #fde8ce;
-    animation: appear 1s;
 }
 
 h1 {
@@ -33,6 +23,11 @@ h2 {
 
 h2#ticket {
     font-size: 4em;
+}
+
+h1 span,
+h2 span {
+    font-family: sans-serif;
 }
 
 p {
@@ -56,7 +51,7 @@ ul.comments {
 }
 
 ul li {
-    margin-bottom: .5em;
+    margin-bottom: .4em;
 }
 
 a {
@@ -74,8 +69,8 @@ div.buttons button {
     border: none;
     border-radius: .5em;
     padding: .5em 1em;
-    background-color: #999999;
-    color: #ffffff;
+    background-color: gray;
+    color: white;
     font-size: 1.5em;
     font-weight: bold;
     cursor: pointer;

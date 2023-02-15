@@ -12,7 +12,7 @@
 </head>
 <body>
 
-<h1>⛺️ {{.AccountKey}}</h1>
+<h1><span>⛺</span>️ {{.AccountKey}}</h1>
 
 <ul>
     <li><strong>{{number .InvoicesIssued}}</strong> invoice{{if ne .InvoicesIssued 1}}s{{end}} issued</li>
@@ -24,7 +24,7 @@
 </div>
 
 {{if .Raffle}}
-    <h2>⚡Raffle</h2>
+    <h2><span>⚡</span>Raffle</h2>
     {{with .Raffle}}
         <ul>
             <li><strong>{{number .TicketPrice}}</strong> sats per ticket</li>
