@@ -15,6 +15,7 @@
 <h1><span>⚡</span>Raffle Draw</h1>
 
 <h2 id="ticket">???</h2>
+<p id="payment-hash">?</p>
 <p id="prize">???</p>
 
 <div class="buttons raffle">
@@ -26,8 +27,9 @@
     const prizes = {{.Prizes}}
     const drawnTickets = {{.DrawnTickets}}
 
-    const prizeElement = document.getElementById("prize")
     const ticketElement = document.getElementById("ticket")
+    const paymentHashElement = document.getElementById("payment-hash")
+    const prizeElement = document.getElementById("prize")
     const nextPrizeButton = document.getElementById("next-prize")
     const nextTicketButton = document.getElementById("next-ticket")
 
@@ -41,7 +43,9 @@
     }
 
     function nextTicket() {
-        ticketElement.innerText = drawnTickets.shift()
+        const ticket = drawnTickets.shift();
+        ticketElement.innerText = ticket.number
+        paymentHashElement.innerText = ticket.paymentHash
         disableAndHide(nextPrizeButton, prizes.length === 0 || drawnTickets.length === 0)
         disableAndHide(nextTicketButton, drawnTickets.length === 0)
     }

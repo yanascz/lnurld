@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/sha256"
 	"embed"
+	"encoding/hex"
 	"flag"
 	"github.com/fiatjaf/go-lnurl"
 	"github.com/gin-gonic/gin"
@@ -38,7 +39,12 @@ type LnAccountComment struct {
 
 type LnRaffle struct {
 	Prizes       []string
-	DrawnTickets []string
+	DrawnTickets []LnRaffleTicket
+}
+
+type LnRaffleTicket struct {
+	Number      string `json:"number"`
+	PaymentHash string `json:"paymentHash"`
 }
 
 var (
@@ -286,11 +292,15 @@ func lnAccountRaffleHandler(context *gin.Context) {
 		paymentHashes[i], paymentHashes[j] = paymentHashes[j], paymentHashes[i]
 	})
 
-	var drawnTickets []string
+	var drawnTickets []LnRaffleTicket
 	for _, paymentHash := range paymentHashes {
 		invoice, err := lndClient.getInvoice(paymentHash)
 		if err == nil && invoice.isSettled() {
-			drawnTickets = append(drawnTickets, invoice.ticket())
+			paymentHash := hex.EncodeToString(invoice.paymentHash)
+			drawnTickets = append(drawnTickets, LnRaffleTicket{
+				Number:      invoice.ticket(),
+				PaymentHash: paymentHash[0:5] + "…" + paymentHash[59:],
+			})
 		}
 	}
 

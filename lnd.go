@@ -33,7 +33,7 @@ func (invoice *Invoice) isSettled() bool {
 }
 
 func (invoice *Invoice) ticket() string {
-	return base58.Encode(invoice.paymentHash)[0:7]
+	return base58.Encode(invoice.paymentHash)[0:5]
 }
 
 type LndClient struct {

@@ -35,6 +35,12 @@ p {
     font-size: 2em;
 }
 
+p#payment-hash {
+    margin-top: .4em;
+    font-size: 1.5em;
+    color: gray;
+}
+
 ul {
     margin-top: 1em;
     padding: 0;
