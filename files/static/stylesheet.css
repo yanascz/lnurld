@@ -90,3 +90,7 @@ div.buttons button:first-child {
 div.raffle {
     margin-top: 3em;
 }
+
+footer {
+    color: gray;
+}

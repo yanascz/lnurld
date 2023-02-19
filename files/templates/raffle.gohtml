@@ -23,19 +23,23 @@
     <button id="next-ticket" accesskey="t">Next ticket</button>
 </div>
 
+<footer id="tickets"></footer>
+
 <script>
     const prizes = {{.Prizes}}
     const drawnTickets = {{.DrawnTickets}}
 
-    const ticketElement = document.getElementById("ticket")
-    const paymentHashElement = document.getElementById("payment-hash")
-    const prizeElement = document.getElementById("prize")
-    const nextPrizeButton = document.getElementById("next-prize")
-    const nextTicketButton = document.getElementById("next-ticket")
+    const ticketElement = element('ticket')
+    const paymentHashElement = element('payment-hash')
+    const prizeElement = element('prize')
+    const nextPrizeButton = element('next-prize')
+    const nextTicketButton = element('next-ticket')
+    const ticketsElement = element('tickets')
 
     nextPrizeButton.onclick = nextPrize
     nextTicketButton.onclick = nextTicket
     disableAndHide(nextTicketButton, true)
+    updateTickets()
 
     function nextPrize() {
         prizeElement.innerText = prizes.pop()
@@ -48,11 +52,21 @@
         paymentHashElement.innerText = ticket.paymentHash
         disableAndHide(nextPrizeButton, prizes.length === 0 || drawnTickets.length === 0)
         disableAndHide(nextTicketButton, drawnTickets.length === 0)
+        updateTickets()
     }
 
     function disableAndHide(element, disabledAndHidden) {
         element.disabled = disabledAndHidden
         element.hidden = disabledAndHidden
+    }
+
+    function updateTickets() {
+        const tickets = drawnTickets.length
+        ticketsElement.innerText = tickets ? `${tickets} ticket${tickets !== 1 ? 's' : ''}` : ''
+    }
+
+    function element(elementId) {
+        return document.getElementById(elementId)
     }
 </script>
 
