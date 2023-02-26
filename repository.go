@@ -63,7 +63,9 @@ func (repository *Repository) loadPaymentHashes(accountKey string) []string {
 	fileName := repository.accountStorageFileName(accountKey)
 	file, err := os.OpenFile(fileName, os.O_RDONLY, 0)
 	if err != nil {
-		log.Println("Error loading payment hashes:", err)
+		if !os.IsNotExist(err) {
+			log.Println("Error loading payment hashes:", err)
+		}
 		return []string{}
 	}
 	defer file.Close()
