@@ -28,7 +28,7 @@ func supportedCurrencies() []Currency {
 
 type RatesService struct {
 	currencies string
-	rates      map[Currency]int
+	rates      map[Currency]float64
 }
 
 func newRatesService(refreshPeriod time.Duration) *RatesService {
@@ -65,7 +65,7 @@ func (service *RatesService) fetchRates() error {
 	bodyBytes, _ := io.ReadAll(response.Body)
 
 	var ratesResponse struct {
-		Bitcoin map[Currency]int `json:"bitcoin"`
+		Bitcoin map[Currency]float64 `json:"bitcoin"`
 	}
 	if err := json.Unmarshal(bodyBytes, &ratesResponse); err != nil {
 		return err
@@ -76,7 +76,7 @@ func (service *RatesService) fetchRates() error {
 }
 
 func (service *RatesService) fiatToSats(currency Currency, amount float64) uint32 {
-	exchangeRate := float64(service.rates[currency])
+	exchangeRate := service.rates[currency]
 	sats := math.Round(satsPerBitcoin / exchangeRate * amount)
 
 	return uint32(sats)
