@@ -20,9 +20,11 @@ import (
 
 type LnAccount struct {
 	AccountKey        string
+	Currency          Currency
 	InvoicesIssued    int
 	InvoicesSettled   int
 	TotalSatsReceived int64
+	TotalFiatReceived float64
 	Raffle            *LnAccountRaffle
 	Comments          []LnAccountComment
 }
@@ -276,9 +278,11 @@ func lnAccountHandler(context *gin.Context) {
 
 	context.HTML(http.StatusOK, "account.gohtml", LnAccount{
 		AccountKey:        accountKey,
+		Currency:          account.getCurrency(),
 		InvoicesIssued:    len(paymentHashes),
 		InvoicesSettled:   invoicesSettled,
 		TotalSatsReceived: totalSatsReceived,
+		TotalFiatReceived: ratesService.satsToFiat(account.getCurrency(), totalSatsReceived),
 		Raffle:            lnAccountRaffle,
 		Comments:          comments,
 	})

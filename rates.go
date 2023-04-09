@@ -81,3 +81,10 @@ func (service *RatesService) fiatToSats(currency Currency, amount float64) uint3
 
 	return uint32(sats)
 }
+
+func (service *RatesService) satsToFiat(currency Currency, sats int64) float64 {
+	exchangeRate := service.rates[currency]
+	amount := float64(sats) * exchangeRate / satsPerBitcoin
+
+	return amount
+}

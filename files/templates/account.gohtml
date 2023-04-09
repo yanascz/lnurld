@@ -14,11 +14,16 @@
 
 <h1><span>⛺</span>️ {{.AccountKey}}</h1>
 
+<div id="balance">
+    <h2><strong>{{number .TotalSatsReceived}}</strong> sat{{if ne .TotalSatsReceived 1}}s{{end}}</h2>
+    <p><strong>{{decimal .TotalFiatReceived}}</strong> {{.Currency}}</p>
+</div>
+
 <ul>
     <li><strong>{{number .InvoicesIssued}}</strong> invoice{{if ne .InvoicesIssued 1}}s{{end}} issued</li>
     <li><strong>{{number .InvoicesSettled}}</strong> invoice{{if ne .InvoicesSettled 1}}s{{end}} settled</li>
-    <li><strong>{{number .TotalSatsReceived}}</strong> sat{{if ne .TotalSatsReceived 1}}s{{end}} received</li>
 </ul>
+
 <div class="buttons">
     <button onclick="location.href='/ln/pay/{{.AccountKey}}/qr-code?size=1280'">QR Code</button>
     {{if not .Raffle}}

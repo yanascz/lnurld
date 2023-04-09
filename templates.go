@@ -15,6 +15,9 @@ func loadTemplates(engine *gin.Engine, pattern string) {
 		"number": func(number any) string {
 			return printer.Sprintf("%v", number)
 		},
+		"decimal": func(number any) string {
+			return printer.Sprintf("%.2f", number)
+		},
 		"date": func(date time.Time) string {
 			return date.Format("02/01/2006")
 		},

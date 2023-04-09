@@ -65,6 +65,23 @@ a {
     color: #f7931a;
 }
 
+div#balance {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+div#balance h2 {
+    font-weight: normal;
+}
+
+div#balance p {
+    margin-top: .4em;
+    font-size: 1.5em;
+    text-transform: uppercase;
+    color: gray;
+}
+
 div.buttons {
     display: flex;
     flex-direction: column;
