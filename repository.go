@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 type Thumbnail struct {
@@ -44,15 +45,15 @@ func (repository *Repository) loadThumbnail(fileName string) (*Thumbnail, error)
 }
 
 func (repository *Repository) storePaymentHash(accountKey string, paymentHash string) error {
-	fileName := repository.accountStorageFileName(accountKey)
-	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	storageFileName := repository.accountStorageFileName(accountKey)
+	storage, err := os.OpenFile(storageFileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer storage.Close()
 
 	line := paymentHash + "\n"
-	if _, err = file.WriteString(line); err != nil {
+	if _, err = storage.WriteString(line); err != nil {
 		return err
 	}
 
@@ -60,22 +61,29 @@ func (repository *Repository) storePaymentHash(accountKey string, paymentHash st
 }
 
 func (repository *Repository) loadPaymentHashes(accountKey string) []string {
-	fileName := repository.accountStorageFileName(accountKey)
-	file, err := os.OpenFile(fileName, os.O_RDONLY, 0)
+	storageFileName := repository.accountStorageFileName(accountKey)
+	storage, err := os.OpenFile(storageFileName, os.O_RDONLY, 0)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			log.Println("Error loading payment hashes:", err)
 		}
 		return []string{}
 	}
-	defer file.Close()
+	defer storage.Close()
 
 	var paymentHashes []string
-	for scanner := bufio.NewScanner(file); scanner.Scan(); {
+	for scanner := bufio.NewScanner(storage); scanner.Scan(); {
 		paymentHashes = append(paymentHashes, scanner.Text())
 	}
 
 	return paymentHashes
+}
+
+func (repository *Repository) archiveStorageFile(accountKey string) error {
+	storageFileName := repository.accountStorageFileName(accountKey)
+	archiveFileName := storageFileName + "." + time.Now().Format("20060102150405")
+
+	return os.Rename(storageFileName, archiveFileName)
 }
 
 func (repository *Repository) accountStorageFileName(accountKey string) string {

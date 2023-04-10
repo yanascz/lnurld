@@ -87,6 +87,7 @@ Available configuration properties:
 | `accounts.*.thumbnail`           | Name of PNG/JPEG thumbnail to use; 256×256 pixels recommended. _(optional)_ | _none_                                                     |
 | `accounts.*.is-also-email`       | Does the account match an email address?                                    | `false`                                                    |
 | `accounts.*.comment-allowed`     | Maximum length of invoice comment.                                          | `0`                                                        |
+| `accounts.*.archivable`          | May the account storage file be archived on demand?                         | `false`                                                    |
 | `accounts.*.raffle`              | Raffle configuration. _(optional)_                                          | _none_                                                     |
 | `accounts.*.raffle.ticket-price` | Price of a ticket in sats.                                                  | _none_                                                     |
 | `accounts.*.raffle.prizes`       | List of prizes.                                                             | _none_                                                     |

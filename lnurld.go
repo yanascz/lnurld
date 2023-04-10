@@ -25,6 +25,7 @@ type LnAccount struct {
 	InvoicesSettled   int
 	TotalSatsReceived int64
 	TotalFiatReceived float64
+	Archivable        bool
 	Raffle            *LnAccountRaffle
 	Comments          []LnAccountComment
 }
@@ -110,6 +111,7 @@ func main() {
 	authorized.GET("/ln/accounts/:name", lnAccountHandler)
 	authorized.GET("/ln/accounts/:name/raffle", lnAccountRaffleHandler)
 	authorized.GET("/ln/accounts/:name/terminal", lnAccountTerminalHandler)
+	authorized.POST("/ln/accounts/:name/archive", lnAccountArchiveHandler)
 	authorized.POST("/ln/invoices", lnInvoicesHandler)
 	authorized.GET("/ln/invoices/:paymentHash", lnInvoiceStatusHandler)
 
@@ -283,6 +285,7 @@ func lnAccountHandler(context *gin.Context) {
 		InvoicesSettled:   invoicesSettled,
 		TotalSatsReceived: totalSatsReceived,
 		TotalFiatReceived: ratesService.satsToFiat(account.getCurrency(), totalSatsReceived),
+		Archivable:        account.Archivable && invoicesSettled > 0,
 		Raffle:            lnAccountRaffle,
 		Comments:          comments,
 	})
@@ -341,6 +344,26 @@ func lnAccountTerminalHandler(context *gin.Context) {
 		Currency:   account.getCurrency(),
 		Title:      account.Description,
 	})
+}
+
+func lnAccountArchiveHandler(context *gin.Context) {
+	accountKey, account := getAccount(context)
+	if accountKey == "" {
+		return
+	}
+	if !config.isUserAuthorized(context, accountKey) || !account.Archivable {
+		context.String(http.StatusNotFound, "404 page not found")
+		return
+	}
+
+	err := repository.archiveStorageFile(accountKey)
+	if err != nil {
+		log.Println("Error archiving storage file:", err)
+		context.String(http.StatusInternalServerError, "500 internal server error")
+		return
+	}
+
+	context.Status(http.StatusNoContent)
 }
 
 func lnInvoicesHandler(context *gin.Context) {

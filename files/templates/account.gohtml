@@ -29,6 +29,9 @@
     {{if not .Raffle}}
         <button onclick="location.href='/ln/accounts/{{.AccountKey}}/terminal'">Terminal</button>
     {{end}}
+    {{if .Archivable}}
+        <button onclick="archive()">Archive</button>
+    {{end}}
 </div>
 
 {{if .Raffle}}
@@ -55,6 +58,23 @@
         </li>
     {{end}}
 </ul>
+
+<script>
+    function archive() {
+        if (!confirm('Really archive account state?')) {
+            return false
+        }
+        const archiveRequest = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+        }
+        fetch('/ln/accounts/{{.AccountKey}}/archive', archiveRequest)
+            .then(() => document.location.reload())
+    }
+</script>
 
 </body>
 </html>

@@ -34,6 +34,7 @@ type Account struct {
 	Thumbnail      string
 	IsAlsoEmail    bool   `yaml:"is-also-email"`
 	CommentAllowed uint16 `yaml:"comment-allowed"`
+	Archivable     bool
 	Raffle         *Raffle
 }
 
