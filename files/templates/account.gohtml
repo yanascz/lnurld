@@ -22,6 +22,9 @@
 <ul>
     <li><strong>{{number .InvoicesIssued}}</strong> invoice{{if ne .InvoicesIssued 1}}s{{end}} issued</li>
     <li><strong>{{number .InvoicesSettled}}</strong> invoice{{if ne .InvoicesSettled 1}}s{{end}} settled</li>
+    {{if not .Raffle}}
+        <li><strong>{{number (len .Comments)}}</strong> comment{{if ne (len .Comments) 1}}s{{end}}</li>
+    {{end}}
 </ul>
 
 <div class="buttons">
@@ -47,17 +50,18 @@
             <button onclick="location.href='/ln/accounts/{{.AccountKey}}/raffle'">Draw</button>
         </div>
     {{end}}
+{{else if gt (len .Comments) 0}}
+    <h2><span>💬</span> Comments</h2>
+    <ul class="comments">
+        {{range .Comments}}
+            <li>
+                <strong>{{number .Amount}}</strong> sat{{if ne .Amount 1}}s{{end}}
+                on <strong>{{date .SettleDate}}</strong>:<br>
+                <em>{{.Comment}}</em>
+            </li>
+        {{end}}
+    </ul>
 {{end}}
-
-<ul class="comments">
-    {{range .Comments}}
-        <li>
-            <strong>{{number .Amount}}</strong> sat{{if ne .Amount 1}}s{{end}}
-            on <strong>{{date .SettleDate}}</strong>:<br>
-            <em>{{.Comment}}</em>
-        </li>
-    {{end}}
-</ul>
 
 <script>
     function archive() {
