@@ -65,7 +65,20 @@ func msats(sats uint32) int64 {
 
 type Raffle struct {
 	TicketPrice uint32 `yaml:"ticket-price"`
-	Prizes      []string
+	Prizes      []map[string]uint8
+}
+
+func (raffle *Raffle) getPrizes() []string {
+	var prizes []string
+	for _, entry := range raffle.Prizes {
+		for prize, quantity := range entry {
+			for i := 0; i < int(quantity); i++ {
+				prizes = append(prizes, prize)
+			}
+			break
+		}
+	}
+	return prizes
 }
 
 func loadConfig(configFileName string) *Config {

@@ -270,7 +270,7 @@ func lnAccountHandler(context *gin.Context) {
 	if raffle := account.Raffle; raffle != nil {
 		lnAccountRaffle = &LnAccountRaffle{
 			TicketPrice: raffle.TicketPrice,
-			PrizesCount: len(raffle.Prizes),
+			PrizesCount: len(raffle.getPrizes()),
 		}
 	} else {
 		sort.Slice(comments, func(i, j int) bool {
@@ -324,7 +324,7 @@ func lnAccountRaffleHandler(context *gin.Context) {
 	}
 
 	context.HTML(http.StatusOK, "raffle.gohtml", LnRaffle{
-		Prizes:       account.Raffle.Prizes,
+		Prizes:       account.Raffle.getPrizes(),
 		DrawnTickets: drawnTickets,
 	})
 }

@@ -59,9 +59,9 @@ accounts:
     raffle:
       ticket-price: 21_000
       prizes:
-        - Trezor Model T
-        - Trezor Model One
-        - Trezor Lanyard
+        - Trezor Model T: 1
+        - Trezor Model One: 2
+        - Trezor Lanyard: 5
 ```
 
 (Create image `raffle.png` in `/etc/lnurld/thumbnails` if you want it served by `lnurld`.)
@@ -90,7 +90,7 @@ Available configuration properties:
 | `accounts.*.archivable`          | May the account storage file be archived on demand?                         | `false`                                                    |
 | `accounts.*.raffle`              | Raffle configuration. _(optional)_                                          | _none_                                                     |
 | `accounts.*.raffle.ticket-price` | Price of a ticket in sats.                                                  | _none_                                                     |
-| `accounts.*.raffle.prizes`       | List of prizes.                                                             | _none_                                                     |
+| `accounts.*.raffle.prizes`       | List of prize/quantity pairs.                                               | _none_                                                     |
 
 If a property is marked as optional or has a default value, you don’t have to specify it explicitly.
 
