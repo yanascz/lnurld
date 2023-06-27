@@ -1,12 +1,14 @@
 package main
 
 import (
+	"crypto/rand"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v3"
 	"log"
 	"os"
 	"strings"
+	"time"
 )
 
 type Config struct {
@@ -17,6 +19,25 @@ type Config struct {
 	Credentials   gin.Accounts
 	AccessControl map[string][]string `yaml:"access-control"`
 	Accounts      map[string]Account
+	Events        map[string]Event
+}
+
+func (config *Config) getCookieKey() []byte {
+	cookieKeyFileName := config.DataDir + ".cookie"
+	cookieKey, err := os.ReadFile(cookieKeyFileName)
+	if err == nil {
+		return cookieKey
+	}
+
+	cookieKey = make([]byte, 32)
+	if _, err := rand.Read(cookieKey); err != nil {
+		log.Fatal(err)
+	}
+	if err := os.WriteFile(cookieKeyFileName, cookieKey, 0400); err != nil {
+		log.Fatal(err)
+	}
+
+	return cookieKey
 }
 
 func (config *Config) isUserAuthorized(context *gin.Context, accountKey string) bool {
@@ -81,6 +102,14 @@ func (raffle *Raffle) getPrizes() []string {
 	return prizes
 }
 
+type Event struct {
+	Title       string
+	DateTime    time.Time
+	Location    string
+	Capacity    uint16
+	Description string
+}
+
 func loadConfig(configFileName string) *Config {
 	config := Config{
 		Listen:       "127.0.0.1:8088",
@@ -101,7 +130,6 @@ func loadConfig(configFileName string) *Config {
 		log.Fatal(err)
 	}
 
-	const pathSeparator = string(os.PathSeparator)
 	if !strings.HasSuffix(config.ThumbnailDir, pathSeparator) {
 		config.ThumbnailDir += pathSeparator
 	}
@@ -112,6 +140,9 @@ func loadConfig(configFileName string) *Config {
 	validateAccessControl(&config)
 	for accountKey, account := range config.Accounts {
 		validateAccount(accountKey, &account)
+	}
+	for eventKey, event := range config.Events {
+		validateEvent(eventKey, &event)
 	}
 
 	return &config
@@ -169,4 +200,23 @@ func logInvalidAccountValue(accountKey string, property string, value any) {
 
 func logInvalidAccountConfig(accountKey string, property string) {
 	log.Fatal("Cannot set accounts.", accountKey, ".", property, " when raffle is enabled")
+}
+
+func validateEvent(eventKey string, event *Event) {
+	if strings.TrimSpace(event.Title) == "" {
+		logMissingEventValue(eventKey, "title")
+	}
+	if event.DateTime.IsZero() {
+		logMissingEventValue(eventKey, "datetime")
+	}
+	if strings.TrimSpace(event.Location) == "" {
+		logMissingEventValue(eventKey, "location")
+	}
+	if strings.TrimSpace(event.Description) == "" {
+		logMissingEventValue(eventKey, "description")
+	}
+}
+
+func logMissingEventValue(eventKey string, property string) {
+	log.Fatal("Missing config value events.", eventKey, ".", property)
 }

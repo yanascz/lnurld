@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:type" content="website"/>
+    <meta property="og:title" content="{{.Title}}"/>
+    <meta property="og:description" content="{{datetime .DateTime}} | {{.Location}}"/>
+
+    <link rel="stylesheet" media="all" href="/ln/static/event.css">
+
+    <title>{{.Title}}</title>
+
+</head>
+<body>
+
+<main>
+    <h1>{{.Title}}</h1>
+    <ul>
+        <li class="datetime">{{datetime .DateTime}}</li>
+        <li class="location">{{.Location}}</li>
+        <li class="attendees{{if .Attending}} attending{{end}}">
+            {{number .Attendees}}{{if .Capacity}} / {{number .Capacity}}{{end}}
+        </li>
+    </ul>
+    <p>{{.Description}}</p>
+    {{if not .Attending}}
+        <div>
+            <button onclick="signUp(this)">Sign up with Lightning</button>
+        </div>
+    {{end}}
+</main>
+
+<footer>
+    {{if .IdentityId}}
+        {{if .Attending}}Signed up{{else}}Logged in{{end}} as {{.IdentityId}}.
+    {{else}}
+        No personal data required.
+    {{end}}
+</footer>
+
+{{if not .Attending}}
+    <dialog id="dialog">
+        <h2>Log in with Lightning</h2>
+        <a id="link" href=""><img id="qrcode" src="" alt="LN auth"></a>
+        <form method="dialog">
+            <button>×</button>
+        </form>
+        <p>Scan or tap the QR code to open it in your Lightning wallet. You can use any wallet that supports LNURL-auth.</p>
+    </dialog>
+
+    <script>
+        let k1
+        let deadline
+
+        function signUp(signUpButton) {
+            if (signUpButton) {
+                signUpButton.disabled = true
+            }
+            post('/ln/events/{{.EventKey}}/sign-up')
+                .then(response => {
+                    if (response.ok) {
+                        document.location.reload()
+                    } else {
+                        initAuth(signUpButton)
+                    }
+                })
+        }
+
+        function initAuth(signUpButton) {
+            post('/ln/auth')
+                .then(response => {
+                    if (signUpButton) {
+                        signUpButton.disabled = false
+                    }
+                    if (response.ok) {
+                        return response.json()
+                    }
+                    return Promise.reject(response)
+                })
+                .then(body => {
+                    k1 = body.k1
+                    deadline = Date.now() + 90000
+                    element('link').href = `lightning:${body.lnUrl}`
+                    element('qrcode').src = `data:${body.qrCode}`
+                    element('dialog').showModal()
+                    awaitSuccess()
+                })
+        }
+
+        function awaitSuccess() {
+            if (Date.now() > deadline) {
+                document.location.reload()
+            }
+            fetch(`/ln/auth/${k1}`)
+                .then(response => {
+                    if (response.ok) {
+                        signUp()
+                    } else if (element('dialog').open) {
+                        setTimeout(awaitSuccess, 1000)
+                    }
+                })
+        }
+
+        function post(uri) {
+            return fetch(uri, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json'
+                },
+            })
+        }
+
+        function element(elementId) {
+            return document.getElementById(elementId)
+        }
+    </script>
+{{end}}
+
+</body>
+</html>

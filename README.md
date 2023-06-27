@@ -8,6 +8,7 @@ You may test it by sending some sats to ⚡lnurld@yanas.cz or by scanning the fo
 ## Supported features
 
 * [LUD-01: Base LNURL encoding](https://github.com/fiatjaf/lnurl-rfc/blob/luds/01.md)
+* [LUD-04: `auth` base spec](https://github.com/fiatjaf/lnurl-rfc/blob/luds/04.md)
 * [LUD-06: `payRequest` base spec](https://github.com/fiatjaf/lnurl-rfc/blob/luds/06.md)
 * [LUD-09: `successAction` field for `payRequest`](https://github.com/fiatjaf/lnurl-rfc/blob/luds/09.md)
 * [LUD-12: Comments in `payRequest`](https://github.com/fiatjaf/lnurl-rfc/blob/luds/12.md)
@@ -15,6 +16,7 @@ You may test it by sending some sats to ⚡lnurld@yanas.cz or by scanning the fo
 * Multiple customizable accounts
 * Lightning Network terminal
 * Lightning Network raffle
+* Events with LNURL-auth sign-up
 
 ## Installation
 
@@ -38,7 +40,7 @@ $ sudo chown bitcoin:bitcoin /etc/lnurld
 $ sudo -u bitcoin vim /etc/lnurld/config.yaml
 ```
 
-Example configuration with one admin, one user with restricted access, one donate account and one raffle account:
+Example configuration with one admin, one user with restricted access, one donate account, one raffle account and one event:
 
 ```yaml
 credentials:
@@ -62,6 +64,12 @@ accounts:
         - Trezor Model T: 1
         - Trezor Model One: 2
         - Trezor Lanyard: 5
+events:
+  pizza-day:
+    title: Bitcoin Pizza Day
+    datetime: 2023-05-22T19:17:00-04:00
+    location: Jacksonville, Florida
+    description: Laszlo Hanyecz made the first documented purchase of a good with BTC.
 ```
 
 (Create image `raffle.png` in `/etc/lnurld/thumbnails` if you want it served by `lnurld`.)
@@ -91,6 +99,12 @@ Available configuration properties:
 | `accounts.*.raffle`              | Raffle configuration. _(optional)_                                          | _none_                                                     |
 | `accounts.*.raffle.ticket-price` | Price of a ticket in sats.                                                  | _none_                                                     |
 | `accounts.*.raffle.prizes`       | List of prize/quantity pairs.                                               | _none_                                                     |
+| `events`                         | Map of events.                                                              | _none_                                                     |
+| `events.*.title`                 | Title of the event.                                                         | _none_                                                     |
+| `events.*.datetime`              | Date and time when the event starts.                                        | _none_                                                     |
+| `events.*.location`              | Location of the event.                                                      | _none_                                                     |
+| `events.*.capacity`              | Capacity of the event.                                                      | `0`_, i.e. no limit_                                       |
+| `events.*.description`           | Brief description of the event.                                             | _none_                                                     |
 
 If a property is marked as optional or has a default value, you don’t have to specify it explicitly.
 
@@ -176,13 +190,15 @@ For a smaller/larger QR code, feel free to append desired size in pixels to the 
 Same applies to ⚡raffle@nakamoto.example and https://nakamoto.example/ln/pay/raffle/qr-code with raffle configured.
 These allow anyone to purchase as many raffle tickets for the configured price as they wish, increasing their chances.
 Once enough tickets are sold, i.e. at least the same number as there are prizes, you may start drawing winning tickets
-from the account’s detail page.
+from the account’s detail page. **The raffle is stateless so refreshing its page restarts the draw and may produce
+different winning tickets!**
 
 To see amount of received sats or raffle for accessible accounts, navigate to https://nakamoto.example/ln/accounts.
 You’ll need to authenticate using one of the configured username/password pairs. Account stats, QR code and/or payment
 terminal are accessible from the account’s detail page.
 
-**The raffle is stateless so refreshing its page restarts the draw and may produce different winning tickets!**
+As for the configured event, you may share https://nakamoto.example/ln/events/pizza-day with your friends, and they
+may sign up to attend the event once they authenticate using their LN wallet.
 
 ## Update
 

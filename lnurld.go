@@ -6,7 +6,10 @@ import (
 	"encoding/base64"
 	"flag"
 	"github.com/fiatjaf/go-lnurl"
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/exp/slices"
 	"log"
 	"math/rand"
 	"net/http"
@@ -17,6 +20,28 @@ import (
 	"strings"
 	"time"
 )
+
+type LnAuthInit struct {
+	K1     string `json:"k1"`
+	LnUrl  string `json:"lnUrl"`
+	QrCode string `json:"qrCode"`
+}
+
+type LnAuthIdentity struct {
+	Identity string `json:"identity"`
+}
+
+type LnEvent struct {
+	EventKey    string
+	Title       string
+	DateTime    time.Time
+	Location    string
+	Capacity    uint16
+	Description string
+	Attendees   int
+	Attending   bool
+	IdentityId  string
+}
 
 type LnAccount struct {
 	AccountKey        string
@@ -80,6 +105,7 @@ var (
 	config       *Config
 	repository   *Repository
 	lndClient    *LndClient
+	authService  *AuthService
 	ratesService *RatesService
 )
 
@@ -95,18 +121,27 @@ func main() {
 	config = loadConfig(configFileName)
 	repository = newRepository(config.ThumbnailDir, config.DataDir)
 	lndClient = newLndClient(config.Lnd)
+	authService = newAuthService()
 	ratesService = newRatesService(21 * time.Second)
 
 	lnurld := gin.Default()
 	_ = lnurld.SetTrustedProxies(nil)
 	loadTemplates(lnurld, "files/templates/*.gohtml")
 
+	sessionStore := cookie.NewStore(config.getCookieKey())
+	lnurld.Use(sessions.Sessions("lnSession", sessionStore))
+
+	lnurld.POST("/ln/auth", lnAuthInitHandler)
+	lnurld.GET("/ln/auth", lnAuthVerifyHandler)
+	lnurld.GET("/ln/auth/:k1", lnAuthIdentityHandler)
 	lnurld.GET("/.well-known/lnurlp/:name", lnPayHandler)
 	lnurld.GET("/ln/pay/:name", lnPayHandler)
 	lnurld.GET("/ln/pay/:name/qr-code", lnPayQrCodeHandler)
+	lnurld.GET("/ln/events/:name", lnEventHandler)
+	lnurld.POST("/ln/events/:name/sign-up", lnEventSignUpHandler)
+	lnurld.GET("/ln/static/*filepath", lnStaticFileHandler)
 
 	authorized := lnurld.Group("/", gin.BasicAuth(config.Credentials))
-	authorized.GET("/ln/static/*filepath", lnStaticFileHandler)
 	authorized.GET("/ln/accounts", lnAccountsHandler)
 	authorized.GET("/ln/accounts/:name", lnAccountHandler)
 	authorized.GET("/ln/accounts/:name/raffle", lnAccountRaffleHandler)
@@ -116,6 +151,107 @@ func main() {
 	authorized.GET("/ln/invoices/:paymentHash", lnInvoiceStatusHandler)
 
 	log.Fatal(lnurld.Run(config.Listen))
+}
+
+func lnAuthInitHandler(context *gin.Context) {
+	k1 := authService.init()
+
+	scheme, host := getSchemeAndHost(context)
+	actualLnUrl := scheme + "://" + host + "/ln/auth?tag=login&k1=" + k1
+	encodedLnUrl, err := lnurl.LNURLEncode(actualLnUrl)
+	if err != nil {
+		log.Println("Error encoding LNURL:", err)
+		context.String(http.StatusInternalServerError, "500 internal server error")
+		return
+	}
+
+	pngData, err := encodeQrCode(encodedLnUrl, nil, 1280, true)
+	if err != nil {
+		log.Println("Error creating QR code:", err)
+		context.String(http.StatusInternalServerError, "500 internal server error")
+		return
+	}
+
+	context.JSON(http.StatusOK, LnAuthInit{
+		K1:     k1,
+		LnUrl:  encodedLnUrl,
+		QrCode: "image/png;base64," + base64.StdEncoding.EncodeToString(pngData),
+	})
+}
+
+func lnAuthVerifyHandler(context *gin.Context) {
+	k1, sig, key := context.Query("k1"), context.Query("sig"), context.Query("key")
+	if err := authService.verify(k1, sig, key); err != nil {
+		log.Println("Authentication failed:", err)
+		context.JSON(http.StatusBadRequest, lnurl.ErrorResponse("Invalid request"))
+		return
+	}
+
+	context.JSON(http.StatusOK, lnurl.OkResponse())
+}
+
+func lnAuthIdentityHandler(context *gin.Context) {
+	identity := authService.identity(context.Param("k1"))
+	if identity == "" {
+		context.String(http.StatusNotFound, "404 page not found")
+		return
+	}
+
+	session := sessions.Default(context)
+	session.Set("identity", identity)
+	if err := session.Save(); err != nil {
+		log.Println("Error storing session:", err)
+		context.String(http.StatusInternalServerError, "500 internal server error")
+		return
+	}
+
+	context.JSON(http.StatusOK, LnAuthIdentity{identity})
+}
+
+func lnEventHandler(context *gin.Context) {
+	eventKey, event := getEvent(context)
+	if eventKey == "" {
+		return
+	}
+
+	identities := repository.loadIdentities(eventKey)
+	identity := getIdentity(context)
+
+	context.HTML(http.StatusOK, "event.gohtml", LnEvent{
+		EventKey:    eventKey,
+		Title:       event.Title,
+		DateTime:    event.DateTime,
+		Location:    event.Location,
+		Capacity:    event.Capacity,
+		Description: event.Description,
+		Attendees:   len(identities),
+		Attending:   slices.Contains(identities, identity),
+		IdentityId:  toIdentityId(identity),
+	})
+}
+
+func lnEventSignUpHandler(context *gin.Context) {
+	eventKey, _ := getEvent(context)
+	if eventKey == "" {
+		return
+	}
+
+	identity := getIdentity(context)
+	if identity == "" {
+		context.JSON(http.StatusForbidden, lnurl.ErrorResponse("Authentication required"))
+		return
+	}
+
+	identities := repository.loadIdentities(eventKey)
+	if !slices.Contains(identities, identity) {
+		if err := repository.storeIdentity(eventKey, identity); err != nil {
+			log.Println("Error storing identity:", err)
+			context.JSON(http.StatusInternalServerError, lnurl.ErrorResponse("Error storing identity"))
+			return
+		}
+	}
+
+	context.Status(http.StatusNoContent)
 }
 
 func lnPayHandler(context *gin.Context) {
@@ -418,6 +554,24 @@ func lnInvoiceStatusHandler(context *gin.Context) {
 	context.JSON(http.StatusOK, LnInvoiceStatus{
 		Settled: invoice.isSettled(),
 	})
+}
+
+func getIdentity(context *gin.Context) string {
+	session := sessions.Default(context)
+	if identity := session.Get("identity"); identity != nil {
+		return identity.(string)
+	}
+	return ""
+}
+
+func getEvent(context *gin.Context) (string, *Event) {
+	eventKey := context.Param("name")
+	if event, eventExists := config.Events[eventKey]; eventExists {
+		return eventKey, &event
+	}
+
+	context.String(http.StatusNotFound, "404 page not found")
+	return "", nil
 }
 
 func getAccount(context *gin.Context) (string, *Account) {

@@ -1,0 +1,133 @@
+* {
+    margin: 0;
+    touch-action: manipulation;
+    font-family: system-ui, sans-serif;
+}
+
+body {
+    max-width: 420px;
+    margin: auto;
+}
+
+main {
+    margin: 0 2em 2em;
+}
+
+main h1 {
+    margin-top: 1em;
+    font-size: 2.1em;
+}
+
+main ul {
+    margin-top: 1em;
+    padding: 0;
+    font-size: 1.7em;
+    font-weight: bold;
+    list-style-type: none;
+}
+
+main li {
+    display: flex;
+    margin-top: .5em;
+}
+
+main li.datetime::before {
+    margin-right: .3em;
+    content: '🗓';
+}
+
+main li.location::before {
+    margin-right: .3em;
+    content: '📍';
+}
+
+main li.attendees::before {
+    margin-right: .3em;
+    content: '👤';
+}
+
+main li.attending::after {
+    margin-left: .7em;
+    content: '✅';
+}
+
+main li span {
+    align-self: center;
+    margin-left: .7em;
+}
+
+main p {
+    margin-top: 1em;
+    font-size: 1.5em;
+}
+
+main div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+main button {
+    margin: 1em 0 0;
+    border: none;
+    border-radius: .5em;
+    padding: .5em 1em;
+    background-color: #f7931a;
+    color: white;
+    font-size: 1.5em;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+main button:disabled {
+    cursor: default;
+}
+
+footer {
+    margin-bottom: 4em;
+    text-align: center;
+    color: gray;
+}
+
+dialog {
+    max-width: 320px;
+    margin: auto;
+    border: none;
+    border-radius: 8px;
+}
+
+dialog::backdrop {
+    background: black;
+    opacity: .5;
+}
+
+dialog h2 {
+    margin-bottom: .5em;
+    font-size: 1.5em;
+}
+
+dialog p {
+    margin-top: .7em;
+    font-size: .7em;
+    color: gray;
+}
+
+dialog a {
+    outline: none;
+}
+
+dialog img {
+    max-width: 100%;
+}
+
+dialog button {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: .2em .4em;
+    border: none;
+    background-color: white;
+    color: black;
+    font-size: 2.1em;
+    cursor: pointer;
+}

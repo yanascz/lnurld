@@ -21,6 +21,9 @@ func loadTemplates(engine *gin.Engine, pattern string) {
 		"date": func(date time.Time) string {
 			return date.Format("02/01/2006")
 		},
+		"datetime": func(date time.Time) string {
+			return date.Format("02/01/2006 15:04")
+		},
 	}
 
 	templates, err := template.New("templates").Funcs(funcMap).ParseFS(templatesFs, pattern)
