@@ -89,17 +89,15 @@ type Raffle struct {
 	Prizes      []map[string]uint8
 }
 
-func (raffle *Raffle) getPrizes() []string {
-	var prizes []string
+func (raffle *Raffle) getPrizesCount() int {
+	var prizesCount int
 	for _, entry := range raffle.Prizes {
-		for prize, quantity := range entry {
-			for i := 0; i < int(quantity); i++ {
-				prizes = append(prizes, prize)
-			}
+		for _, quantity := range entry {
+			prizesCount += int(quantity)
 			break
 		}
 	}
-	return prizes
+	return prizesCount
 }
 
 type Event struct {

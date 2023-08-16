@@ -22,8 +22,9 @@ h2 {
     font-size: 2.4em;
 }
 
-h2#ticket {
-    font-size: 4em;
+h2#prize {
+    font-size: 2em;
+    font-weight: normal;
 }
 
 h1 span,
@@ -34,12 +35,6 @@ h2 span {
 p {
     margin-top: 1em;
     font-size: 2em;
-}
-
-p#payment-hash {
-    margin-top: .4em;
-    font-size: 1.5em;
-    color: gray;
 }
 
 ul {
@@ -82,6 +77,32 @@ div#balance p {
     color: gray;
 }
 
+dl#prize-tickets {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    max-width: 50em;
+}
+
+dl#prize-tickets div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 16em;
+}
+
+dl#prize-tickets dt {
+    margin-top: .4em;
+    font-size: 4em;
+    font-weight: bold;
+}
+
+dl#prize-tickets dd {
+    margin-top: .4em;
+    font-size: 1.5em;
+    color: gray;
+}
+
 div.buttons {
     display: flex;
     flex-direction: column;
@@ -102,6 +123,11 @@ div.buttons button {
 
 div.buttons button:first-child {
     background-color: #f7931a;
+}
+
+div.buttons button:disabled {
+    opacity: .5;
+    cursor: default;
 }
 
 div.raffle {

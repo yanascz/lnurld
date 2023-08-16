@@ -14,9 +14,13 @@
 
 <h1><span>⚡</span>Raffle Draw</h1>
 
-<h2 id="ticket">???</h2>
-<p id="payment-hash">?</p>
-<p id="prize">???</p>
+<h2 id="prize">???</h2>
+<dl id="prize-tickets">
+    <div>
+        <dt>???</dt>
+        <dd>?</dd>
+    </div>
+</dl>
 
 <div class="buttons raffle">
     <button id="next-prize" accesskey="p">Next prize</button>
@@ -29,9 +33,8 @@
     const prizes = {{.Prizes}}
     const drawnTickets = {{.DrawnTickets}}
 
-    const ticketElement = element('ticket')
-    const paymentHashElement = element('payment-hash')
     const prizeElement = element('prize')
+    const prizeTicketsElement = element('prize-tickets')
     const nextPrizeButton = element('next-prize')
     const nextTicketButton = element('next-ticket')
     const ticketsElement = element('tickets')
@@ -42,17 +45,35 @@
     updateTickets()
 
     function nextPrize() {
-        prizeElement.innerText = prizes.pop()
-        nextTicket()
+        const { name, quantity } = prizes.pop()
+        prizeElement.innerText = name
+        prizeTicketsElement.replaceChildren()
+        for (let i = 0; i < quantity && drawnTickets.length > 0; i++) {
+            prizeTicketsElement.appendChild(nextTicketElement())
+        }
+        updateButtonsAndTickets()
     }
 
     function nextTicket() {
-        const ticket = drawnTickets.shift();
-        ticketElement.innerText = ticket.number
-        paymentHashElement.innerText = ticket.paymentHash
+        prizeTicketsElement.replaceChildren(nextTicketElement())
+        updateButtonsAndTickets()
+    }
+
+    function nextTicketElement() {
+        const { number, paymentHash } = drawnTickets.shift()
+        const element = document.createElement("div")
+        element.innerHTML = `<dt>${number}</dt><dd>${paymentHash}</dd>`
+        return element
+    }
+
+    function updateButtonsAndTickets() {
+        updateButtons()
+        updateTickets()
+    }
+
+    function updateButtons() {
         disableAndHide(nextPrizeButton, prizes.length === 0 || drawnTickets.length === 0)
         disableAndHide(nextTicketButton, drawnTickets.length === 0)
-        updateTickets()
     }
 
     function disableAndHide(element, disabledAndHidden) {

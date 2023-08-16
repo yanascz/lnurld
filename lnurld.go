@@ -67,8 +67,13 @@ type LnAccountComment struct {
 }
 
 type LnRaffle struct {
-	Prizes       []string
+	Prizes       []LnRafflePrize
 	DrawnTickets []LnRaffleTicket
+}
+
+type LnRafflePrize struct {
+	Name     string `json:"name"`
+	Quantity uint8  `json:"quantity"`
 }
 
 type LnRaffleTicket struct {
@@ -406,7 +411,7 @@ func lnAccountHandler(context *gin.Context) {
 	if raffle := account.Raffle; raffle != nil {
 		lnAccountRaffle = &LnAccountRaffle{
 			TicketPrice: raffle.TicketPrice,
-			PrizesCount: len(raffle.getPrizes()),
+			PrizesCount: raffle.getPrizesCount(),
 		}
 	} else {
 		sort.Slice(comments, func(i, j int) bool {
@@ -442,6 +447,16 @@ func lnAccountRaffleHandler(context *gin.Context) {
 		paymentHashes[i], paymentHashes[j] = paymentHashes[j], paymentHashes[i]
 	})
 
+	var prizes []LnRafflePrize
+	for _, entry := range account.Raffle.Prizes {
+		for prize, quantity := range entry {
+			prizes = append(prizes, LnRafflePrize{
+				Name:     prize,
+				Quantity: quantity,
+			})
+		}
+	}
+
 	var drawnTickets []LnRaffleTicket
 	for _, paymentHash := range paymentHashes {
 		invoice, err := lndClient.getInvoice(paymentHash)
@@ -454,13 +469,13 @@ func lnAccountRaffleHandler(context *gin.Context) {
 		}
 	}
 
-	if len(drawnTickets) == 0 {
+	if len(drawnTickets) < account.Raffle.getPrizesCount() {
 		context.String(http.StatusForbidden, "403 forbidden")
 		return
 	}
 
 	context.HTML(http.StatusOK, "raffle.gohtml", LnRaffle{
-		Prizes:       account.Raffle.getPrizes(),
+		Prizes:       prizes,
 		DrawnTickets: drawnTickets,
 	})
 }

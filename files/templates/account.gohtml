@@ -42,14 +42,16 @@
     {{with .Raffle}}
         <ul>
             <li><strong>{{number .TicketPrice}}</strong> sats per ticket</li>
-            <li><strong>{{number .PrizesCount}}</strong> prizes configured</li>
+            <li><strong>{{number .PrizesCount}}</strong> prize{{if ne .PrizesCount 1}}s{{end}} configured</li>
         </ul>
     {{end}}
-    {{if ge .InvoicesSettled .Raffle.PrizesCount}}
-        <div class="buttons">
+    <div class="buttons">
+        {{if ge .InvoicesSettled .Raffle.PrizesCount}}
             <button onclick="location.href='/ln/accounts/{{.AccountKey}}/raffle'">Draw</button>
-        </div>
-    {{end}}
+        {{else}}
+            <button disabled>Draw</button>
+        {{end}}
+    </div>
 {{else if gt (len .Comments) 0}}
     <h2><span>💬</span> Comments</h2>
     <ul class="comments">
