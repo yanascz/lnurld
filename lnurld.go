@@ -4,7 +4,9 @@ import (
 	"crypto/sha256"
 	"embed"
 	"encoding/base64"
+	"errors"
 	"flag"
+	"fmt"
 	"github.com/fiatjaf/go-lnurl"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
@@ -135,6 +137,7 @@ func main() {
 
 	sessionStore := cookie.NewStore(config.getCookieKey())
 	lnurld.Use(sessions.Sessions("lnSession", sessionStore))
+	lnurld.NoRoute(abortWithNotFoundResponse)
 
 	lnurld.POST("/ln/auth", lnAuthInitHandler)
 	lnurld.GET("/ln/auth", lnAuthVerifyHandler)
@@ -165,15 +168,13 @@ func lnAuthInitHandler(context *gin.Context) {
 	actualLnUrl := scheme + "://" + host + "/ln/auth?tag=login&k1=" + k1
 	encodedLnUrl, err := lnurl.LNURLEncode(actualLnUrl)
 	if err != nil {
-		log.Println("Error encoding LNURL:", err)
-		context.String(http.StatusInternalServerError, "500 internal server error")
+		abortWithInternalServerErrorResponse(context, fmt.Errorf("encoding LNURL: %w", err))
 		return
 	}
 
 	pngData, err := encodeQrCode(encodedLnUrl, nil, 1280, true)
 	if err != nil {
-		log.Println("Error creating QR code:", err)
-		context.String(http.StatusInternalServerError, "500 internal server error")
+		abortWithInternalServerErrorResponse(context, fmt.Errorf("encoding QR code: %w", err))
 		return
 	}
 
@@ -187,8 +188,8 @@ func lnAuthInitHandler(context *gin.Context) {
 func lnAuthVerifyHandler(context *gin.Context) {
 	k1, sig, key := context.Query("k1"), context.Query("sig"), context.Query("key")
 	if err := authService.verify(k1, sig, key); err != nil {
-		log.Println("Authentication failed:", err)
-		context.JSON(http.StatusBadRequest, lnurl.ErrorResponse("Invalid request"))
+		context.Error(fmt.Errorf("authentication failed: %w", err))
+		abortWithBadRequestResponse(context, "invalid request")
 		return
 	}
 
@@ -198,15 +199,14 @@ func lnAuthVerifyHandler(context *gin.Context) {
 func lnAuthIdentityHandler(context *gin.Context) {
 	identity := authService.identity(context.Param("k1"))
 	if identity == "" {
-		context.String(http.StatusNotFound, "404 page not found")
+		abortWithNotFoundResponse(context)
 		return
 	}
 
 	session := sessions.Default(context)
 	session.Set("identity", identity)
 	if err := session.Save(); err != nil {
-		log.Println("Error storing session:", err)
-		context.String(http.StatusInternalServerError, "500 internal server error")
+		abortWithInternalServerErrorResponse(context, fmt.Errorf("storing session: %w", err))
 		return
 	}
 
@@ -243,15 +243,14 @@ func lnEventSignUpHandler(context *gin.Context) {
 
 	identity := getIdentity(context)
 	if identity == "" {
-		context.JSON(http.StatusForbidden, lnurl.ErrorResponse("Authentication required"))
+		abortWithForbiddenResponse(context, "authentication required")
 		return
 	}
 
 	identities := repository.loadIdentities(eventKey)
 	if !slices.Contains(identities, identity) {
 		if err := repository.storeIdentity(eventKey, identity); err != nil {
-			log.Println("Error storing identity:", err)
-			context.JSON(http.StatusInternalServerError, lnurl.ErrorResponse("Error storing identity"))
+			abortWithInternalServerErrorResponse(context, fmt.Errorf("storing identity: %w", err))
 			return
 		}
 	}
@@ -297,15 +296,13 @@ func lnPayHandler(context *gin.Context) {
 
 	msats, err := strconv.ParseInt(amount, 10, 64)
 	if err != nil || msats < account.getMinSendable() || msats > account.getMaxSendable() {
-		log.Println("Invalid amount:", amount)
-		context.JSON(http.StatusBadRequest, lnurl.ErrorResponse("Invalid Amount"))
+		abortWithBadRequestResponse(context, "invalid amount")
 		return
 	}
 
 	comment := context.Query("comment")
 	if commentLength := len(comment); commentLength > int(account.CommentAllowed) {
-		log.Println("Invalid comment length:", commentLength)
-		context.JSON(http.StatusBadRequest, lnurl.ErrorResponse("Invalid comment length"))
+		abortWithBadRequestResponse(context, "invalid comment length")
 		return
 	}
 
@@ -336,7 +333,7 @@ func lnPayQrCodeHandler(context *gin.Context) {
 	requestedSize := context.DefaultQuery("size", "256")
 	size, err := strconv.ParseUint(requestedSize, 10, 12)
 	if err != nil {
-		context.String(http.StatusBadRequest, "400 bad request")
+		abortWithBadRequestResponse(context, "invalid size")
 		return
 	}
 
@@ -344,16 +341,14 @@ func lnPayQrCodeHandler(context *gin.Context) {
 	actualLnUrl := scheme + "://" + host + "/ln/pay/" + accountKey
 	encodedLnUrl, err := lnurl.LNURLEncode(actualLnUrl)
 	if err != nil {
-		log.Println("Error encoding LNURL:", err)
-		context.String(http.StatusInternalServerError, "500 internal server error")
+		abortWithInternalServerErrorResponse(context, fmt.Errorf("encoding LNURL: %w", err))
 		return
 	}
 
 	thumbnail := getAccountThumbnail(account)
 	pngData, err := encodeQrCode(encodedLnUrl, thumbnail, int(size), false)
 	if err != nil {
-		log.Println("Error creating QR code:", err)
-		context.String(http.StatusInternalServerError, "500 internal server error")
+		abortWithInternalServerErrorResponse(context, fmt.Errorf("encoding QR code: %w", err))
 		return
 	}
 
@@ -383,7 +378,7 @@ func lnAccountHandler(context *gin.Context) {
 		return
 	}
 	if !config.isUserAuthorized(context, accountKey) {
-		context.String(http.StatusNotFound, "404 page not found")
+		abortWithNotFoundResponse(context)
 		return
 	}
 
@@ -438,7 +433,7 @@ func lnAccountRaffleHandler(context *gin.Context) {
 		return
 	}
 	if !config.isUserAuthorized(context, accountKey) || account.Raffle == nil {
-		context.String(http.StatusNotFound, "404 page not found")
+		abortWithNotFoundResponse(context)
 		return
 	}
 
@@ -470,7 +465,7 @@ func lnAccountRaffleHandler(context *gin.Context) {
 	}
 
 	if len(drawnTickets) < account.Raffle.getPrizesCount() {
-		context.String(http.StatusForbidden, "403 forbidden")
+		abortWithForbiddenResponse(context, "not enough tickets")
 		return
 	}
 
@@ -486,7 +481,7 @@ func lnAccountTerminalHandler(context *gin.Context) {
 		return
 	}
 	if !config.isUserAuthorized(context, accountKey) || account.Raffle != nil {
-		context.String(http.StatusNotFound, "404 page not found")
+		abortWithNotFoundResponse(context)
 		return
 	}
 
@@ -503,14 +498,13 @@ func lnAccountArchiveHandler(context *gin.Context) {
 		return
 	}
 	if !config.isUserAuthorized(context, accountKey) || !account.Archivable {
-		context.String(http.StatusNotFound, "404 page not found")
+		abortWithNotFoundResponse(context)
 		return
 	}
 
 	err := repository.archiveStorageFile(accountKey)
 	if err != nil {
-		log.Println("Error archiving storage file:", err)
-		context.String(http.StatusInternalServerError, "500 internal server error")
+		abortWithInternalServerErrorResponse(context, fmt.Errorf("archiving storage file: %w", err))
 		return
 	}
 
@@ -520,21 +514,20 @@ func lnAccountArchiveHandler(context *gin.Context) {
 func lnInvoicesHandler(context *gin.Context) {
 	var createRequest LnCreateInvoice
 	if err := context.BindJSON(&createRequest); err != nil {
-		context.String(http.StatusBadRequest, "400 bad request")
+		abortWithBadRequestResponse(context, "invalid request")
 		return
 	}
 
 	accountKey := createRequest.AccountKey
 	account, accountExists := config.Accounts[accountKey]
 	if !accountExists || !config.isUserAuthorized(context, accountKey) {
-		context.String(http.StatusBadRequest, "400 bad request")
+		abortWithBadRequestResponse(context, "invalid accountKey")
 		return
 	}
 
 	amount, err := strconv.ParseFloat(createRequest.Amount, 32)
 	if err != nil || amount <= 0 || amount >= 1_000_000 {
-		log.Println("Invalid amount:", amount)
-		context.String(http.StatusBadRequest, "400 bad request")
+		abortWithBadRequestResponse(context, "invalid amount")
 		return
 	}
 
@@ -547,8 +540,7 @@ func lnInvoicesHandler(context *gin.Context) {
 	thumbnail := getAccountThumbnail(&account)
 	pngData, err := encodeQrCode(strings.ToUpper(invoice.paymentRequest), thumbnail, 1280, true)
 	if err != nil {
-		log.Println("Error creating QR code:", err)
-		context.String(http.StatusInternalServerError, "500 internal server error")
+		abortWithInternalServerErrorResponse(context, fmt.Errorf("encoding QR code: %w", err))
 		return
 	}
 
@@ -562,7 +554,7 @@ func lnInvoiceStatusHandler(context *gin.Context) {
 	paymentHash := context.Param("paymentHash")
 	invoice, err := lndClient.getInvoice(paymentHash)
 	if err != nil {
-		context.String(http.StatusNotFound, "404 page not found")
+		abortWithNotFoundResponse(context)
 		return
 	}
 
@@ -585,7 +577,7 @@ func getEvent(context *gin.Context) (string, *Event) {
 		return eventKey, &event
 	}
 
-	context.String(http.StatusNotFound, "404 page not found")
+	abortWithNotFoundResponse(context)
 	return "", nil
 }
 
@@ -595,7 +587,7 @@ func getAccount(context *gin.Context) (string, *Account) {
 		return accountKey, &account
 	}
 
-	context.String(http.StatusNotFound, "404 page not found")
+	abortWithNotFoundResponse(context)
 	return "", nil
 }
 
@@ -629,22 +621,36 @@ func getAccountThumbnail(account *Account) *Thumbnail {
 
 func createInvoice(context *gin.Context, accountKey string, msats int64, comment string, descriptionHash []byte) *Invoice {
 	if msats == 0 {
-		log.Println("Zero invoice requested")
-		context.JSON(http.StatusInternalServerError, lnurl.ErrorResponse("Internal server error"))
+		abortWithInternalServerErrorResponse(context, errors.New("zero invoice requested"))
 		return nil
 	}
 
 	invoice, err := lndClient.createInvoice(msats, comment, descriptionHash)
 	if err != nil {
-		log.Println("Error creating invoice:", err)
-		context.JSON(http.StatusInternalServerError, lnurl.ErrorResponse("Error creating invoice"))
+		abortWithInternalServerErrorResponse(context, fmt.Errorf("creating invoice: %w", err))
 		return nil
 	}
 	if err := repository.storePaymentHash(accountKey, invoice.getPaymentHash()); err != nil {
-		log.Println("Error storing payment hash:", err)
-		context.JSON(http.StatusInternalServerError, lnurl.ErrorResponse("Error storing payment hash"))
+		abortWithInternalServerErrorResponse(context, fmt.Errorf("storing payment hash: %w", err))
 		return nil
 	}
 
 	return invoice
+}
+
+func abortWithNotFoundResponse(context *gin.Context) {
+	context.AbortWithStatusJSON(http.StatusNotFound, lnurl.ErrorResponse("not found"))
+}
+
+func abortWithForbiddenResponse(context *gin.Context, reason string) {
+	context.AbortWithStatusJSON(http.StatusForbidden, lnurl.ErrorResponse(reason))
+}
+
+func abortWithBadRequestResponse(context *gin.Context, reason string) {
+	context.AbortWithStatusJSON(http.StatusBadRequest, lnurl.ErrorResponse(reason))
+}
+
+func abortWithInternalServerErrorResponse(context *gin.Context, err error) {
+	context.AbortWithStatusJSON(http.StatusInternalServerError, lnurl.ErrorResponse("internal server error"))
+	context.Error(err)
 }
