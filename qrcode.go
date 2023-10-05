@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	_ "embed"
+	"encoding/base64"
 	"github.com/skip2/go-qrcode"
 	"golang.org/x/image/draw"
 	"image"
@@ -10,20 +11,12 @@ import (
 	"image/png"
 )
 
-//go:embed files/lightning.png
-var lightningPngData []byte
-
-func encodeQrCode(content string, thumbnail *Thumbnail, size int, disableBorder bool) ([]byte, error) {
+func encodeQrCode(content string, thumbnailData []byte, size int, disableBorder bool) ([]byte, error) {
 	qrCode, err := qrcode.New("lightning:"+content, qrcode.Medium)
 	if err != nil {
 		return nil, err
 	}
 	qrCode.DisableBorder = disableBorder
-
-	thumbnailData := lightningPngData
-	if thumbnail != nil {
-		thumbnailData = thumbnail.bytes
-	}
 
 	thumbnailImage, _, err := image.Decode(bytes.NewReader(thumbnailData))
 	if err != nil {
@@ -57,4 +50,8 @@ func encodeQrCode(content string, thumbnail *Thumbnail, size int, disableBorder 
 	}
 
 	return qrCodePngData.Bytes(), nil
+}
+
+func pngDataUrl(pngData []byte) string {
+	return "image/png;base64," + base64.StdEncoding.EncodeToString(pngData)
 }

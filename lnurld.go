@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/sha256"
 	"embed"
-	"encoding/base64"
 	"errors"
 	"flag"
 	"fmt"
@@ -108,6 +107,8 @@ var (
 	staticFs embed.FS
 	//go:embed files/templates
 	templatesFs embed.FS
+	//go:embed files/lightning.png
+	lightningPngData []byte
 
 	config       *Config
 	repository   *Repository
@@ -172,7 +173,7 @@ func lnAuthInitHandler(context *gin.Context) {
 		return
 	}
 
-	pngData, err := encodeQrCode(encodedLnUrl, nil, 1280, true)
+	pngData, err := encodeQrCode(encodedLnUrl, lightningPngData, 1280, true)
 	if err != nil {
 		abortWithInternalServerErrorResponse(context, fmt.Errorf("encoding QR code: %w", err))
 		return
@@ -181,7 +182,7 @@ func lnAuthInitHandler(context *gin.Context) {
 	context.JSON(http.StatusOK, LnAuthInit{
 		K1:     k1,
 		LnUrl:  encodedLnUrl,
-		QrCode: "image/png;base64," + base64.StdEncoding.EncodeToString(pngData),
+		QrCode: pngDataUrl(pngData),
 	})
 }
 
@@ -271,14 +272,9 @@ func lnPayHandler(context *gin.Context) {
 		IsEmail:          account.IsAlsoEmail,
 	}
 
-	if account.Thumbnail != "" {
-		thumbnail, err := repository.loadThumbnail(account.Thumbnail)
-		if err != nil {
-			log.Println("Thumbnail not readable:", err)
-		} else {
-			lnurlMetadata.Image.Bytes = thumbnail.bytes
-			lnurlMetadata.Image.Ext = thumbnail.ext
-		}
+	if thumbnail := getAccountThumbnail(account); thumbnail != nil {
+		lnurlMetadata.Image.Bytes = thumbnail.bytes
+		lnurlMetadata.Image.Ext = thumbnail.ext
 	}
 
 	amount := context.Query("amount")
@@ -345,8 +341,8 @@ func lnPayQrCodeHandler(context *gin.Context) {
 		return
 	}
 
-	thumbnail := getAccountThumbnail(account)
-	pngData, err := encodeQrCode(encodedLnUrl, thumbnail, int(size), false)
+	thumbnailData := getAccountThumbnailData(account)
+	pngData, err := encodeQrCode(encodedLnUrl, thumbnailData, int(size), false)
 	if err != nil {
 		abortWithInternalServerErrorResponse(context, fmt.Errorf("encoding QR code: %w", err))
 		return
@@ -537,8 +533,8 @@ func lnInvoicesHandler(context *gin.Context) {
 		return
 	}
 
-	thumbnail := getAccountThumbnail(&account)
-	pngData, err := encodeQrCode(strings.ToUpper(invoice.paymentRequest), thumbnail, 1280, true)
+	thumbnailData := getAccountThumbnailData(&account)
+	pngData, err := encodeQrCode(strings.ToUpper(invoice.paymentRequest), thumbnailData, 1280, true)
 	if err != nil {
 		abortWithInternalServerErrorResponse(context, fmt.Errorf("encoding QR code: %w", err))
 		return
@@ -546,7 +542,7 @@ func lnInvoicesHandler(context *gin.Context) {
 
 	context.JSON(http.StatusOK, LnInvoice{
 		PaymentHash: invoice.getPaymentHash(),
-		QrCode:      "image/png;base64," + base64.StdEncoding.EncodeToString(pngData),
+		QrCode:      pngDataUrl(pngData),
 	})
 }
 
@@ -591,6 +587,26 @@ func getAccount(context *gin.Context) (string, *Account) {
 	return "", nil
 }
 
+func getAccountThumbnail(account *Account) *Thumbnail {
+	if account.Thumbnail == "" {
+		return nil
+	}
+
+	thumbnail, err := repository.loadThumbnail(account.Thumbnail)
+	if err != nil {
+		log.Println("Thumbnail not readable:", err)
+	}
+
+	return thumbnail
+}
+
+func getAccountThumbnailData(account *Account) []byte {
+	if thumbnail := getAccountThumbnail(account); thumbnail != nil {
+		return thumbnail.bytes
+	}
+	return lightningPngData
+}
+
 func getSchemeAndHost(context *gin.Context) (string, string) {
 	scheme := "http"
 	host := context.Request.Host
@@ -604,19 +620,6 @@ func getSchemeAndHost(context *gin.Context) (string, string) {
 	}
 
 	return scheme, host
-}
-
-func getAccountThumbnail(account *Account) *Thumbnail {
-	if account.Thumbnail == "" {
-		return nil
-	}
-
-	thumbnail, err := repository.loadThumbnail(account.Thumbnail)
-	if err != nil {
-		log.Println("Thumbnail not readable:", err)
-	}
-
-	return thumbnail
 }
 
 func createInvoice(context *gin.Context, accountKey string, msats int64, comment string, descriptionHash []byte) *Invoice {
