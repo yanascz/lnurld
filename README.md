@@ -40,7 +40,7 @@ $ sudo chown bitcoin:bitcoin /etc/lnurld
 $ sudo -u bitcoin vim /etc/lnurld/config.yaml
 ```
 
-Example configuration with one admin, one user with restricted access, one donate account, one raffle account and one event:
+Example configuration with one admin, one user with restricted access, one donate account and one raffle account:
 
 ```yaml
 credentials:
@@ -64,12 +64,6 @@ accounts:
         - Trezor Model T: 1
         - Trezor Model One: 2
         - Trezor Lanyard: 5
-events:
-  pizza-day:
-    title: Bitcoin Pizza Day
-    datetime: 2023-05-22T19:17:00-04:00
-    location: Jacksonville, Florida
-    description: Laszlo Hanyecz made the first documented purchase of a good with BTC.
 ```
 
 (Create image `raffle.png` in `/etc/lnurld/thumbnails` if you want it served by `lnurld`.)
@@ -99,23 +93,17 @@ Available configuration properties:
 | `accounts.*.raffle`              | Raffle configuration. _(optional)_                                          | _none_                                                     |
 | `accounts.*.raffle.ticket-price` | Price of a ticket in sats.                                                  | _none_                                                     |
 | `accounts.*.raffle.prizes`       | List of prize/quantity pairs.                                               | _none_                                                     |
-| `events`                         | Map of events.                                                              | _none_                                                     |
-| `events.*.title`                 | Title of the event.                                                         | _none_                                                     |
-| `events.*.datetime`              | Date and time when the event starts.                                        | _none_                                                     |
-| `events.*.location`              | Location of the event.                                                      | _none_                                                     |
-| `events.*.capacity`              | Capacity of the event.                                                      | `0`_, i.e. no limit_                                       |
-| `events.*.description`           | Brief description of the event.                                             | _none_                                                     |
 
 If a property is marked as optional or has a default value, you don’t have to specify it explicitly.
 
 ### Create data directory
 
 ```shell
-$ sudo mkdir -m 710 /var/lib/lnurld
+$ sudo mkdir /var/lib/lnurld
 $ sudo chown bitcoin:bitcoin /var/lib/lnurld
 ```
 
-Payment hashes of invoices per account will be stored there.
+Account and event data will be stored there.
 
 ### Run the server
 
@@ -169,10 +157,7 @@ http {
         proxy_set_header  X-Forwarded-Proto $scheme;
         proxy_set_header  X-Forwarded-Host $host;
 
-        location /.well-known/lnurlp/ {
-            proxy_pass http://lnurld;
-        }
-        location /ln/ {
+        location / {
             proxy_pass http://lnurld;
         }
     }
@@ -197,8 +182,9 @@ To see amount of received sats or raffle for accessible accounts, navigate to ht
 You’ll need to authenticate using one of the configured username/password pairs. Account stats, QR code and/or payment
 terminal are accessible from the account’s detail page.
 
-As for the configured event, you may share https://nakamoto.example/ln/events/pizza-day with your friends, and they
-may sign up to attend the event once they authenticate using their LN wallet.
+Events may be managed at https://nakamoto.example/auth/events after you authenticate using one of the configured
+username/password pairs. Each created event may be shared with your friends, and they may sign up to attend the event
+once they authenticate using their LN wallet.
 
 ## Update
 

@@ -21,7 +21,7 @@
         <li class="datetime">{{datetime .DateTime}}</li>
         <li class="location">{{.Location}}</li>
         <li class="attendees{{if .Attending}} attending{{end}}">
-            {{number .Attendees}}{{if .Capacity}} / {{number .Capacity}}{{end}}
+            {{number .Attendees}} / {{number .Capacity}}
         </li>
     </ul>
     <p>{{.Description}}</p>
@@ -58,7 +58,7 @@
             if (signUpButton) {
                 signUpButton.disabled = true
             }
-            post('/ln/events/{{.EventKey}}/sign-up')
+            post('/events/{{.Id}}/sign-up')
                 .then(response => {
                     if (response.ok) {
                         document.location.reload()

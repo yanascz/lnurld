@@ -2,7 +2,10 @@ package main
 
 import (
 	"bufio"
+	"crypto/rand"
+	"encoding/json"
 	"fmt"
+	"github.com/mr-tron/base58"
 	"log"
 	"net/http"
 	"os"
@@ -13,7 +16,8 @@ import (
 const (
 	pathSeparator = string(os.PathSeparator)
 	eventsDirName = "events" + pathSeparator
-	fileExtension = ".csv"
+	dataFileName  = "data.json"
+	csvExtension  = ".csv"
 )
 
 type Thumbnail struct {
@@ -27,7 +31,7 @@ type Repository struct {
 }
 
 func newRepository(thumbnailDir string, dataDir string) *Repository {
-	_ = os.Mkdir(dataDir+eventsDirName, 0700)
+	_ = os.Mkdir(dataDir+eventsDirName, 0755)
 
 	return &Repository{
 		thumbnailDir: thumbnailDir,
@@ -35,7 +39,7 @@ func newRepository(thumbnailDir string, dataDir string) *Repository {
 	}
 }
 
-func (repository *Repository) loadThumbnail(fileName string) (*Thumbnail, error) {
+func (repository *Repository) getThumbnail(fileName string) (*Thumbnail, error) {
 	thumbnailData, err := os.ReadFile(repository.thumbnailDir + fileName)
 	if err != nil {
 		return nil, err
@@ -52,64 +56,151 @@ func (repository *Repository) loadThumbnail(fileName string) (*Thumbnail, error)
 	}, nil
 }
 
-func (repository *Repository) storePaymentHash(accountKey string, paymentHash string) error {
-	return storeValue(accountStorageFileName(repository, accountKey), paymentHash)
+func (repository *Repository) addAccountPaymentHash(accountKey string, paymentHash string) error {
+	return appendValue(accountPaymentHashesFileName(repository, accountKey), paymentHash)
 }
 
-func (repository *Repository) loadPaymentHashes(accountKey string) []string {
-	return loadValues(accountStorageFileName(repository, accountKey))
+func (repository *Repository) getAccountPaymentHashes(accountKey string) []string {
+	return readValues(accountPaymentHashesFileName(repository, accountKey))
 }
 
-func (repository *Repository) archiveStorageFile(accountKey string) error {
-	storageFileName := accountStorageFileName(repository, accountKey)
-	archiveFileName := storageFileName + "." + time.Now().Format("20060102150405")
+func (repository *Repository) archiveAccountPaymentHashes(accountKey string) error {
+	dataFileName := accountPaymentHashesFileName(repository, accountKey)
+	archiveFileName := dataFileName + "." + time.Now().Format("20060102150405")
 
-	return os.Rename(storageFileName, archiveFileName)
+	return os.Rename(dataFileName, archiveFileName)
 }
 
-func accountStorageFileName(repository *Repository, accountKey string) string {
-	return repository.dataDir + accountKey + fileExtension
-}
-
-func (repository *Repository) storeIdentity(eventKey string, identity string) error {
-	return storeValue(eventStorageFileName(repository, eventKey), identity)
-}
-
-func (repository *Repository) loadIdentities(eventKey string) []string {
-	return loadValues(eventStorageFileName(repository, eventKey))
-}
-
-func eventStorageFileName(repository *Repository, eventKey string) string {
-	return repository.dataDir + eventsDirName + eventKey + fileExtension
-}
-
-func storeValue(storageFileName string, value string) error {
-	storage, err := os.OpenFile(storageFileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+func (repository *Repository) createEvent(event *Event) error {
+	eventId, err := randomId()
 	if err != nil {
 		return err
 	}
-	defer storage.Close()
 
-	line := value + "\n"
-	if _, err = storage.WriteString(line); err != nil {
+	err = os.Mkdir(eventDirName(repository, eventId), 0755)
+	if err != nil {
+		return err
+	}
+	event.Id = eventId
+
+	return writeObject(eventDataFileName(repository, eventId), event)
+}
+
+func (repository *Repository) getEvent(eventId string) *Event {
+	fileBytes, err := os.ReadFile(eventDataFileName(repository, eventId))
+	if err != nil {
+		return nil
+	}
+
+	var event Event
+	if json.Unmarshal(fileBytes, &event) != nil {
+		return nil
+	}
+	event.Id = eventId
+
+	return &event
+}
+
+func (repository *Repository) getEvents() []*Event {
+	dirEntries, err := os.ReadDir(repository.dataDir + eventsDirName)
+	if err != nil {
+		log.Println("error reading directory:", err)
+		return []*Event{}
+	}
+
+	var events []*Event
+	for _, dirEntry := range dirEntries {
+		if event := repository.getEvent(dirEntry.Name()); event != nil {
+			events = append(events, event)
+		}
+	}
+
+	return events
+}
+
+func (repository *Repository) updateEvent(event *Event) error {
+	return writeObject(eventDataFileName(repository, event.Id), event)
+}
+
+func (repository *Repository) addEventAttendee(event *Event, identity string) error {
+	return appendValue(eventAttendeesFileName(repository, event.Id), identity)
+}
+
+func (repository *Repository) getEventAttendees(event *Event) []string {
+	return readValues(eventAttendeesFileName(repository, event.Id))
+}
+
+func accountPaymentHashesFileName(repository *Repository, accountKey string) string {
+	return repository.dataDir + accountKey + csvExtension
+}
+
+func eventDirName(repository *Repository, eventId string) string {
+	return repository.dataDir + eventsDirName + eventId
+}
+
+func eventDataFileName(repository *Repository, eventId string) string {
+	return eventDirName(repository, eventId) + pathSeparator + dataFileName
+}
+
+func eventAttendeesFileName(repository *Repository, eventId string) string {
+	return eventDirName(repository, eventId) + pathSeparator + "attendees" + csvExtension
+}
+
+func randomId() (string, error) {
+	random := make([]byte, 5)
+	if _, err := rand.Read(random); err != nil {
+		return "", err
+	}
+
+	return base58.Encode(random), nil
+}
+
+func writeObject(fileName string, object interface{}) error {
+	jsonData, err := json.Marshal(object)
+	if err != nil {
+		return err
+	}
+
+	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	if _, err = file.Write(jsonData); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func loadValues(storageFileName string) []string {
-	storage, err := os.OpenFile(storageFileName, os.O_RDONLY, 0)
+func appendValue(fileName string, value string) error {
+	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	line := value + "\n"
+	if _, err = file.WriteString(line); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func readValues(fileName string) []string {
+	file, err := os.OpenFile(fileName, os.O_RDONLY, 0)
 	if err != nil {
 		if !os.IsNotExist(err) {
-			log.Println("Error loading values:", err)
+			log.Println("error reading values:", err)
 		}
 		return []string{}
 	}
-	defer storage.Close()
+	defer file.Close()
 
 	var values []string
-	for scanner := bufio.NewScanner(storage); scanner.Scan(); {
+	for scanner := bufio.NewScanner(file); scanner.Scan(); {
 		values = append(values, scanner.Text())
 	}
 

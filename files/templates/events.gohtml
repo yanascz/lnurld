@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" media="all" href="/ln/static/stylesheet.css">
+
+    <title>Events</title>
+
+</head>
+<body>
+
+<main class="events">
+    <h1>Events</h1>
+    <ul>
+        {{range .Events}}
+            <li>
+                <a href="/events/{{.Id}}"><strong>{{.Title}}</strong></a>
+                <button onclick="editDialog('{{.Id}}')">📝</button>
+            </li>
+        {{end}}
+    </ul>
+    <div class="buttons">
+        <button onclick="createDialog()">Create</button>
+    </div>
+</main>
+
+<dialog id="dialog">
+    <h2>Event</h2>
+    <form method="dialog">
+        <p>
+            <label for="title">Title</label>
+            <input id="title" type="text" maxlength="50" required/>
+        </p>
+        <div>
+            <p>
+                <label for="date">Date</label>
+                <input id="date" type="date" required/>
+            </p>
+            <p>
+                <label for="time">Time</label>
+                <input id="time" type="time" required/>
+            </p>
+        </div>
+        <p>
+            <label for="location">Location</label>
+            <input id="location" type="text" maxlength="50" required/>
+        </p>
+        <p>
+            <label for="capacity">Capacity</label>
+            <input id="capacity" type="number" min="1" max="1000" required/>
+        </p>
+        <p>
+            <label for="description">Description</label>
+            <textarea id="description" rows="5" maxlength="300" required></textarea>
+        </p>
+        <div class="buttons">
+            <button value="submit">Submit</button>
+        </div>
+    </form>
+</dialog>
+
+<script>
+    const dialogElement = element('dialog');
+    const titleElement = element('title')
+    const dateElement = element('date')
+    const timeElement = element('time')
+    const locationElement = element('location')
+    const capacityElement = element('capacity')
+    const descriptionElement = element('description')
+
+    function createDialog() {
+        titleElement.value = ''
+        dateElement.value = ''
+        timeElement.value = ''
+        locationElement.value = ''
+        capacityElement.value = ''
+        descriptionElement.value = ''
+        dialogElement.onsubmit = () => submitEvent('POST', '/api/events')
+        dialogElement.showModal()
+    }
+
+    function editDialog(eventId) {
+        const eventUri = `/api/events/${eventId}`;
+        fetch(eventUri)
+            .then(response => response.json())
+            .then(body => {
+                titleElement.value = body.title
+                dateElement.value = toDate(body.dateTime)
+                timeElement.value = toTime(body.dateTime)
+                locationElement.value = body.location
+                capacityElement.value = body.capacity
+                descriptionElement.value = body.description
+                dialogElement.onsubmit = () => submitEvent('PUT', eventUri)
+                dialogElement.showModal()
+            })
+    }
+
+    function submitEvent(method, uri) {
+        fetch(uri, {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                title: titleElement.value,
+                dateTime: toDateTime(dateElement.value, timeElement.value),
+                location: locationElement.value,
+                capacity: Number(capacityElement.value),
+                description: descriptionElement.value
+            })
+        }).then(() => document.location.reload())
+    }
+
+    function toDate(dateTime) {
+        return dateTime.substring(0, 10)
+    }
+
+    function toTime(dateTime) {
+        return dateTime.substring(11, 16)
+    }
+
+    function toDateTime(date, time, zoneOffset = '{{.TimeZoneOffset}}') {
+        return `${date}T${time}:00${zoneOffset}`
+    }
+
+    function element(elementId) {
+        return document.getElementById(elementId)
+    }
+</script>
+
+</body>
+</html>

@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"strings"
-	"time"
 )
 
 type Config struct {
@@ -19,7 +18,6 @@ type Config struct {
 	Credentials   gin.Accounts
 	AccessControl map[string][]string `yaml:"access-control"`
 	Accounts      map[string]Account
-	Events        map[string]Event
 }
 
 func (config *Config) getCookieKey() []byte {
@@ -100,14 +98,6 @@ func (raffle *Raffle) getPrizesCount() int {
 	return prizesCount
 }
 
-type Event struct {
-	Title       string
-	DateTime    time.Time
-	Location    string
-	Capacity    uint16
-	Description string
-}
-
 func loadConfig(configFileName string) *Config {
 	config := Config{
 		Listen:       "127.0.0.1:8088",
@@ -138,9 +128,6 @@ func loadConfig(configFileName string) *Config {
 	validateAccessControl(&config)
 	for accountKey, account := range config.Accounts {
 		validateAccount(accountKey, &account)
-	}
-	for eventKey, event := range config.Events {
-		validateEvent(eventKey, &event)
 	}
 
 	return &config
@@ -198,23 +185,4 @@ func logInvalidAccountValue(accountKey string, property string, value any) {
 
 func logInvalidAccountConfig(accountKey string, property string) {
 	log.Fatal("Cannot set accounts.", accountKey, ".", property, " when raffle is enabled")
-}
-
-func validateEvent(eventKey string, event *Event) {
-	if strings.TrimSpace(event.Title) == "" {
-		logMissingEventValue(eventKey, "title")
-	}
-	if event.DateTime.IsZero() {
-		logMissingEventValue(eventKey, "datetime")
-	}
-	if strings.TrimSpace(event.Location) == "" {
-		logMissingEventValue(eventKey, "location")
-	}
-	if strings.TrimSpace(event.Description) == "" {
-		logMissingEventValue(eventKey, "description")
-	}
-}
-
-func logMissingEventValue(eventKey string, property string) {
-	log.Fatal("Missing config value events.", eventKey, ".", property)
 }

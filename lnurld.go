@@ -32,18 +32,6 @@ type LnAuthIdentity struct {
 	Identity string `json:"identity"`
 }
 
-type LnEvent struct {
-	EventKey    string
-	Title       string
-	DateTime    time.Time
-	Location    string
-	Capacity    uint16
-	Description string
-	Attendees   int
-	Attending   bool
-	IdentityId  string
-}
-
 type LnAccount struct {
 	AccountKey        string
 	Currency          Currency
@@ -102,6 +90,20 @@ type LnInvoiceStatus struct {
 	Settled bool `json:"settled"`
 }
 
+type Event struct {
+	Id          string    `json:"-"`
+	Owner       string    `json:"owner"`
+	Title       string    `json:"title" binding:"min=1,max=50"`
+	DateTime    time.Time `json:"dateTime" binding:"required"`
+	Location    string    `json:"location" binding:"min=1,max=50"`
+	Capacity    uint16    `json:"capacity" binding:"min=1,max=1000"`
+	Description string    `json:"description" binding:"min=1,max=300"`
+}
+
+const (
+	qrCodeSize = 1280
+)
+
 var (
 	//go:embed files/static
 	staticFs embed.FS
@@ -146,8 +148,10 @@ func main() {
 	lnurld.GET("/.well-known/lnurlp/:name", lnPayHandler)
 	lnurld.GET("/ln/pay/:name", lnPayHandler)
 	lnurld.GET("/ln/pay/:name/qr-code", lnPayQrCodeHandler)
-	lnurld.GET("/ln/events/:name", lnEventHandler)
-	lnurld.POST("/ln/events/:name/sign-up", lnEventSignUpHandler)
+
+	lnurld.GET("/events/:id", eventHandler)
+	lnurld.POST("/events/:id/sign-up", eventSignUpHandler)
+	// TODO: No need for /ln prefix
 	lnurld.GET("/ln/static/*filepath", lnStaticFileHandler)
 
 	authorized := lnurld.Group("/", gin.BasicAuth(config.Credentials))
@@ -158,6 +162,11 @@ func main() {
 	authorized.POST("/ln/accounts/:name/archive", lnAccountArchiveHandler)
 	authorized.POST("/ln/invoices", lnInvoicesHandler)
 	authorized.GET("/ln/invoices/:paymentHash", lnInvoiceStatusHandler)
+
+	authorized.GET("/auth/events", authEventsHandler)
+	authorized.POST("/api/events", apiEventCreateHandler)
+	authorized.GET("/api/events/:id", apiEventReadHandler)
+	authorized.PUT("/api/events/:id", apiEventUpdateHandler)
 
 	log.Fatal(lnurld.Run(config.Listen))
 }
@@ -173,7 +182,7 @@ func lnAuthInitHandler(context *gin.Context) {
 		return
 	}
 
-	pngData, err := encodeQrCode(encodedLnUrl, lightningPngData, 1280, true)
+	pngData, err := encodeQrCode(encodedLnUrl, lightningPngData, qrCodeSize, true)
 	if err != nil {
 		abortWithInternalServerErrorResponse(context, fmt.Errorf("encoding QR code: %w", err))
 		return
@@ -212,51 +221,6 @@ func lnAuthIdentityHandler(context *gin.Context) {
 	}
 
 	context.JSON(http.StatusOK, LnAuthIdentity{identity})
-}
-
-func lnEventHandler(context *gin.Context) {
-	eventKey, event := getEvent(context)
-	if eventKey == "" {
-		return
-	}
-
-	identities := repository.loadIdentities(eventKey)
-	identity := getIdentity(context)
-
-	context.HTML(http.StatusOK, "event.gohtml", LnEvent{
-		EventKey:    eventKey,
-		Title:       event.Title,
-		DateTime:    event.DateTime,
-		Location:    event.Location,
-		Capacity:    event.Capacity,
-		Description: event.Description,
-		Attendees:   len(identities),
-		Attending:   slices.Contains(identities, identity),
-		IdentityId:  toIdentityId(identity),
-	})
-}
-
-func lnEventSignUpHandler(context *gin.Context) {
-	eventKey, _ := getEvent(context)
-	if eventKey == "" {
-		return
-	}
-
-	identity := getIdentity(context)
-	if identity == "" {
-		abortWithForbiddenResponse(context, "authentication required")
-		return
-	}
-
-	identities := repository.loadIdentities(eventKey)
-	if !slices.Contains(identities, identity) {
-		if err := repository.storeIdentity(eventKey, identity); err != nil {
-			abortWithInternalServerErrorResponse(context, fmt.Errorf("storing identity: %w", err))
-			return
-		}
-	}
-
-	context.Status(http.StatusNoContent)
 }
 
 func lnPayHandler(context *gin.Context) {
@@ -356,6 +320,51 @@ func lnStaticFileHandler(context *gin.Context) {
 	context.FileFromFS(filePath, http.FS(staticFs))
 }
 
+func eventHandler(context *gin.Context) {
+	event := getEvent(context)
+	if event == nil {
+		return
+	}
+
+	attendees := repository.getEventAttendees(event)
+	identity := getIdentity(context)
+
+	context.HTML(http.StatusOK, "event.gohtml", gin.H{
+		"Id":          event.Id,
+		"Title":       event.Title,
+		"DateTime":    event.DateTime,
+		"Location":    event.Location,
+		"Capacity":    event.Capacity,
+		"Description": event.Description,
+		"Attendees":   len(attendees),
+		"Attending":   slices.Contains(attendees, identity),
+		"IdentityId":  toIdentityId(identity),
+	})
+}
+
+func eventSignUpHandler(context *gin.Context) {
+	event := getEvent(context)
+	if event == nil {
+		return
+	}
+
+	identity := getIdentity(context)
+	if identity == "" {
+		abortWithForbiddenResponse(context, "authentication required")
+		return
+	}
+
+	attendees := repository.getEventAttendees(event)
+	if !slices.Contains(attendees, identity) {
+		if err := repository.addEventAttendee(event, identity); err != nil {
+			abortWithInternalServerErrorResponse(context, fmt.Errorf("storing attendee: %w", err))
+			return
+		}
+	}
+
+	context.Status(http.StatusNoContent)
+}
+
 func lnAccountsHandler(context *gin.Context) {
 	var accountKeys []string
 	for accountKey := range config.Accounts {
@@ -378,7 +387,7 @@ func lnAccountHandler(context *gin.Context) {
 		return
 	}
 
-	paymentHashes := repository.loadPaymentHashes(accountKey)
+	paymentHashes := repository.getAccountPaymentHashes(accountKey)
 
 	var invoicesSettled int
 	var totalSatsReceived int64
@@ -433,7 +442,7 @@ func lnAccountRaffleHandler(context *gin.Context) {
 		return
 	}
 
-	paymentHashes := repository.loadPaymentHashes(accountKey)
+	paymentHashes := repository.getAccountPaymentHashes(accountKey)
 	rand.Shuffle(len(paymentHashes), func(i, j int) {
 		paymentHashes[i], paymentHashes[j] = paymentHashes[j], paymentHashes[i]
 	})
@@ -498,7 +507,7 @@ func lnAccountArchiveHandler(context *gin.Context) {
 		return
 	}
 
-	err := repository.archiveStorageFile(accountKey)
+	err := repository.archiveAccountPaymentHashes(accountKey)
 	if err != nil {
 		abortWithInternalServerErrorResponse(context, fmt.Errorf("archiving storage file: %w", err))
 		return
@@ -534,7 +543,7 @@ func lnInvoicesHandler(context *gin.Context) {
 	}
 
 	thumbnailData := getAccountThumbnailData(&account)
-	pngData, err := encodeQrCode(strings.ToUpper(invoice.paymentRequest), thumbnailData, 1280, true)
+	pngData, err := encodeQrCode(strings.ToUpper(invoice.paymentRequest), thumbnailData, qrCodeSize, true)
 	if err != nil {
 		abortWithInternalServerErrorResponse(context, fmt.Errorf("encoding QR code: %w", err))
 		return
@@ -567,44 +576,70 @@ func getIdentity(context *gin.Context) string {
 	return ""
 }
 
-func getEvent(context *gin.Context) (string, *Event) {
-	eventKey := context.Param("name")
-	if event, eventExists := config.Events[eventKey]; eventExists {
-		return eventKey, &event
+func authEventsHandler(context *gin.Context) {
+	var events []*Event
+	for _, event := range repository.getEvents() {
+		if isEventAccessible(context, event) {
+			events = append(events, event)
+		}
 	}
+	sort.Slice(events, func(i, j int) bool {
+		return events[i].DateTime.Before(events[j].DateTime)
+	})
 
-	abortWithNotFoundResponse(context)
-	return "", nil
+	context.HTML(http.StatusOK, "events.gohtml", gin.H{
+		"Events":         events,
+		"TimeZoneOffset": time.Now().Format("-07:00"),
+	})
 }
 
-func getAccount(context *gin.Context) (string, *Account) {
-	accountKey := context.Param("name")
-	if account, accountExists := config.Accounts[accountKey]; accountExists {
-		return accountKey, &account
+func apiEventCreateHandler(context *gin.Context) {
+	var event Event
+	if err := context.BindJSON(&event); err != nil {
+		abortWithBadRequestResponse(context, err.Error())
+		return
 	}
+	event.Owner = context.GetString(gin.AuthUserKey)
 
-	abortWithNotFoundResponse(context)
-	return "", nil
-}
-
-func getAccountThumbnail(account *Account) *Thumbnail {
-	if account.Thumbnail == "" {
-		return nil
-	}
-
-	thumbnail, err := repository.loadThumbnail(account.Thumbnail)
+	err := repository.createEvent(&event)
 	if err != nil {
-		log.Println("Thumbnail not readable:", err)
+		abortWithInternalServerErrorResponse(context, fmt.Errorf("creating event: %w", err))
+		return
 	}
 
-	return thumbnail
+	context.JSON(http.StatusCreated, event)
 }
 
-func getAccountThumbnailData(account *Account) []byte {
-	if thumbnail := getAccountThumbnail(account); thumbnail != nil {
-		return thumbnail.bytes
+func apiEventReadHandler(context *gin.Context) {
+	event := getAccessibleEvent(context)
+	if event == nil {
+		return
 	}
-	return lightningPngData
+
+	context.JSON(http.StatusOK, event)
+}
+
+func apiEventUpdateHandler(context *gin.Context) {
+	event := getAccessibleEvent(context)
+	if event == nil {
+		return
+	}
+
+	var updatedEvent Event
+	if err := context.BindJSON(&updatedEvent); err != nil {
+		abortWithBadRequestResponse(context, err.Error())
+		return
+	}
+	updatedEvent.Id = event.Id
+	updatedEvent.Owner = event.Owner
+
+	err := repository.updateEvent(&updatedEvent)
+	if err != nil {
+		abortWithInternalServerErrorResponse(context, fmt.Errorf("updating event: %w", err))
+		return
+	}
+
+	context.JSON(http.StatusOK, updatedEvent)
 }
 
 func getSchemeAndHost(context *gin.Context) (string, string) {
@@ -622,6 +657,63 @@ func getSchemeAndHost(context *gin.Context) (string, string) {
 	return scheme, host
 }
 
+func getAccount(context *gin.Context) (string, *Account) {
+	accountKey := context.Param("name")
+	if account, accountExists := config.Accounts[accountKey]; accountExists {
+		return accountKey, &account
+	}
+
+	abortWithNotFoundResponse(context)
+	return "", nil
+}
+
+func getAccountThumbnail(account *Account) *Thumbnail {
+	if account.Thumbnail == "" {
+		return nil
+	}
+
+	thumbnail, err := repository.getThumbnail(account.Thumbnail)
+	if err != nil {
+		log.Println("thumbnail not readable:", err)
+	}
+
+	return thumbnail
+}
+
+func getAccountThumbnailData(account *Account) []byte {
+	if thumbnail := getAccountThumbnail(account); thumbnail != nil {
+		return thumbnail.bytes
+	}
+	return lightningPngData
+}
+
+func getEvent(context *gin.Context) *Event {
+	eventId := context.Param("id")
+	if event := repository.getEvent(eventId); event != nil {
+		return event
+	}
+
+	abortWithNotFoundResponse(context)
+	return nil
+}
+
+func getAccessibleEvent(context *gin.Context) *Event {
+	event := getEvent(context)
+	if event != nil && isEventAccessible(context, event) {
+		return event
+	}
+
+	abortWithNotFoundResponse(context)
+	return nil
+}
+
+func isEventAccessible(context *gin.Context, event *Event) bool {
+	user := context.GetString(gin.AuthUserKey)
+	_, accessRestricted := config.AccessControl[user]
+
+	return !accessRestricted || user == event.Owner
+}
+
 func createInvoice(context *gin.Context, accountKey string, msats int64, comment string, descriptionHash []byte) *Invoice {
 	if msats == 0 {
 		abortWithInternalServerErrorResponse(context, errors.New("zero invoice requested"))
@@ -633,7 +725,7 @@ func createInvoice(context *gin.Context, accountKey string, msats int64, comment
 		abortWithInternalServerErrorResponse(context, fmt.Errorf("creating invoice: %w", err))
 		return nil
 	}
-	if err := repository.storePaymentHash(accountKey, invoice.getPaymentHash()); err != nil {
+	if err := repository.addAccountPaymentHash(accountKey, invoice.getPaymentHash()); err != nil {
 		abortWithInternalServerErrorResponse(context, fmt.Errorf("storing payment hash: %w", err))
 		return nil
 	}
