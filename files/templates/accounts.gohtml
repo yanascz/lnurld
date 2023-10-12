@@ -5,18 +5,18 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="stylesheet" media="all" href="/ln/static/stylesheet.css">
+    <link rel="stylesheet" media="all" href="/static/auth.css">
 
-    <title>⚡Accounts</title>
+    <title>Accounts</title>
 
 </head>
 <body>
 
-<h1><span>⚡</span>Accounts</h1>
+<h1 class="accounts">Accounts</h1>
 
 <ul class="accounts">
     {{range .}}
-        <li><a href="/ln/accounts/{{.}}"><strong>{{.}}</strong></a></li>
+        <li><a href="/auth/accounts/{{.}}"><strong>{{.}}</strong></a></li>
     {{end}}
 </ul>
 

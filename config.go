@@ -54,7 +54,6 @@ type Account struct {
 	IsAlsoEmail    bool   `yaml:"is-also-email"`
 	CommentAllowed uint16 `yaml:"comment-allowed"`
 	Archivable     bool
-	Raffle         *Raffle
 }
 
 func (account *Account) getCurrency() Currency {
@@ -65,37 +64,15 @@ func (account *Account) getCurrency() Currency {
 }
 
 func (account *Account) getMinSendable() int64 {
-	if raffle := account.Raffle; raffle != nil {
-		return msats(raffle.TicketPrice)
-	}
 	return msats(account.MinSendable)
 }
 
 func (account *Account) getMaxSendable() int64 {
-	if raffle := account.Raffle; raffle != nil {
-		return msats(raffle.TicketPrice)
-	}
 	return msats(account.MaxSendable)
 }
 
 func msats(sats uint32) int64 {
 	return int64(sats) * 1000
-}
-
-type Raffle struct {
-	TicketPrice uint32 `yaml:"ticket-price"`
-	Prizes      []map[string]uint8
-}
-
-func (raffle *Raffle) getPrizesCount() int {
-	var prizesCount int
-	for _, entry := range raffle.Prizes {
-		for _, quantity := range entry {
-			prizesCount += int(quantity)
-			break
-		}
-	}
-	return prizesCount
 }
 
 func loadConfig(configFileName string) *Config {
@@ -150,26 +127,11 @@ func validateAccount(accountKey string, account *Account) {
 	if !slices.Contains(supportedCurrencies(), account.getCurrency()) {
 		logInvalidAccountValue(accountKey, "currency", account.Currency)
 	}
-	if raffle := account.Raffle; raffle == nil {
-		if account.MaxSendable < 1 {
-			logInvalidAccountValue(accountKey, "max-sendable", account.MaxSendable)
-		}
-		if account.MinSendable < 1 || account.MinSendable > account.MaxSendable {
-			logInvalidAccountValue(accountKey, "min-sendable", account.MinSendable)
-		}
-	} else {
-		if account.MaxSendable > 0 {
-			logInvalidAccountConfig(accountKey, "max-sendable")
-		}
-		if account.MinSendable > 0 {
-			logInvalidAccountConfig(accountKey, "min-sendable")
-		}
-		if ticketPrice := raffle.TicketPrice; ticketPrice < 1 {
-			logInvalidAccountValue(accountKey, "raffle.ticket-price", ticketPrice)
-		}
-		if prizes := raffle.Prizes; len(prizes) == 0 {
-			logInvalidAccountValue(accountKey, "raffle.prizes", prizes)
-		}
+	if account.MaxSendable < 1 {
+		logInvalidAccountValue(accountKey, "max-sendable", account.MaxSendable)
+	}
+	if account.MinSendable < 1 || account.MinSendable > account.MaxSendable {
+		logInvalidAccountValue(accountKey, "min-sendable", account.MinSendable)
 	}
 	if strings.TrimSpace(account.Description) == "" {
 		logInvalidAccountValue(accountKey, "description", account.Description)
@@ -181,8 +143,4 @@ func validateAccount(accountKey string, account *Account) {
 
 func logInvalidAccountValue(accountKey string, property string, value any) {
 	log.Fatal("Invalid config value accounts.", accountKey, ".", property, ": ", value)
-}
-
-func logInvalidAccountConfig(accountKey string, property string) {
-	log.Fatal("Cannot set accounts.", accountKey, ".", property, " when raffle is enabled")
 }

@@ -40,14 +40,14 @@ $ sudo chown bitcoin:bitcoin /etc/lnurld
 $ sudo -u bitcoin vim /etc/lnurld/config.yaml
 ```
 
-Example configuration with one admin, one user with restricted access, one donate account and one raffle account:
+Example configuration with one admin, one user with restricted access and two accounts:
 
 ```yaml
 credentials:
   admin: 4dm!nS3cr3t
   guest: S3cr3t
 access-control:
-  guest: [raffle]
+  guest: [cafe]
 accounts:
   satoshi:
     min-sendable: 1
@@ -55,18 +55,15 @@ accounts:
     description: Sats for Satoshi
     is-also-email: true
     comment-allowed: 210
-  raffle:
-    description: Raffle ticket
-    thumbnail: raffle.png
-    raffle:
-      ticket-price: 21_000
-      prizes:
-        - Trezor Model T: 1
-        - Trezor Model One: 2
-        - Trezor Lanyard: 5
+  cafe:
+    currency: usd
+    min-sendable: 1
+    max-sendable: 1_000_000
+    description: Bitcoin Café 
+    thumbnail: cafe.png
 ```
 
-(Create image `raffle.png` in `/etc/lnurld/thumbnails` if you want it served by `lnurld`.)
+(Create image `cafe.png` in `/etc/lnurld/thumbnails` if you want it served by `lnurld`.)
 
 Available configuration properties:
 
@@ -83,16 +80,13 @@ Available configuration properties:
 | `access-control`                 | Map of accounts accessible by non-admin users.                              | _none, i.e. all users have full admin access_              |
 | `accounts`                       | Map of available accounts.                                                  | _none_                                                     |
 | `accounts.*.currency`            | Terminal currency; `cad`, `chf`, `czk`, `eur`, `gbp` and `usd` supported.   | `eur`                                                      |
-| `accounts.*.max-sendable`        | Maximum sendable amount in sats. _(not available for raffle)_               | _none_                                                     |
-| `accounts.*.min-sendable`        | Minimum sendable amount in sats. _(not available for raffle)_               | _none_                                                     |
+| `accounts.*.max-sendable`        | Maximum sendable amount in sats.                                            | _none_                                                     |
+| `accounts.*.min-sendable`        | Minimum sendable amount in sats.                                            | _none_                                                     |
 | `accounts.*.description`         | Description of the account.                                                 | _none_                                                     |
 | `accounts.*.thumbnail`           | Name of PNG/JPEG thumbnail to use; 256×256 pixels recommended. _(optional)_ | _none_                                                     |
 | `accounts.*.is-also-email`       | Does the account match an email address?                                    | `false`                                                    |
 | `accounts.*.comment-allowed`     | Maximum length of invoice comment.                                          | `0`                                                        |
 | `accounts.*.archivable`          | May the account storage file be archived on demand?                         | `false`                                                    |
-| `accounts.*.raffle`              | Raffle configuration. _(optional)_                                          | _none_                                                     |
-| `accounts.*.raffle.ticket-price` | Price of a ticket in sats.                                                  | _none_                                                     |
-| `accounts.*.raffle.prizes`       | List of prize/quantity pairs.                                               | _none_                                                     |
 
 If a property is marked as optional or has a default value, you don’t have to specify it explicitly.
 
@@ -103,7 +97,7 @@ $ sudo mkdir /var/lib/lnurld
 $ sudo chown bitcoin:bitcoin /var/lib/lnurld
 ```
 
-Account and event data will be stored there.
+Account, event and raffle data will be stored there.
 
 ### Run the server
 
@@ -170,21 +164,20 @@ If you don’t have an SSL certificate, you can get one using [Certbot](https://
 
 Once configured and deployed, you shall be able to send sats to ⚡satoshi@nakamoto.example from your LN wallet.
 If you need to display a QR code, simply navigate to or share https://nakamoto.example/ln/pay/satoshi/qr-code.
-For a smaller/larger QR code, feel free to append desired size in pixels to the URL, e.g `?size=1024`.
+For a smaller/larger QR code, feel free to append desired size in pixels to the URL, e.g `?size=1024`. This pattern
+applies to any configured account.
 
-Same applies to ⚡raffle@nakamoto.example and https://nakamoto.example/ln/pay/raffle/qr-code with raffle configured.
-These allow anyone to purchase as many raffle tickets for the configured price as they wish, increasing their chances.
-Once enough tickets are sold, i.e. at least the same number as there are prizes, you may start drawing winning tickets
-from the account’s detail page. **The raffle is stateless so refreshing its page restarts the draw and may produce
-different winning tickets!**
-
-To see amount of received sats or raffle for accessible accounts, navigate to https://nakamoto.example/ln/accounts.
+To see the amount of received sats for accessible accounts, navigate to https://nakamoto.example/auth/accounts.
 You’ll need to authenticate using one of the configured username/password pairs. Account stats, QR code and/or payment
 terminal are accessible from the account’s detail page.
 
-Events may be managed at https://nakamoto.example/auth/events after you authenticate using one of the configured
-username/password pairs. Each created event may be shared with your friends, and they may sign up to attend the event
-once they authenticate using their LN wallet.
+Similarly, raffles may be managed at https://nakamoto.example/auth/raffles. Raffle QR code may be shared to allow
+anyone to purchase as many raffle tickets as they wish, increasing their chances. Once enough tickets are sold, i.e.
+at least the same number as there are prizes, you may start drawing winning tickets from the raffle’s detail page.
+**The raffle is stateless so refreshing its page restarts the draw and may produce different winning tickets!**
+
+Events may be managed at https://nakamoto.example/auth/events. Each created event may be shared with your friends, and
+they may sign up to attend the event once they authenticate using their LN wallet.
 
 ## Update
 

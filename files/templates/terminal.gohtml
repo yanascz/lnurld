@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-    <link rel="stylesheet" media="all" href="/ln/static/terminal.css">
+    <link rel="stylesheet" media="all" href="/static/terminal.css">
 
     <title>{{.Title}}</title>
 
@@ -113,7 +113,7 @@
                 amount: amount
             })
         }
-        fetch('/ln/invoices', createRequest)
+        fetch('/api/invoices', createRequest)
             .then(response => {
                 if (response.ok) {
                     return response.json()
@@ -136,7 +136,7 @@
     }
 
     function awaitSettlement() {
-        fetch(`/ln/invoices/${paymentHash}`)
+        fetch(`/api/invoices/${paymentHash}`)
             .then(response => response.json())
             .then(invoice => {
                 if (invoice.settled) {

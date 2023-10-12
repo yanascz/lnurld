@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" media="all" href="/static/auth.css">
+
+    <title>{{.Title}}</title>
+
+</head>
+<body>
+
+<h1 class="raffles">{{.Title}}</h1>
+
+<h2 id="prize">???</h2>
+<dl id="prize-tickets">
+    <div>
+        <dt>???</dt>
+        <dd>?</dd>
+    </div>
+</dl>
+
+<div class="buttons raffle">
+    <button id="next-prize" accesskey="p">Next prize</button>
+    <button id="next-ticket" accesskey="t">Next ticket</button>
+</div>
+
+<footer id="tickets"></footer>
+
+<script>
+    const prizes = {{.Prizes}}
+    const drawnTickets = {{.DrawnTickets}}
+
+    const prizeElement = element('prize')
+    const prizeTicketsElement = element('prize-tickets')
+    const nextPrizeButton = element('next-prize')
+    const nextTicketButton = element('next-ticket')
+    const ticketsElement = element('tickets')
+
+    nextPrizeButton.onclick = nextPrize
+    nextTicketButton.onclick = nextTicket
+    disableAndHide(nextTicketButton, true)
+    updateTickets()
+
+    function nextPrize() {
+        const { name, quantity } = prizes.pop()
+        prizeElement.innerText = name
+        prizeTicketsElement.replaceChildren()
+        for (let i = 0; i < quantity && drawnTickets.length > 0; i++) {
+            prizeTicketsElement.appendChild(nextTicketElement())
+        }
+        updateButtonsAndTickets()
+    }
+
+    function nextTicket() {
+        prizeTicketsElement.replaceChildren(nextTicketElement())
+        updateButtonsAndTickets()
+    }
+
+    function nextTicketElement() {
+        const { number, paymentHash } = drawnTickets.shift()
+        const element = document.createElement('div')
+        element.innerHTML = `<dt>${number}</dt><dd>${paymentHash}</dd>`
+        return element
+    }
+
+    function updateButtonsAndTickets() {
+        disableAndHide(nextPrizeButton, prizes.length === 0 || drawnTickets.length === 0)
+        disableAndHide(nextTicketButton, drawnTickets.length === 0)
+        updateTickets()
+    }
+
+    function disableAndHide(element, disabledAndHidden) {
+        element.disabled = disabledAndHidden
+        element.hidden = disabledAndHidden
+    }
+
+    function updateTickets() {
+        const tickets = drawnTickets.length
+        ticketsElement.innerText = tickets ? `${tickets} ticket${tickets !== 1 ? 's' : ''}` : ''
+    }
+
+    function element(elementId) {
+        return document.getElementById(elementId)
+    }
+</script>
+
+</body>
+</html>

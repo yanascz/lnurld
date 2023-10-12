@@ -13,8 +13,19 @@ body {
 }
 
 h1 {
+    display: flex;
     margin-top: 1em;
     font-size: 3em;
+}
+
+h1.accounts::before {
+    margin-right: .3em;
+    content: '⛺';
+}
+
+h1.raffles::before {
+    margin-right: .1em;
+    content: '⚡';
 }
 
 h2 {
@@ -22,14 +33,14 @@ h2 {
     font-size: 2.4em;
 }
 
+h2.comments::before {
+    margin-right: .3em;
+    content: '💬';
+}
+
 h2#prize {
     font-size: 2em;
     font-weight: normal;
-}
-
-h1 span,
-h2 span {
-    font-family: sans-serif;
 }
 
 p {
@@ -39,12 +50,13 @@ p {
 
 ul {
     margin-top: 1em;
-    padding: 0 0 0 1em;
+    padding: 0;
     list-style-type: none;
     font-size: 2em;
 }
 
 ul.accounts {
+    padding-left: 1em;
     list-style-type: disc;
 }
 
@@ -54,6 +66,21 @@ ul.comments {
 
 ul li {
     margin-bottom: .4em;
+}
+
+ul li.accounts::before {
+    margin-right: .3em;
+    content: '⛺';
+}
+
+ul li.events::before {
+    margin-right: .3em;
+    content: '🗓';
+}
+
+ul li.raffles::before {
+    margin-right: .3em;
+    content: '⚡';
 }
 
 a {
@@ -106,7 +133,7 @@ dl#prize-tickets dd {
 div.buttons {
     display: flex;
     flex-direction: column;
-    margin-top: 1em;
+    margin: 1em auto 0;
 }
 
 div.buttons button {
@@ -134,11 +161,29 @@ div.raffle {
     margin-top: 3em;
 }
 
-main.events {
+main {
     display: flex;
     flex-direction: column;
-    max-width: 420px;
+    align-items: center;
     margin: auto;
+}
+
+main ul {
+    list-style-type: disc;
+    padding-left: 1em;
+}
+
+main ul button {
+    display: block;
+    margin-top: .2em;
+    padding: .4em .8em;
+    border: none;
+    border-radius: .5em;
+    background-color: grey;
+    color: white;
+    font-size: .5em;
+    font-weight: bold;
+    cursor: pointer;
 }
 
 main.events h1::before {
@@ -146,21 +191,9 @@ main.events h1::before {
     content: '🗓';
 }
 
-main.events ul {
-    list-style-type: disc;
-}
-
-main.events ul button {
-    margin: 0;
-    padding: 0;
-    border: none;
-    background-color: transparent;
-    font-size: 1em;
-    cursor: pointer;
-}
-
-main.events div.buttons {
-    margin: 1em auto;
+main.raffles h1::before {
+    margin-right: .1em;
+    content: '⚡';
 }
 
 dialog {
@@ -179,10 +212,15 @@ dialog::backdrop {
 
 dialog h2 {
     margin-top: 0;
+    font-size: 1.5em;
 }
 
 dialog div {
     display: flex;
+}
+
+dialog div#prizes {
+    flex-direction: column;
 }
 
 dialog p {
@@ -198,12 +236,38 @@ dialog label {
     color: grey;
 }
 
+dialog label button {
+    font-size: 1em;
+}
+
 dialog input {
+    display: flex;
+    flex-grow: 1;
+    font-size: 1em;
+}
+
+dialog select {
     font-size: 1em;
 }
 
 dialog textarea {
     font-size: 1em;
+}
+
+dialog div.buttons {
+    align-items: center;
+}
+
+dialog button.close {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: .2em .4em;
+    border: none;
+    background-color: white;
+    color: black;
+    font-size: 2.1em;
+    cursor: pointer;
 }
 
 footer {

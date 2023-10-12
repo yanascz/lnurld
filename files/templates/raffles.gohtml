@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" media="all" href="/static/auth.css">
+
+    <title>Raffles</title>
+
+</head>
+<body>
+
+<main class="raffles">
+    <h1>Raffles</h1>
+    <ul>
+        {{range .Raffles}}
+            <li>
+                <a href="/auth/raffles/{{.Id}}"><strong>{{.Title}}</strong></a>
+                <button onclick="openEditDialog('{{.Id}}')">Edit</button>
+            </li>
+        {{end}}
+    </ul>
+    <div class="buttons">
+        <button onclick="openCreateDialog()">Create</button>
+    </div>
+</main>
+
+<dialog id="dialog">
+    <h2>Raffle</h2>
+    <button class="close" onclick="closeDialog()">×</button>
+    <form method="dialog">
+        <p>
+            <label for="title">Title</label>
+            <input id="title" type="text" maxlength="50" required/>
+        </p>
+        <p>
+            <label for="ticket-price">Ticket Price (sats)</label>
+            <input id="ticket-price" type="number" min="1" max="1000000" required/>
+        </p>
+        <p>
+            <label for="fiat-currency">Fiat Currency</label>
+            <select id="fiat-currency" required>
+                {{range .FiatCurrencies}}
+                    <option value="{{.}}">{{currency .}}</option>
+                {{end}}
+            </select>
+        </p>
+        <p>
+            <label for="prizes">
+                Prizes
+                <button id="add-prize" onclick="addPrizeElement(); return false;">+</button>
+                <button id="remove-prize" onclick="removePrizeElement(); return false;">–</button>
+            </label>
+            <div id="prizes"></div>
+        </p>
+        <div class="buttons">
+            <button>Submit</button>
+        </div>
+    </form>
+</dialog>
+
+<script>
+    const dialogElement = element('dialog');
+    const titleElement = element('title')
+    const ticketPriceElement = element('ticket-price')
+    const fiatCurrencyElement = element('fiat-currency')
+    const prizesElement = element('prizes')
+    const addPrizeButton = element('add-prize')
+    const removePrizeButton = element('remove-prize')
+
+    function openCreateDialog() {
+        titleElement.value = ''
+        ticketPriceElement.value = ''
+        fiatCurrencyElement.value = 'eur'
+        prizesElement.replaceChildren(createPrizeElement({}))
+        dialogElement.onsubmit = () => submitRaffle('POST', '/api/raffles')
+        dialogElement.showModal()
+        updateButtons()
+    }
+
+    function openEditDialog(raffleId) {
+        const raffleUri = `/api/raffles/${raffleId}`;
+        fetch(raffleUri)
+            .then(response => response.json())
+            .then(body => {
+                titleElement.value = body.title
+                ticketPriceElement.value = body.ticketPrice
+                fiatCurrencyElement.value = body.fiatCurrency
+                prizesElement.replaceChildren(...body.prizes.map(createPrizeElement))
+                dialogElement.onsubmit = () => submitRaffle('PUT', raffleUri)
+                dialogElement.showModal()
+                updateButtons()
+            })
+    }
+
+    function createPrizeElement({name = '', quantity = 1}) {
+        const prizeElement = document.createElement('div')
+        prizeElement.innerHTML = `
+            <input type="text" name="name" maxlength="50" value="${name}" required/>
+            <input type="number" name="quantity" min="1" max="10" value="${quantity}" required/>
+        `
+        return prizeElement
+    }
+
+    function addPrizeElement() {
+        prizesElement.appendChild(createPrizeElement({}))
+        updateButtons()
+    }
+
+    function removePrizeElement() {
+        prizesElement.lastChild.remove()
+        updateButtons()
+    }
+
+    function updateButtons() {
+        addPrizeButton.disabled = prizesElement.children.length === 10
+        removePrizeButton.disabled = prizesElement.children.length === 1
+    }
+
+    function submitRaffle(method, uri) {
+        fetch(uri, {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                title: titleElement.value,
+                ticketPrice: Number(ticketPriceElement.value),
+                fiatCurrency: fiatCurrencyElement.value,
+                prizes: toPrizes(prizesElement.children),
+            })
+        }).then(() => document.location.reload())
+    }
+
+    function toPrizes(prizesElements) {
+        const prizes = []
+        for (const prizeElement of prizesElements) {
+            prizes.push({
+                name: childValue(prizeElement, 'name'),
+                quantity: Number(childValue(prizeElement, 'quantity'))
+            })
+        }
+        return prizes
+    }
+
+    function childValue(element, childName) {
+        return element.children[childName].value
+    }
+
+    function closeDialog() {
+        dialogElement.close()
+    }
+
+    function element(elementId) {
+        return document.getElementById(elementId)
+    }
+</script>
+
+</body>
+</html>

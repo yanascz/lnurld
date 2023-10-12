@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="stylesheet" media="all" href="/ln/static/stylesheet.css">
+    <link rel="stylesheet" media="all" href="/static/auth.css">
 
     <title>Events</title>
 
@@ -18,17 +18,18 @@
         {{range .Events}}
             <li>
                 <a href="/events/{{.Id}}"><strong>{{.Title}}</strong></a>
-                <button onclick="editDialog('{{.Id}}')">📝</button>
+                <button onclick="openEditDialog('{{.Id}}')">Edit</button>
             </li>
         {{end}}
     </ul>
     <div class="buttons">
-        <button onclick="createDialog()">Create</button>
+        <button onclick="openCreateDialog()">Create</button>
     </div>
 </main>
 
 <dialog id="dialog">
     <h2>Event</h2>
+    <button class="close" onclick="closeDialog()">×</button>
     <form method="dialog">
         <p>
             <label for="title">Title</label>
@@ -57,7 +58,7 @@
             <textarea id="description" rows="5" maxlength="300" required></textarea>
         </p>
         <div class="buttons">
-            <button value="submit">Submit</button>
+            <button>Submit</button>
         </div>
     </form>
 </dialog>
@@ -71,7 +72,7 @@
     const capacityElement = element('capacity')
     const descriptionElement = element('description')
 
-    function createDialog() {
+    function openCreateDialog() {
         titleElement.value = ''
         dateElement.value = ''
         timeElement.value = ''
@@ -82,7 +83,7 @@
         dialogElement.showModal()
     }
 
-    function editDialog(eventId) {
+    function openEditDialog(eventId) {
         const eventUri = `/api/events/${eventId}`;
         fetch(eventUri)
             .then(response => response.json())
@@ -113,6 +114,10 @@
                 description: descriptionElement.value
             })
         }).then(() => document.location.reload())
+    }
+
+    function closeDialog() {
+        dialogElement.close()
     }
 
     function toDate(dateTime) {

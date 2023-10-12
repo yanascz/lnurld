@@ -5,55 +5,36 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="stylesheet" media="all" href="/ln/static/stylesheet.css">
+    <link rel="stylesheet" media="all" href="/static/auth.css">
 
-    <title>⛺️ {{.AccountKey}}</title>
+    <title>{{.AccountKey}}</title>
 
 </head>
 <body>
 
-<h1><span>⛺</span>️ {{.AccountKey}}</h1>
+<h1 class="accounts">{{.AccountKey}}</h1>
 
 <div id="balance">
     <h2><strong>{{number .TotalSatsReceived}}</strong> sat{{if ne .TotalSatsReceived 1}}s{{end}}</h2>
-    <p><strong>{{decimal .TotalFiatReceived}}</strong> {{.Currency}}</p>
+    <p><strong>{{decimal .TotalFiatReceived}}</strong> {{.FiatCurrency}}</p>
 </div>
 
 <ul>
     <li><strong>{{number .InvoicesIssued}}</strong> invoice{{if ne .InvoicesIssued 1}}s{{end}} issued</li>
     <li><strong>{{number .InvoicesSettled}}</strong> invoice{{if ne .InvoicesSettled 1}}s{{end}} settled</li>
-    {{if not .Raffle}}
-        <li><strong>{{number (len .Comments)}}</strong> comment{{if ne (len .Comments) 1}}s{{end}}</li>
-    {{end}}
+    <li><strong>{{number (len .Comments)}}</strong> comment{{if ne (len .Comments) 1}}s{{end}}</li>
 </ul>
 
 <div class="buttons">
     <button onclick="location.href='/ln/pay/{{.AccountKey}}/qr-code?size=1280'">QR Code</button>
-    {{if not .Raffle}}
-        <button onclick="location.href='/ln/accounts/{{.AccountKey}}/terminal'">Terminal</button>
-    {{end}}
+    <button onclick="location.href='/auth/accounts/{{.AccountKey}}/terminal'">Terminal</button>
     {{if .Archivable}}
         <button onclick="archive()">Archive</button>
     {{end}}
 </div>
 
-{{if .Raffle}}
-    <h2><span>⚡</span>Raffle</h2>
-    {{with .Raffle}}
-        <ul>
-            <li><strong>{{number .TicketPrice}}</strong> sats per ticket</li>
-            <li><strong>{{number .PrizesCount}}</strong> prize{{if ne .PrizesCount 1}}s{{end}} configured</li>
-        </ul>
-    {{end}}
-    <div class="buttons">
-        {{if ge .InvoicesSettled .Raffle.PrizesCount}}
-            <button onclick="location.href='/ln/accounts/{{.AccountKey}}/raffle'">Draw</button>
-        {{else}}
-            <button disabled>Draw</button>
-        {{end}}
-    </div>
-{{else if gt (len .Comments) 0}}
-    <h2><span>💬</span> Comments</h2>
+{{if gt (len .Comments) 0}}
+    <h2 class="comments">Comments</h2>
     <ul class="comments">
         {{range .Comments}}
             <li>
@@ -77,7 +58,7 @@
                 'Accept': 'application/json'
             },
         }
-        fetch('/ln/accounts/{{.AccountKey}}/archive', archiveRequest)
+        fetch('/api/accounts/{{.AccountKey}}/archive', archiveRequest)
             .then(() => document.location.reload())
     }
 </script>

@@ -6,6 +6,7 @@ import (
 	"golang.org/x/text/message"
 	"html/template"
 	"log"
+	"strings"
 	"time"
 )
 
@@ -23,6 +24,9 @@ func loadTemplates(engine *gin.Engine, pattern string) {
 		},
 		"datetime": func(date time.Time) string {
 			return date.Format("02/01/2006 15:04")
+		},
+		"currency": func(currency Currency) string {
+			return strings.ToUpper(string(currency))
 		},
 	}
 

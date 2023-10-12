@@ -14,10 +14,11 @@ import (
 )
 
 const (
-	pathSeparator = string(os.PathSeparator)
-	eventsDirName = "events" + pathSeparator
-	dataFileName  = "data.json"
-	csvExtension  = ".csv"
+	pathSeparator  = string(os.PathSeparator)
+	eventsDirName  = "events" + pathSeparator
+	rafflesDirName = "raffles" + pathSeparator
+	dataFileName   = "data.json"
+	csvExtension   = ".csv"
 )
 
 type Thumbnail struct {
@@ -32,6 +33,7 @@ type Repository struct {
 
 func newRepository(thumbnailDir string, dataDir string) *Repository {
 	_ = os.Mkdir(dataDir+eventsDirName, 0755)
+	_ = os.Mkdir(dataDir+rafflesDirName, 0755)
 
 	return &Repository{
 		thumbnailDir: thumbnailDir,
@@ -87,13 +89,8 @@ func (repository *Repository) createEvent(event *Event) error {
 }
 
 func (repository *Repository) getEvent(eventId string) *Event {
-	fileBytes, err := os.ReadFile(eventDataFileName(repository, eventId))
-	if err != nil {
-		return nil
-	}
-
 	var event Event
-	if json.Unmarshal(fileBytes, &event) != nil {
+	if readObject(eventDataFileName(repository, eventId), &event) != nil {
 		return nil
 	}
 	event.Id = eventId
@@ -102,14 +99,8 @@ func (repository *Repository) getEvent(eventId string) *Event {
 }
 
 func (repository *Repository) getEvents() []*Event {
-	dirEntries, err := os.ReadDir(repository.dataDir + eventsDirName)
-	if err != nil {
-		log.Println("error reading directory:", err)
-		return []*Event{}
-	}
-
 	var events []*Event
-	for _, dirEntry := range dirEntries {
+	for _, dirEntry := range readDirEntries(repository.dataDir + eventsDirName) {
 		if event := repository.getEvent(dirEntry.Name()); event != nil {
 			events = append(events, event)
 		}
@@ -130,6 +121,54 @@ func (repository *Repository) getEventAttendees(event *Event) []string {
 	return readValues(eventAttendeesFileName(repository, event.Id))
 }
 
+func (repository *Repository) createRaffle(raffle *Raffle) error {
+	raffleId, err := randomId()
+	if err != nil {
+		return err
+	}
+
+	err = os.Mkdir(raffleDirName(repository, raffleId), 0755)
+	if err != nil {
+		return err
+	}
+	raffle.Id = raffleId
+
+	return writeObject(raffleDataFileName(repository, raffleId), raffle)
+}
+
+func (repository *Repository) getRaffle(raffleId string) *Raffle {
+	var raffle Raffle
+	if readObject(raffleDataFileName(repository, raffleId), &raffle) != nil {
+		return nil
+	}
+	raffle.Id = raffleId
+
+	return &raffle
+}
+
+func (repository *Repository) getRaffles() []*Raffle {
+	var raffles []*Raffle
+	for _, dirEntry := range readDirEntries(repository.dataDir + rafflesDirName) {
+		if event := repository.getRaffle(dirEntry.Name()); event != nil {
+			raffles = append(raffles, event)
+		}
+	}
+
+	return raffles
+}
+
+func (repository *Repository) updateRaffle(raffle *Raffle) error {
+	return writeObject(raffleDataFileName(repository, raffle.Id), raffle)
+}
+
+func (repository *Repository) addRafflePaymentHash(raffle *Raffle, paymentHash string) error {
+	return appendValue(raffleTicketsFileName(repository, raffle.Id), paymentHash)
+}
+
+func (repository *Repository) getRafflePaymentHashes(raffle *Raffle) []string {
+	return readValues(raffleTicketsFileName(repository, raffle.Id))
+}
+
 func accountPaymentHashesFileName(repository *Repository, accountKey string) string {
 	return repository.dataDir + accountKey + csvExtension
 }
@@ -146,6 +185,18 @@ func eventAttendeesFileName(repository *Repository, eventId string) string {
 	return eventDirName(repository, eventId) + pathSeparator + "attendees" + csvExtension
 }
 
+func raffleDirName(repository *Repository, raffleId string) string {
+	return repository.dataDir + rafflesDirName + raffleId
+}
+
+func raffleDataFileName(repository *Repository, raffleId string) string {
+	return raffleDirName(repository, raffleId) + pathSeparator + dataFileName
+}
+
+func raffleTicketsFileName(repository *Repository, raffleId string) string {
+	return raffleDirName(repository, raffleId) + pathSeparator + "tickets" + csvExtension
+}
+
 func randomId() (string, error) {
 	random := make([]byte, 5)
 	if _, err := rand.Read(random); err != nil {
@@ -155,7 +206,7 @@ func randomId() (string, error) {
 	return base58.Encode(random), nil
 }
 
-func writeObject(fileName string, object interface{}) error {
+func writeObject(fileName string, object any) error {
 	jsonData, err := json.Marshal(object)
 	if err != nil {
 		return err
@@ -172,6 +223,25 @@ func writeObject(fileName string, object interface{}) error {
 	}
 
 	return nil
+}
+
+func readObject(fileName string, object any) error {
+	fileBytes, err := os.ReadFile(fileName)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(fileBytes, object)
+}
+
+func readDirEntries(dirName string) []os.DirEntry {
+	dirEntries, err := os.ReadDir(dirName)
+	if err != nil {
+		log.Println("error reading directory:", err)
+		return []os.DirEntry{}
+	}
+
+	return dirEntries
 }
 
 func appendValue(fileName string, value string) error {
