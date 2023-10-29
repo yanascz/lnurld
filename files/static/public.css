@@ -86,7 +86,7 @@ main button:disabled {
 footer {
     margin-bottom: 4em;
     text-align: center;
-    color: gray;
+    color: grey;
 }
 
 dialog {
@@ -109,7 +109,7 @@ dialog h2 {
 dialog p {
     margin-top: .7em;
     font-size: .7em;
-    color: gray;
+    color: grey;
 }
 
 dialog a {
@@ -130,4 +130,8 @@ dialog button {
     color: black;
     font-size: 2.1em;
     cursor: pointer;
+}
+
+a {
+    color: inherit;
 }

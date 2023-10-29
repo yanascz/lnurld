@@ -134,6 +134,7 @@ func main() {
 	lnurld.Use(sessions.Sessions("lnSession", sessionStore))
 	lnurld.NoRoute(abortWithNotFoundResponse)
 
+	lnurld.GET("/", indexHandler)
 	lnurld.POST("/ln/auth", lnAuthInitHandler)
 	lnurld.GET("/ln/auth", lnAuthVerifyHandler)
 	lnurld.GET("/ln/auth/:k1", lnAuthIdentityHandler)
@@ -166,6 +167,10 @@ func main() {
 	authorized.PUT("/api/raffles/:id", apiRaffleUpdateHandler)
 
 	log.Fatal(lnurld.Run(config.Listen))
+}
+
+func indexHandler(context *gin.Context) {
+	context.HTML(http.StatusOK, "index.gohtml", gin.H{})
 }
 
 func lnAuthInitHandler(context *gin.Context) {
