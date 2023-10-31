@@ -44,10 +44,11 @@ Example configuration with one admin, one user with restricted access and two ac
 
 ```yaml
 credentials:
-  admin: 4dm!nS3cr3t
-  guest: S3cr3t
+  satoshi: 4dm!nS3cr3t
+  barista: S3cr3t
+administrators: [satoshi]
 access-control:
-  guest: [cafe]
+  barista: [cafe]
 accounts:
   satoshi:
     min-sendable: 1
@@ -67,26 +68,27 @@ accounts:
 
 Available configuration properties:
 
-| Property                         | Description                                                                 | Default value                                              |
-|:---------------------------------|:----------------------------------------------------------------------------|:-----------------------------------------------------------|
-| `listen`                         | Host and port to listen on.                                                 | `127.0.0.1:8088`                                           |
-| `thumbnail-dir`                  | Directory where to look for thumbnails.                                     | `/etc/lnurld/thumbnails`                                   |
-| `data-dir`                       | Directory where invoice payment hashes per account will be stored.          | `/var/lib/lnurld`                                          |
-| `lnd`                            | Configuration of your LND node.                                             | _see below_                                                |
-| `lnd.address`                    | Host and port of gRPC API interface.                                        | `127.0.0.1:10009`                                          |
-| `lnd.cert-file`                  | Path to TLS certificate.                                                    | `/var/lib/lnd/tls.cert`                                    |
-| `lnd.macaroon-file`              | Path to invoice macaroon.                                                   | `/var/lib/lnd/data/chain/bitcoin/mainnet/invoice.macaroon` |
-| `credentials`                    | Map of users authorized to access the admin user interface.                 | _none_                                                     |
-| `access-control`                 | Map of accounts accessible by non-admin users.                              | _none, i.e. all users have full admin access_              |
-| `accounts`                       | Map of available accounts.                                                  | _none_                                                     |
-| `accounts.*.currency`            | Terminal currency; `cad`, `chf`, `czk`, `eur`, `gbp` and `usd` supported.   | `eur`                                                      |
-| `accounts.*.max-sendable`        | Maximum sendable amount in sats.                                            | _none_                                                     |
-| `accounts.*.min-sendable`        | Minimum sendable amount in sats.                                            | _none_                                                     |
-| `accounts.*.description`         | Description of the account.                                                 | _none_                                                     |
-| `accounts.*.thumbnail`           | Name of PNG/JPEG thumbnail to use; 256×256 pixels recommended. _(optional)_ | _none_                                                     |
-| `accounts.*.is-also-email`       | Does the account match an email address?                                    | `false`                                                    |
-| `accounts.*.comment-allowed`     | Maximum length of invoice comment.                                          | `0`                                                        |
-| `accounts.*.archivable`          | May the account storage file be archived on demand?                         | `false`                                                    |
+| Property                     | Description                                                                 | Default value                                              |
+|:-----------------------------|:----------------------------------------------------------------------------|:-----------------------------------------------------------|
+| `listen`                     | Host and port to listen on.                                                 | `127.0.0.1:8088`                                           |
+| `thumbnail-dir`              | Directory where to look for thumbnails.                                     | `/etc/lnurld/thumbnails`                                   |
+| `data-dir`                   | Directory where invoice payment hashes per account will be stored.          | `/var/lib/lnurld`                                          |
+| `lnd`                        | Configuration of your LND node.                                             | _see below_                                                |
+| `lnd.address`                | Host and port of gRPC API interface.                                        | `127.0.0.1:10009`                                          |
+| `lnd.cert-file`              | Path to TLS certificate.                                                    | `/var/lib/lnd/tls.cert`                                    |
+| `lnd.macaroon-file`          | Path to invoice macaroon.                                                   | `/var/lib/lnd/data/chain/bitcoin/mainnet/invoice.macaroon` |
+| `credentials`                | Map of users authorized to access the admin user interface.                 | _none_                                                     |
+| `administrators`             | List of admin users with access to all accounts, events and raffles.        | _none,                                                     |
+| `access-control`             | Map of accounts accessible by non-admin users.                              | _none,                                                     |
+| `accounts`                   | Map of available accounts.                                                  | _none_                                                     |
+| `accounts.*.currency`        | Terminal currency; `cad`, `chf`, `czk`, `eur`, `gbp` and `usd` supported.   | `eur`                                                      |
+| `accounts.*.max-sendable`    | Maximum sendable amount in sats.                                            | _none_                                                     |
+| `accounts.*.min-sendable`    | Minimum sendable amount in sats.                                            | _none_                                                     |
+| `accounts.*.description`     | Description of the account.                                                 | _none_                                                     |
+| `accounts.*.thumbnail`       | Name of PNG/JPEG thumbnail to use; 256×256 pixels recommended. _(optional)_ | _none_                                                     |
+| `accounts.*.is-also-email`   | Does the account match an email address?                                    | `false`                                                    |
+| `accounts.*.comment-allowed` | Maximum length of invoice comment.                                          | `0`                                                        |
+| `accounts.*.archivable`      | May the account storage file be archived on demand?                         | `false`                                                    |
 
 If a property is marked as optional or has a default value, you don’t have to specify it explicitly.
 
@@ -167,17 +169,17 @@ If you need to display a QR code, simply navigate to or share https://nakamoto.e
 For a smaller/larger QR code, feel free to append desired size in pixels to the URL, e.g `?size=1024`. This pattern
 applies to any configured account.
 
-To see the amount of received sats for accessible accounts, navigate to https://nakamoto.example/auth/accounts.
-You’ll need to authenticate using one of the configured username/password pairs. Account stats, QR code and/or payment
-terminal are accessible from the account’s detail page.
+To see accessible accounts and to manage events/raffles, navigate to https://nakamoto.example/auth. You’ll need
+to authenticate using one of the configured username/password pairs. Account stats, QR code and/or payment terminal
+are accessible from the account’s detail page in the Accounts section at https://nakamoto.example/auth/accounts.
 
-Similarly, raffles may be managed at https://nakamoto.example/auth/raffles. Raffle QR code may be shared to allow
-anyone to purchase as many raffle tickets as they wish, increasing their chances. Once enough tickets are sold, i.e.
-at least the same number as there are prizes, you may start drawing winning tickets from the raffle’s detail page.
+Events may be managed in the Events section at https://nakamoto.example/auth/events. Each created event may be shared
+with your friends, and they may sign up to attend the event once they authenticate using their LN wallet.
+
+Raffles may be managed in the Raffles section at https://nakamoto.example/auth/raffles. Raffle QR code may be shared
+to allow anyone to purchase as many raffle tickets as they wish, increasing their chances. Once enough tickets are sold,
+i.e. at least the same number as there are prizes, you may start drawing winning tickets from the raffle’s detail page.
 **The raffle is stateless so refreshing its page restarts the draw and may produce different winning tickets!**
-
-Events may be managed at https://nakamoto.example/auth/events. Each created event may be shared with your friends, and
-they may sign up to attend the event once they authenticate using their LN wallet.
 
 ## Update
 

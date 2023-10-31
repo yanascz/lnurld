@@ -415,28 +415,21 @@ func lnStaticFileHandler(context *gin.Context) {
 }
 
 func authHomeHandler(context *gin.Context) {
-	context.HTML(http.StatusOK, "auth.gohtml", gin.H{})
+	accountKeys := getAccessibleAccountKeys(context)
+
+	context.HTML(http.StatusOK, "auth.gohtml", accountKeys)
 }
 
 func authAccountsHandler(context *gin.Context) {
-	var accountKeys []string
-	for accountKey := range config.Accounts {
-		if config.isUserAuthorized(context, accountKey) {
-			accountKeys = append(accountKeys, accountKey)
-		}
-	}
+	accountKeys := getAccessibleAccountKeys(context)
 	sort.Strings(accountKeys)
 
 	context.HTML(http.StatusOK, "accounts.gohtml", accountKeys)
 }
 
 func authAccountHandler(context *gin.Context) {
-	accountKey, account := getAccount(context)
+	accountKey, account := getAccessibleAccount(context)
 	if accountKey == "" {
-		return
-	}
-	if !config.isUserAuthorized(context, accountKey) {
-		abortWithNotFoundResponse(context)
 		return
 	}
 
@@ -477,12 +470,8 @@ func authAccountHandler(context *gin.Context) {
 }
 
 func authAccountTerminalHandler(context *gin.Context) {
-	accountKey, account := getAccount(context)
+	accountKey, account := getAccessibleAccount(context)
 	if accountKey == "" {
-		return
-	}
-	if !config.isUserAuthorized(context, accountKey) {
-		abortWithNotFoundResponse(context)
 		return
 	}
 
@@ -594,12 +583,12 @@ func authRaffleDrawHandler(context *gin.Context) {
 }
 
 func apiAccountArchiveHandler(context *gin.Context) {
-	accountKey, account := getAccount(context)
+	accountKey, account := getAccessibleAccount(context)
 	if accountKey == "" {
 		return
 	}
-	if !config.isUserAuthorized(context, accountKey) || !account.Archivable {
-		abortWithNotFoundResponse(context)
+	if !account.Archivable {
+		abortWithForbiddenResponse(context, "not archivable")
 		return
 	}
 
@@ -621,7 +610,7 @@ func apiInvoicesHandler(context *gin.Context) {
 
 	accountKey := request.AccountKey
 	account, accountExists := config.Accounts[accountKey]
-	if !accountExists || !config.isUserAuthorized(context, accountKey) {
+	if !accountExists || !isAccountAccessible(context, accountKey) {
 		abortWithBadRequestResponse(context, "invalid accountKey")
 		return
 	}
@@ -799,6 +788,35 @@ func getAccount(context *gin.Context) (string, *Account) {
 	return "", nil
 }
 
+func getAccessibleAccount(context *gin.Context) (string, *Account) {
+	accountKey, account := getAccount(context)
+	if account != nil && isAccountAccessible(context, accountKey) {
+		return accountKey, account
+	}
+
+	abortWithNotFoundResponse(context)
+	return "", nil
+}
+
+func getAccessibleAccountKeys(context *gin.Context) []string {
+	var accountKeys []string
+	for accountKey := range config.Accounts {
+		if isAccountAccessible(context, accountKey) {
+			accountKeys = append(accountKeys, accountKey)
+		}
+	}
+
+	return accountKeys
+}
+
+func isAccountAccessible(context *gin.Context, accountKey string) bool {
+	user := context.GetString(gin.AuthUserKey)
+	if slices.Contains(config.Administrators, user) {
+		return true
+	}
+	return slices.Contains(config.AccessControl[user], accountKey)
+}
+
 func getAccountThumbnail(account *Account) *Thumbnail {
 	if account.Thumbnail == "" {
 		return nil
@@ -861,9 +879,7 @@ func getAccessibleRaffle(context *gin.Context) *Raffle {
 
 func isUserAuthorized(context *gin.Context, owner string) bool {
 	user := context.GetString(gin.AuthUserKey)
-	_, accessRestricted := config.AccessControl[user]
-
-	return !accessRestricted || user == owner
+	return user == owner || slices.Contains(config.Administrators, user)
 }
 
 func createInvoice(context *gin.Context, msats int64, comment string, descriptionHash []byte) *Invoice {

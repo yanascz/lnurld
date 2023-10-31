@@ -11,13 +11,14 @@ import (
 )
 
 type Config struct {
-	Listen        string
-	ThumbnailDir  string `yaml:"thumbnail-dir"`
-	DataDir       string `yaml:"data-dir"`
-	Lnd           LndConfig
-	Credentials   gin.Accounts
-	AccessControl map[string][]string `yaml:"access-control"`
-	Accounts      map[string]Account
+	Listen         string
+	ThumbnailDir   string `yaml:"thumbnail-dir"`
+	DataDir        string `yaml:"data-dir"`
+	Lnd            LndConfig
+	Credentials    gin.Accounts
+	Administrators []string
+	AccessControl  map[string][]string `yaml:"access-control"`
+	Accounts       map[string]Account
 }
 
 func (config *Config) getCookieKey() []byte {
@@ -36,13 +37,6 @@ func (config *Config) getCookieKey() []byte {
 	}
 
 	return cookieKey
-}
-
-func (config *Config) isUserAuthorized(context *gin.Context, accountKey string) bool {
-	user := context.GetString(gin.AuthUserKey)
-	allowedAccounts, accessRestricted := config.AccessControl[user]
-
-	return !accessRestricted || slices.Contains(allowedAccounts, accountKey)
 }
 
 type Account struct {
@@ -102,12 +96,21 @@ func loadConfig(configFileName string) *Config {
 		config.DataDir += pathSeparator
 	}
 
+	validateAdministrators(&config)
 	validateAccessControl(&config)
 	for accountKey, account := range config.Accounts {
 		validateAccount(accountKey, &account)
 	}
 
 	return &config
+}
+
+func validateAdministrators(config *Config) {
+	for _, user := range config.Administrators {
+		if _, userExists := config.Credentials[user]; !userExists {
+			log.Fatal("Unknown user in property administrators: ", user)
+		}
+	}
 }
 
 func validateAccessControl(config *Config) {
