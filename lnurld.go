@@ -374,15 +374,16 @@ func eventHandler(context *gin.Context) {
 	identity := getIdentity(context)
 
 	context.HTML(http.StatusOK, "event.gohtml", gin.H{
-		"Id":          event.Id,
-		"Title":       event.Title,
-		"DateTime":    event.DateTime,
-		"Location":    event.Location,
-		"Capacity":    event.Capacity,
-		"Description": event.Description,
-		"Attendees":   len(attendees),
-		"Attending":   slices.Contains(attendees, identity),
-		"IdentityId":  toIdentityId(identity),
+		"Id":             event.Id,
+		"Title":          event.Title,
+		"DateTime":       event.DateTime,
+		"Location":       event.Location,
+		"Capacity":       event.Capacity,
+		"Description":    event.Description,
+		"Attendees":      len(attendees),
+		"Attending":      slices.Contains(attendees, identity),
+		"SignUpPossible": event.DateTime.After(time.Now()),
+		"IdentityId":     toIdentityId(identity),
 	})
 }
 
@@ -391,10 +392,14 @@ func eventSignUpHandler(context *gin.Context) {
 	if event == nil {
 		return
 	}
+	if event.DateTime.Before(time.Now()) {
+		abortWithBadRequestResponse(context, "already started")
+		return
+	}
 
 	identity := getIdentity(context)
 	if identity == "" {
-		abortWithForbiddenResponse(context, "authentication required")
+		abortWithUnauthorizedResponse(context)
 		return
 	}
 
@@ -571,7 +576,7 @@ func authRaffleDrawHandler(context *gin.Context) {
 	}
 
 	if len(drawnTickets) < raffle.getPrizesCount() {
-		abortWithForbiddenResponse(context, "not enough tickets")
+		abortWithBadRequestResponse(context, "not enough tickets")
 		return
 	}
 
@@ -588,7 +593,7 @@ func apiAccountArchiveHandler(context *gin.Context) {
 		return
 	}
 	if !account.Archivable {
-		abortWithForbiddenResponse(context, "not archivable")
+		abortWithBadRequestResponse(context, "not archivable")
 		return
 	}
 
@@ -924,8 +929,8 @@ func abortWithNotFoundResponse(context *gin.Context) {
 	context.AbortWithStatusJSON(http.StatusNotFound, lnurl.ErrorResponse("not found"))
 }
 
-func abortWithForbiddenResponse(context *gin.Context, reason string) {
-	context.AbortWithStatusJSON(http.StatusForbidden, lnurl.ErrorResponse(reason))
+func abortWithUnauthorizedResponse(context *gin.Context) {
+	context.AbortWithStatusJSON(http.StatusUnauthorized, lnurl.ErrorResponse("authentication required"))
 }
 
 func abortWithBadRequestResponse(context *gin.Context, reason string) {

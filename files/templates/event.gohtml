@@ -25,9 +25,13 @@
         </li>
     </ul>
     <p>{{.Description}}</p>
-    {{if not .Attending}}
+    {{if or (not .IdentityId) (and .SignUpPossible (not .Attending))}}
         <div>
-            <button onclick="signUp(this)">Sign up with Lightning</button>
+            {{if .SignUpPossible}}
+                <button onclick="signUp(this)">Sign up with Lightning</button>
+            {{else}}
+                <button onclick="logIn(this)">Log in with Lightning</button>
+            {{end}}
         </div>
     {{end}}
 </main>
@@ -60,19 +64,26 @@
             }
             post('/events/{{.Id}}/sign-up')
                 .then(response => {
-                    if (response.ok) {
-                        document.location.reload()
+                    if (response.status === 401) {
+                        initLnAuth(signUpButton)
                     } else {
-                        initAuth(signUpButton)
+                        document.location.reload()
                     }
                 })
         }
 
-        function initAuth(signUpButton) {
+        function logIn(logInButton) {
+            if (logInButton) {
+                logInButton.disabled = true
+            }
+            initLnAuth(logInButton)
+        }
+
+        function initLnAuth(button) {
             post('/ln/auth')
                 .then(response => {
-                    if (signUpButton) {
-                        signUpButton.disabled = false
+                    if (button) {
+                        button.disabled = false
                     }
                     if (response.ok) {
                         return response.json()
