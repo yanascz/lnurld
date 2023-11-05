@@ -20,12 +20,13 @@
     <ul>
         <li class="datetime">{{datetime .DateTime}}</li>
         <li class="location">{{.Location}}</li>
-        <li class="attendees{{if .Attending}} attending{{end}}">
+        <li class="attendees">
             {{number .Attendees}} / {{number .Capacity}}
+            {{if .AttendeeOrdinal}}<span>#{{.AttendeeOrdinal}}</span>{{end}}
         </li>
     </ul>
     <p>{{.Description}}</p>
-    {{if or (not .IdentityId) (and .SignUpPossible (not .Attending))}}
+    {{if or (not .IdentityId) (and .SignUpPossible (not .AttendeeOrdinal))}}
         <div>
             {{if .SignUpPossible}}
                 <button onclick="signUp(this)">Sign up with Lightning</button>
@@ -38,13 +39,13 @@
 
 <footer>
     {{if .IdentityId}}
-        {{if .Attending}}Signed up{{else}}Logged in{{end}} as {{.IdentityId}}.
+        {{if .AttendeeOrdinal}}Signed up{{else}}Logged in{{end}} as {{.IdentityId}}.
     {{else}}
         No personal data required.
     {{end}}
 </footer>
 
-{{if not .Attending}}
+{{if not .AttendeeOrdinal}}
     <dialog id="dialog">
         <h2>Log in with Lightning</h2>
         <a id="link" href=""><img id="qrcode" src="" alt="LN auth"></a>

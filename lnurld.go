@@ -374,16 +374,16 @@ func eventHandler(context *gin.Context) {
 	identity := getIdentity(context)
 
 	context.HTML(http.StatusOK, "event.gohtml", gin.H{
-		"Id":             event.Id,
-		"Title":          event.Title,
-		"DateTime":       event.DateTime,
-		"Location":       event.Location,
-		"Capacity":       event.Capacity,
-		"Description":    event.Description,
-		"Attendees":      len(attendees),
-		"Attending":      slices.Contains(attendees, identity),
-		"SignUpPossible": event.DateTime.After(time.Now()),
-		"IdentityId":     toIdentityId(identity),
+		"Id":              event.Id,
+		"Title":           event.Title,
+		"DateTime":        event.DateTime,
+		"Location":        event.Location,
+		"Capacity":        event.Capacity,
+		"Description":     event.Description,
+		"Attendees":       len(attendees),
+		"AttendeeOrdinal": slices.Index(attendees, identity) + 1,
+		"SignUpPossible":  event.DateTime.After(time.Now()),
+		"IdentityId":      toIdentityId(identity),
 	})
 }
 

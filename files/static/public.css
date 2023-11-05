@@ -46,8 +46,13 @@ main li.attendees::before {
     content: '👤';
 }
 
-main li.attending::after {
-    margin-left: .7em;
+main li.attendees span {
+    font-weight: normal;
+    color: grey;
+}
+
+main li.attendees span::before {
+    margin-right: .3em;
     content: '✅';
 }
 
