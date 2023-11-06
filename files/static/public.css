@@ -66,6 +66,10 @@ main p {
     font-size: 1.5em;
 }
 
+main p.formatted {
+    white-space: pre-line;
+}
+
 main div {
     display: flex;
     flex-direction: column;

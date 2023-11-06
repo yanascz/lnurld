@@ -59,7 +59,7 @@ type Event struct {
 	DateTime    time.Time `json:"dateTime" binding:"required"`
 	Location    string    `json:"location" binding:"min=1,max=50"`
 	Capacity    uint16    `json:"capacity" binding:"min=1,max=1000"`
-	Description string    `json:"description" binding:"min=1,max=300"`
+	Description string    `json:"description" binding:"min=1,max=500"`
 }
 
 type Raffle struct {
