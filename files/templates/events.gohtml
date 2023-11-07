@@ -46,8 +46,9 @@
             </p>
         </div>
         <p>
-            <label for="location">Location</label>
-            <input id="location" type="text" maxlength="50" required/>
+            <label for="locationName">Location</label>
+            <input id="locationName" type="text" maxlength="50" placeholder="Bitcoin coffee" required/>
+            <input id="locationUrl" type="url" maxlength="100" placeholder="https://mapy.cz/s/gocovurafo" required/>
         </p>
         <p>
             <label for="capacity">Capacity</label>
@@ -68,7 +69,8 @@
     const titleElement = element('title')
     const dateElement = element('date')
     const timeElement = element('time')
-    const locationElement = element('location')
+    const locationNameElement = element('locationName')
+    const locationUrlElement = element('locationUrl')
     const capacityElement = element('capacity')
     const descriptionElement = element('description')
 
@@ -76,7 +78,8 @@
         titleElement.value = ''
         dateElement.value = ''
         timeElement.value = ''
-        locationElement.value = ''
+        locationNameElement.value = ''
+        locationUrlElement.value = ''
         capacityElement.value = ''
         descriptionElement.value = ''
         dialogElement.onsubmit = () => submitEvent('POST', '/api/events')
@@ -91,7 +94,8 @@
                 titleElement.value = body.title
                 dateElement.value = toDate(body.dateTime)
                 timeElement.value = toTime(body.dateTime)
-                locationElement.value = body.location
+                locationNameElement.value = body.location.name
+                locationUrlElement.value = body.location.url
                 capacityElement.value = body.capacity
                 descriptionElement.value = body.description
                 dialogElement.onsubmit = () => submitEvent('PUT', eventUri)
@@ -109,7 +113,7 @@
             body: JSON.stringify({
                 title: titleElement.value,
                 dateTime: toDateTime(dateElement.value, timeElement.value),
-                location: locationElement.value,
+                location: toLocation(locationNameElement.value, locationUrlElement.value),
                 capacity: Number(capacityElement.value),
                 description: descriptionElement.value
             })
@@ -130,6 +134,10 @@
 
     function toDateTime(date, time, zoneOffset = '{{.TimeZoneOffset}}') {
         return `${date}T${time}:00${zoneOffset}`
+    }
+
+    function toLocation(name, url) {
+        return { name, url }
     }
 
     function element(elementId) {

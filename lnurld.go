@@ -53,13 +53,18 @@ type InvoiceStatus struct {
 }
 
 type Event struct {
-	Id          string    `json:"-"`
-	Owner       string    `json:"owner"`
-	Title       string    `json:"title" binding:"min=1,max=50"`
-	DateTime    time.Time `json:"dateTime" binding:"required"`
-	Location    string    `json:"location" binding:"min=1,max=50"`
-	Capacity    uint16    `json:"capacity" binding:"min=1,max=1000"`
-	Description string    `json:"description" binding:"min=1,max=500"`
+	Id          string        `json:"-"`
+	Owner       string        `json:"owner"`
+	Title       string        `json:"title" binding:"min=1,max=50"`
+	DateTime    time.Time     `json:"dateTime" binding:"required"`
+	Location    EventLocation `json:"location" binding:"required"`
+	Capacity    uint16        `json:"capacity" binding:"min=1,max=1000"`
+	Description string        `json:"description" binding:"min=1,max=500"`
+}
+
+type EventLocation struct {
+	Name string `json:"name" binding:"min=1,max=50"`
+	Url  string `json:"url" binding:"url,max=100"`
 }
 
 type Raffle struct {

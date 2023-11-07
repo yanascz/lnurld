@@ -19,7 +19,7 @@
     <h1>{{.Title}}</h1>
     <ul>
         <li class="datetime">{{datetime .DateTime}}</li>
-        <li class="location">{{.Location}}</li>
+        <li class="location">{{with .Location}}<a href="{{.Url}}">{{.Name}}</a>{{end}}</li>
         <li class="attendees">
             {{number .Attendees}} / {{number .Capacity}}
             {{if .AttendeeOrdinal}}<span>#{{.AttendeeOrdinal}}</span>{{end}}

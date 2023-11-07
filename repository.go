@@ -90,7 +90,8 @@ func (repository *Repository) createEvent(event *Event) error {
 
 func (repository *Repository) getEvent(eventId string) *Event {
 	var event Event
-	if readObject(eventDataFileName(repository, eventId), &event) != nil {
+	if err := readObject(eventDataFileName(repository, eventId), &event); err != nil {
+		log.Println("error reading event:", err)
 		return nil
 	}
 	event.Id = eventId
@@ -138,7 +139,8 @@ func (repository *Repository) createRaffle(raffle *Raffle) error {
 
 func (repository *Repository) getRaffle(raffleId string) *Raffle {
 	var raffle Raffle
-	if readObject(raffleDataFileName(repository, raffleId), &raffle) != nil {
+	if err := readObject(raffleDataFileName(repository, raffleId), &raffle); err != nil {
+		log.Println("error reading raffle:", err)
 		return nil
 	}
 	raffle.Id = raffleId
