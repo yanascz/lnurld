@@ -99,6 +99,7 @@
         const prizeElement = document.createElement('div')
         prizeElement.innerHTML = `
             <input type="text" name="name" maxlength="50" value="${name}" required/>
+            <span>×</span>
             <input type="number" name="quantity" min="1" max="10" value="${quantity}" required/>
         `
         return prizeElement

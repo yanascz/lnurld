@@ -223,6 +223,11 @@ dialog div#prizes {
     flex-direction: column;
 }
 
+dialog div#prizes span {
+    align-self: center;
+    margin: 0 .2em;
+}
+
 dialog p {
     display: flex;
     flex-direction: column;
