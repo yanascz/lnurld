@@ -75,6 +75,17 @@ func (service *RatesService) fetchRates() error {
 	return nil
 }
 
+func (service *RatesService) getExchangeRates() map[Currency]float64 {
+	exchangeRates := map[Currency]float64{}
+	log.Println(service.rates)
+	for currency, exchangeRate := range service.rates {
+		exchangeRates[currency] = exchangeRate / satsPerBitcoin
+	}
+	log.Println(exchangeRates)
+
+	return exchangeRates
+}
+
 func (service *RatesService) fiatToSats(currency Currency, amount float64) uint32 {
 	exchangeRate := service.rates[currency]
 	sats := math.Round(satsPerBitcoin / exchangeRate * amount)

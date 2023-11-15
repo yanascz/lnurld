@@ -523,6 +523,7 @@ func authRafflesHandler(context *gin.Context) {
 	context.HTML(http.StatusOK, "raffles.gohtml", gin.H{
 		"Raffles":        raffles,
 		"FiatCurrencies": supportedCurrencies(),
+		"ExchangeRates":  ratesService.getExchangeRates(),
 	})
 }
 

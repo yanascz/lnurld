@@ -37,11 +37,15 @@
         </p>
         <p>
             <label for="ticket-price">Ticket Price (sats)</label>
-            <input id="ticket-price" type="number" min="1" max="1000000" required/>
+            <div>
+                <input id="ticket-price" type="number" min="1" max="1000000" oninput="updateFiatAmount()" required/>
+                <span>≈</span>
+                <input id="fiat-amount" type="number" min="1" max="1000000" disabled/>
+            </div>
         </p>
         <p>
             <label for="fiat-currency">Fiat Currency</label>
-            <select id="fiat-currency" required>
+            <select id="fiat-currency" oninput="updateFiatAmount()" required>
                 {{range .FiatCurrencies}}
                     <option value="{{.}}">{{currency .}}</option>
                 {{end}}
@@ -62,9 +66,12 @@
 </dialog>
 
 <script>
+    const exchangeRates = {{.ExchangeRates}}
+
     const dialogElement = element('dialog');
     const titleElement = element('title')
     const ticketPriceElement = element('ticket-price')
+    const fiatAmountElement = element('fiat-amount')
     const fiatCurrencyElement = element('fiat-currency')
     const prizesElement = element('prizes')
     const addPrizeButton = element('add-prize')
@@ -113,6 +120,11 @@
     function removePrizeElement() {
         prizesElement.lastChild.remove()
         updateButtons()
+    }
+
+    function updateFiatAmount() {
+        const exchangeRate = exchangeRates[fiatCurrencyElement.value]
+        fiatAmountElement.value = (exchangeRate * ticketPriceElement.value).toFixed(2)
     }
 
     function updateButtons() {
