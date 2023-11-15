@@ -250,7 +250,7 @@ dialog div#prizes {
     flex-direction: column;
 }
 
-dialog div#prizes span {
+dialog div span {
     align-self: center;
     margin: 0 .2em;
 }
