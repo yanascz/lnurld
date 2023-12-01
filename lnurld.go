@@ -800,7 +800,7 @@ func getAccount(context *gin.Context) (string, *Account) {
 
 func getAccessibleAccount(context *gin.Context) (string, *Account) {
 	accountKey, account := getAccount(context)
-	if account != nil && isAccountAccessible(context, accountKey) {
+	if account == nil || isAccountAccessible(context, accountKey) {
 		return accountKey, account
 	}
 
@@ -859,7 +859,7 @@ func getEvent(context *gin.Context) *Event {
 
 func getAccessibleEvent(context *gin.Context) *Event {
 	event := getEvent(context)
-	if event != nil && isUserAuthorized(context, event.Owner) {
+	if event == nil || isUserAuthorized(context, event.Owner) {
 		return event
 	}
 
@@ -879,7 +879,7 @@ func getRaffle(context *gin.Context) *Raffle {
 
 func getAccessibleRaffle(context *gin.Context) *Raffle {
 	raffle := getRaffle(context)
-	if raffle != nil && isUserAuthorized(context, raffle.Owner) {
+	if raffle == nil || isUserAuthorized(context, raffle.Owner) {
 		return raffle
 	}
 
