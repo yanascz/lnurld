@@ -67,10 +67,10 @@ func (repository *Repository) getAccountPaymentHashes(accountKey string) []strin
 }
 
 func (repository *Repository) archiveAccountPaymentHashes(accountKey string) error {
-	dataFileName := accountPaymentHashesFileName(repository, accountKey)
-	archiveFileName := dataFileName + "." + time.Now().Format("20060102150405")
+	fileName := accountPaymentHashesFileName(repository, accountKey)
+	archiveFileName := fileName + "." + time.Now().Format("20060102150405")
 
-	return os.Rename(dataFileName, archiveFileName)
+	return os.Rename(fileName, archiveFileName)
 }
 
 func (repository *Repository) createEvent(event *Event) error {
@@ -163,12 +163,19 @@ func (repository *Repository) updateRaffle(raffle *Raffle) error {
 	return writeObject(raffleDataFileName(repository, raffle.Id), raffle)
 }
 
-func (repository *Repository) addRafflePaymentHash(raffle *Raffle, paymentHash string) error {
+func (repository *Repository) addRaffleTicket(raffle *Raffle, paymentHash string) error {
 	return appendValue(raffleTicketsFileName(repository, raffle.Id), paymentHash)
 }
 
-func (repository *Repository) getRafflePaymentHashes(raffle *Raffle) []string {
+func (repository *Repository) getRaffleTickets(raffle *Raffle) []string {
 	return readValues(raffleTicketsFileName(repository, raffle.Id))
+}
+
+func (repository *Repository) archiveRaffleTickets(raffle *Raffle) error {
+	fileName := raffleTicketsFileName(repository, raffle.Id)
+	archiveFileName := fileName + "." + time.Now().Format("20060102150405")
+
+	return os.Rename(fileName, archiveFileName)
 }
 
 func accountPaymentHashesFileName(repository *Repository, accountKey string) string {

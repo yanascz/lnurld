@@ -32,7 +32,27 @@
     {{else}}
         <button disabled>Draw</button>
     {{end}}
+    {{if .Archivable}}
+        <button onclick="archive()">Archive</button>
+    {{end}}
 </div>
+
+<script>
+    function archive() {
+        if (!confirm('Really archive the raffle?')) {
+            return false
+        }
+        const archiveRequest = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+        }
+        fetch('/api/raffles/{{.Id}}/archive', archiveRequest)
+            .then(() => document.location.reload())
+    }
+</script>
 
 </body>
 </html>
