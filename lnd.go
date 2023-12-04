@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/hex"
+	"github.com/hashicorp/golang-lru/v2"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lightningnetwork/lnd/macaroons"
 	"github.com/mr-tron/base58"
@@ -43,6 +44,7 @@ func (invoice *Invoice) isSettled() bool {
 type LndClient struct {
 	lnClient lnrpc.LightningClient
 	ctx      context.Context
+	invoices *lru.Cache[string, Invoice]
 }
 
 func newLndClient(config LndConfig) *LndClient {
@@ -79,9 +81,15 @@ func newLndClient(config LndConfig) *LndClient {
 		log.Fatal(err)
 	}
 
+	invoices, err := lru.New[string, Invoice](1024)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	return &LndClient{
 		lnClient: lnrpc.NewLightningClient(connection),
 		ctx:      context.Background(),
+		invoices: invoices,
 	}
 }
 
@@ -106,15 +114,16 @@ func (client *LndClient) createInvoice(msats int64, memo string, descriptionHash
 }
 
 func (client *LndClient) getInvoice(paymentHash string) (*Invoice, error) {
+	if invoice, invoiceCached := client.invoices.Get(paymentHash); invoiceCached {
+		return &invoice, nil
+	}
+
 	paymentHashBytes, err := hex.DecodeString(paymentHash)
 	if err != nil {
 		return nil, err
 	}
 
-	lnPaymentHash := lnrpc.PaymentHash{
-		RHash: paymentHashBytes,
-	}
-
+	lnPaymentHash := lnrpc.PaymentHash{RHash: paymentHashBytes}
 	lnInvoice, err := client.lnClient.LookupInvoice(client.ctx, &lnPaymentHash)
 	if err != nil {
 		return nil, err
@@ -125,11 +134,17 @@ func (client *LndClient) getInvoice(paymentHash string) (*Invoice, error) {
 		settleDate = time.Unix(lnInvoice.SettleDate, 0)
 	}
 
-	return &Invoice{
+	invoice := Invoice{
 		paymentHash:    lnInvoice.RHash,
 		paymentRequest: lnInvoice.PaymentRequest,
 		amount:         lnInvoice.Value,
 		settleDate:     settleDate,
 		memo:           lnInvoice.Memo,
-	}, nil
+	}
+
+	if lnInvoice.State == lnrpc.Invoice_SETTLED || lnInvoice.State == lnrpc.Invoice_CANCELED {
+		client.invoices.Add(paymentHash, invoice)
+	}
+
+	return &invoice, nil
 }
