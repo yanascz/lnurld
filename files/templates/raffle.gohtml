@@ -20,9 +20,9 @@
 </div>
 
 <ul>
-    <li><strong>{{number .TicketPrice}}</strong> sats per ticket</li>
-    <li><strong>{{number .TicketsIssued}}</strong> ticket{{if ne .TicketsIssued 1}}s{{end}} issued</li>
-    <li><strong>{{number .TicketsPaid}}</strong> ticket{{if ne .TicketsPaid 1}}s{{end}} paid</li>
+    <li><strong>{{number .TicketPrice}}</strong> sat{{if ne .TicketPrice 1}}s{{end}} / ticket</li>
+    <li><strong>{{number .TicketsIssued}}</strong> ticket{{if ne .TicketsIssued 1}}s{{end}} issued</li>
+    <li><strong>{{number .TicketsPaid}}</strong> ticket{{if ne .TicketsPaid 1}}s{{end}} paid</li>
 </ul>
 
 <div class="buttons">

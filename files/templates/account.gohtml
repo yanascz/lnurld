@@ -20,8 +20,8 @@
 </div>
 
 <ul>
-    <li><strong>{{number .InvoicesIssued}}</strong> invoice{{if ne .InvoicesIssued 1}}s{{end}} issued</li>
-    <li><strong>{{number .InvoicesSettled}}</strong> invoice{{if ne .InvoicesSettled 1}}s{{end}} settled</li>
+    <li><strong>{{number .InvoicesIssued}}</strong> invoice{{if ne .InvoicesIssued 1}}s{{end}} issued</li>
+    <li><strong>{{number .InvoicesSettled}}</strong> invoice{{if ne .InvoicesSettled 1}}s{{end}} settled</li>
     <li><strong>{{number (len .Comments)}}</strong> comment{{if ne (len .Comments) 1}}s{{end}}</li>
 </ul>
 
