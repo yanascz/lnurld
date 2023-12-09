@@ -26,18 +26,25 @@
 </ul>
 
 <div class="buttons">
-    <button onclick="location.href='/ln/raffle/{{.Id}}/qr-code?size=1280'">QR Code</button>
-    {{if ge .TicketsPaid .PrizesCount}}
-        <button onclick="location.href='/auth/raffles/{{.Id}}/draw'">Draw</button>
-    {{else}}
-        <button disabled>Draw</button>
+    {{if not .DrawAvailable}}
+        <button onclick="location.href='/ln/raffle/{{.Id}}/qr-code?size=1280'">QR Code</button>
     {{end}}
+    <button {{if ge .TicketsPaid .PrizesCount}}onclick="draw()"{{else}}disabled{{end}}>Draw</button>
     {{if .Archivable}}
         <button onclick="archive()">Archive</button>
     {{end}}
 </div>
 
 <script>
+    function draw() {
+        {{if not .DrawAvailable}}
+        if (!confirm('Stop ticket sale and start raffle draw?')) {
+            return false
+        }
+        {{end}}
+        location.href = '/auth/raffles/{{.Id}}/draw'
+    }
+
     function archive() {
         if (!confirm('Really archive the raffle?')) {
             return false
@@ -45,7 +52,6 @@
         const archiveRequest = {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
         }

@@ -6,7 +6,6 @@ import (
 	"github.com/hashicorp/golang-lru/v2"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lightningnetwork/lnd/macaroons"
-	"github.com/mr-tron/base58"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"gopkg.in/macaroon.v2"
@@ -31,10 +30,6 @@ type Invoice struct {
 
 func (invoice *Invoice) getPaymentHash() string {
 	return hex.EncodeToString(invoice.paymentHash)
-}
-
-func (invoice *Invoice) getTicketNumber() string {
-	return base58.Encode(invoice.paymentHash)[0:5]
 }
 
 func (invoice *Invoice) isSettled() bool {

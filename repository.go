@@ -171,11 +171,29 @@ func (repository *Repository) getRaffleTickets(raffle *Raffle) []string {
 	return readValues(raffleTicketsFileName(repository, raffle.Id))
 }
 
-func (repository *Repository) archiveRaffleTickets(raffle *Raffle) error {
-	fileName := raffleTicketsFileName(repository, raffle.Id)
-	archiveFileName := fileName + "." + time.Now().Format("20060102150405")
+func (repository *Repository) isRaffleDrawAvailable(raffle *Raffle) bool {
+	_, err := os.Stat(raffleDrawFileName(repository, raffle.Id))
+	return err == nil
+}
 
-	return os.Rename(fileName, archiveFileName)
+func (repository *Repository) createRaffleDraw(raffle *Raffle, paymentHashes []string) error {
+	return writeValues(raffleDrawFileName(repository, raffle.Id), paymentHashes)
+}
+
+func (repository *Repository) getRaffleDraw(raffle *Raffle) []string {
+	return readValues(raffleDrawFileName(repository, raffle.Id))
+}
+
+func (repository *Repository) archiveRaffleFiles(raffle *Raffle) error {
+	ticketsFileName := raffleTicketsFileName(repository, raffle.Id)
+	drawFileName := raffleDrawFileName(repository, raffle.Id)
+	archiveSuffix := "." + time.Now().Format("20060102150405")
+
+	if err := os.Rename(drawFileName, drawFileName+archiveSuffix); err != nil {
+		return err
+	}
+
+	return os.Rename(ticketsFileName, ticketsFileName+archiveSuffix)
 }
 
 func accountPaymentHashesFileName(repository *Repository, accountKey string) string {
@@ -204,6 +222,10 @@ func raffleDataFileName(repository *Repository, raffleId string) string {
 
 func raffleTicketsFileName(repository *Repository, raffleId string) string {
 	return raffleDirName(repository, raffleId) + pathSeparator + "tickets" + csvExtension
+}
+
+func raffleDrawFileName(repository *Repository, raffleId string) string {
+	return raffleDirName(repository, raffleId) + pathSeparator + "draw" + csvExtension
 }
 
 func randomId() (string, error) {
@@ -263,6 +285,23 @@ func appendValue(fileName string, value string) error {
 	line := value + "\n"
 	if _, err = file.WriteString(line); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func writeValues(fileName string, values []string) error {
+	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_EXCL|os.O_CREATE, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	for _, value := range values {
+		line := value + "\n"
+		if _, err = file.WriteString(line); err != nil {
+			return err
+		}
 	}
 
 	return nil

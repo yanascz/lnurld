@@ -179,7 +179,6 @@ with your friends, and they may sign up to attend the event once they authentica
 Raffles may be managed in the Raffles section at https://nakamoto.example/auth/raffles. Raffle QR code may be shared
 to allow anyone to purchase as many raffle tickets as they wish, increasing their chances. Once enough tickets are sold,
 i.e. at least the same number as there are prizes, you may start drawing winning tickets from the raffle’s detail page.
-**The raffle is stateless so refreshing its page restarts the draw and may produce different winning tickets!**
 
 ## Update
 
