@@ -289,9 +289,19 @@ func lnRaffleTicketHandler(context *gin.Context) {
 
 	ticketPrice := msats(raffle.TicketPrice)
 
+	thumbnailData := tombolaPngData
+	if raffle.Id == "QNE9G46" {
+		thumbnail, err := repository.getThumbnail("satoshilabs.png")
+		if err != nil {
+			log.Println("thumbnail not readable:", err)
+		} else {
+			thumbnailData = thumbnail.bytes
+		}
+	}
+
 	var lnurlMetadata lnurl.Metadata
 	lnurlMetadata.Description = raffle.Title
-	lnurlMetadata.Image.Bytes = tombolaPngData
+	lnurlMetadata.Image.Bytes = thumbnailData
 	lnurlMetadata.Image.Ext = "png"
 
 	amount := context.Query("amount")
@@ -348,7 +358,17 @@ func lnRaffleQrCodeHandler(context *gin.Context) {
 	scheme, host := getSchemeAndHost(context)
 	lnUrl := scheme + "://" + host + "/ln/raffle/" + raffle.Id
 
-	generateQrCode(context, lnUrl, tombolaPngData)
+	thumbnailData := tombolaPngData
+	if raffle.Id == "QNE9G46" {
+		thumbnail, err := repository.getThumbnail("satoshilabs.png")
+		if err != nil {
+			log.Println("thumbnail not readable:", err)
+		} else {
+			thumbnailData = thumbnail.bytes
+		}
+	}
+
+	generateQrCode(context, lnUrl, thumbnailData)
 }
 
 func eventHandler(context *gin.Context) {
