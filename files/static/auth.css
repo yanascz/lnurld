@@ -33,9 +33,9 @@ h2 {
     font-size: 2.4em;
 }
 
-h2.comments::before {
+h2.invoices::before {
     margin-right: .3em;
-    content: '💬';
+    content: '📄';
 }
 
 h2#prize {
@@ -60,7 +60,7 @@ ul.accounts {
     list-style-type: disc;
 }
 
-ul.comments {
+ul.invoices {
     font-size: 1.5em;
 }
 
