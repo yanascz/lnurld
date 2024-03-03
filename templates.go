@@ -22,6 +22,9 @@ func loadTemplates(engine *gin.Engine, pattern string) {
 		"date": func(date time.Time) string {
 			return date.Format("02/01/2006")
 		},
+		"time": func(date time.Time) string {
+			return date.Format("15:04")
+		},
 		"datetime": func(date time.Time) string {
 			return date.Format("02/01/2006 15:04")
 		},

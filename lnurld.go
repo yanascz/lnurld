@@ -32,7 +32,7 @@ type LnAuthIdentity struct {
 	Identity string `json:"identity"`
 }
 
-type AccountComment struct {
+type AccountInvoice struct {
 	Amount     int64
 	SettleDate time.Time
 	Comment    string
@@ -429,24 +429,26 @@ func authAccountHandler(context *gin.Context) {
 
 	var invoicesSettled int
 	var totalSatsReceived int64
-	var comments []AccountComment
+	var commentsCount int
+	var invoices []AccountInvoice
 	for _, paymentHash := range paymentHashes {
 		invoice, err := lndClient.getInvoice(paymentHash)
 		if err == nil && invoice.isSettled() {
 			invoicesSettled++
 			totalSatsReceived += invoice.amount
 			if invoice.memo != "" {
-				comments = append(comments, AccountComment{
-					Amount:     invoice.amount,
-					SettleDate: invoice.settleDate,
-					Comment:    invoice.memo,
-				})
+				commentsCount++
 			}
+			invoices = append(invoices, AccountInvoice{
+				Amount:     invoice.amount,
+				SettleDate: invoice.settleDate,
+				Comment:    invoice.memo,
+			})
 		}
 	}
 
-	sort.Slice(comments, func(i, j int) bool {
-		return comments[i].SettleDate.After(comments[j].SettleDate)
+	sort.Slice(invoices, func(i, j int) bool {
+		return invoices[i].SettleDate.After(invoices[j].SettleDate)
 	})
 
 	context.HTML(http.StatusOK, "account.gohtml", gin.H{
@@ -454,10 +456,11 @@ func authAccountHandler(context *gin.Context) {
 		"FiatCurrency":      account.getCurrency(),
 		"InvoicesIssued":    len(paymentHashes),
 		"InvoicesSettled":   invoicesSettled,
+		"CommentsCount":     commentsCount,
 		"TotalSatsReceived": totalSatsReceived,
 		"TotalFiatReceived": ratesService.satsToFiat(account.getCurrency(), totalSatsReceived),
 		"Archivable":        account.Archivable && invoicesSettled > 0,
-		"Comments":          comments,
+		"Invoices":          invoices,
 	})
 }
 

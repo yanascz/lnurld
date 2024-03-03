@@ -22,7 +22,7 @@
 <ul>
     <li><strong>{{number .InvoicesIssued}}</strong> invoice{{if ne .InvoicesIssued 1}}s{{end}} issued</li>
     <li><strong>{{number .InvoicesSettled}}</strong> invoice{{if ne .InvoicesSettled 1}}s{{end}} settled</li>
-    <li><strong>{{number (len .Comments)}}</strong> comment{{if ne (len .Comments) 1}}s{{end}}</li>
+    <li><strong>{{number .CommentsCount}}</strong> comment{{if ne .CommentsCount 1}}s{{end}}</li>
 </ul>
 
 <div class="buttons">
@@ -33,14 +33,24 @@
     {{end}}
 </div>
 
-{{if gt (len .Comments) 0}}
-    <h2 class="comments">Comments</h2>
-    <ul class="comments">
-        {{range .Comments}}
+{{if gt (len .Invoices) 0}}
+    <h2 class="invoices">Invoices</h2>
+    <ul class="invoices">
+        {{$previousDate := ""}}
+        {{range .Invoices}}
+            {{$date := date .SettleDate}}
+            {{if ne $date $previousDate}}
+                <li class="date">{{$date}}</li>
+                {{$previousDate = $date}}
+            {{end}}
             <li>
-                <strong>{{number .Amount}}</strong> sat{{if ne .Amount 1}}s{{end}}
-                on <strong>{{date .SettleDate}}</strong>:<br>
-                <em>{{.Comment}}</em>
+                <div class="flex">
+                    <div><strong>{{time .SettleDate}}</strong></div>
+                    <div><strong>{{number .Amount}}</strong> sat{{if ne .Amount 1}}s{{end}}</div>
+                </div>
+                {{if .Comment}}
+                    <em>{{.Comment}}</em>
+                {{end}}
             </li>
         {{end}}
     </ul>
