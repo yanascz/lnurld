@@ -11,7 +11,7 @@ type Raffle struct {
 	Title        string        `json:"title" binding:"min=1,max=50"`
 	TicketPrice  uint32        `json:"ticketPrice" binding:"min=1,max=1000000"`
 	FiatCurrency Currency      `json:"fiatCurrency" binding:"required"`
-	Prizes       []RafflePrize `json:"prizes" binding:"min=1,max=10"`
+	Prizes       []RafflePrize `json:"prizes" binding:"min=1,max=21"`
 }
 
 func (raffle *Raffle) getPrizesCount() int {
