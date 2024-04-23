@@ -8,6 +8,7 @@ You may test it by sending some sats to ⚡lnurld@yanas.cz or by scanning the fo
 ## Supported features
 
 * [LUD-01: Base LNURL encoding](https://github.com/fiatjaf/lnurl-rfc/blob/luds/01.md)
+* [LUD-03: `withdrawRequest` base spec](https://github.com/fiatjaf/lnurl-rfc/blob/luds/03.md)
 * [LUD-04: `auth` base spec](https://github.com/fiatjaf/lnurl-rfc/blob/luds/04.md)
 * [LUD-06: `payRequest` base spec](https://github.com/fiatjaf/lnurl-rfc/blob/luds/06.md)
 * [LUD-09: `successAction` field for `payRequest`](https://github.com/fiatjaf/lnurl-rfc/blob/luds/09.md)
@@ -68,27 +69,30 @@ accounts:
 
 Available configuration properties:
 
-| Property                     | Description                                                                 | Default value                                              |
-|:-----------------------------|:----------------------------------------------------------------------------|:-----------------------------------------------------------|
-| `listen`                     | Host and port to listen on.                                                 | `127.0.0.1:8088`                                           |
-| `thumbnail-dir`              | Directory where to look for thumbnails.                                     | `/etc/lnurld/thumbnails`                                   |
-| `data-dir`                   | Directory where invoice payment hashes per account will be stored.          | `/var/lib/lnurld`                                          |
-| `lnd`                        | Configuration of your LND node.                                             | _see below_                                                |
-| `lnd.address`                | Host and port of gRPC API interface.                                        | `127.0.0.1:10009`                                          |
-| `lnd.cert-file`              | Path to TLS certificate.                                                    | `/var/lib/lnd/tls.cert`                                    |
-| `lnd.macaroon-file`          | Path to invoice macaroon.                                                   | `/var/lib/lnd/data/chain/bitcoin/mainnet/invoice.macaroon` |
-| `credentials`                | Map of users authorized to access the admin user interface.                 | _none_                                                     |
-| `administrators`             | List of admin users with access to all accounts, events and raffles.        | _none,                                                     |
-| `access-control`             | Map of accounts accessible by non-admin users.                              | _none,                                                     |
-| `accounts`                   | Map of available accounts.                                                  | _none_                                                     |
-| `accounts.*.currency`        | Terminal currency; `cad`, `chf`, `czk`, `eur`, `gbp` and `usd` supported.   | `eur`                                                      |
-| `accounts.*.max-sendable`    | Maximum sendable amount in sats.                                            | _none_                                                     |
-| `accounts.*.min-sendable`    | Minimum sendable amount in sats.                                            | _none_                                                     |
-| `accounts.*.description`     | Description of the account.                                                 | _none_                                                     |
-| `accounts.*.thumbnail`       | Name of PNG/JPEG thumbnail to use; 256×256 pixels recommended. _(optional)_ | _none_                                                     |
-| `accounts.*.is-also-email`   | Does the account match an email address?                                    | `false`                                                    |
-| `accounts.*.comment-allowed` | Maximum length of invoice comment.                                          | `0`                                                        |
-| `accounts.*.archivable`      | May the account storage file be archived on demand?                         | `false`                                                    |
+| Property                     | Description                                                                 | Default value                                               |
+|:-----------------------------|:----------------------------------------------------------------------------|:------------------------------------------------------------|
+| `listen`                     | Host and port to listen on.                                                 | `127.0.0.1:8088`                                            |
+| `thumbnail-dir`              | Directory where to look for thumbnails.                                     | `/etc/lnurld/thumbnails`                                    |
+| `data-dir`                   | Directory where invoice payment hashes per account will be stored.          | `/var/lib/lnurld`                                           |
+| `lnd`                        | Configuration of your LND node.                                             | _see below_                                                 |
+| `lnd.address`                | Host and port of gRPC API interface.                                        | `127.0.0.1:10009`                                           |
+| `lnd.cert-file`              | Path to TLS certificate.                                                    | `/var/lib/lnd/tls.cert`                                     |
+| `lnd.macaroon-file`          | Path to macaroon file to use.                                               | `/var/lib/lnd/data/chain/bitcoin/mainnet/invoices.macaroon` |
+| `credentials`                | Map of users authorized to access the admin user interface.                 | _none_                                                      |
+| `administrators`             | List of admin users with access to all accounts, events and raffles.        | _none,                                                      |
+| `access-control`             | Map of accounts accessible by non-admin users.                              | _none,                                                      |
+| `accounts`                   | Map of available accounts.                                                  | _none_                                                      |
+| `accounts.*.currency`        | Terminal currency; `cad`, `chf`, `czk`, `eur`, `gbp` and `usd` supported.   | `eur`                                                       |
+| `accounts.*.max-sendable`    | Maximum sendable amount in sats.                                            | _none_                                                      |
+| `accounts.*.min-sendable`    | Minimum sendable amount in sats.                                            | _none_                                                      |
+| `accounts.*.description`     | Description of the account.                                                 | _none_                                                      |
+| `accounts.*.thumbnail`       | Name of PNG/JPEG thumbnail to use; 256×256 pixels recommended. _(optional)_ | _none_                                                      |
+| `accounts.*.is-also-email`   | Does the account match an email address?                                    | `false`                                                     |
+| `accounts.*.comment-allowed` | Maximum length of invoice comment.                                          | `0`                                                         |
+| `accounts.*.archivable`      | May the account storage file be archived on demand?                         | `false`                                                     |
+| `withdrawal`                 | Configuration of withdrawals.                                               | _see below_                                                 |
+| `withdrawal.fee-percent`     | Withdrawal fee in percent to cover withdrawal costs.                        | `0`                                                         |
+| `withdrawal.request-expiry`  | Expiry of withdrawal requests in specified units.                           | `90s`                                                       |
 
 If a property is marked as optional or has a default value, you don’t have to specify it explicitly.
 
@@ -179,6 +183,9 @@ with your friends, and they may sign up to attend the event once they authentica
 Raffles may be managed in the Raffles section at https://nakamoto.example/auth/raffles. Raffle QR code may be shared
 to allow anyone to purchase as many raffle tickets as they wish, increasing their chances. Once enough tickets are sold,
 i.e. at least the same number as there are prizes, you may start drawing winning tickets from the raffle’s detail page.
+
+Once a raffle is drawn, received sats may be withdrawn to any LN wallet that supports LNURL-withdraw. However, you have
+to first configure path to a macaroon with `invoices:read invoices:write offchain:read offchain:write` permissions.
 
 ## Update
 

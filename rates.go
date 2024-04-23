@@ -46,7 +46,7 @@ func newRatesService(refreshPeriod time.Duration) *RatesService {
 		for true {
 			err := service.fetchRates()
 			if err != nil {
-				log.Println("Fetching of rates failed:", err)
+				log.Println("error fetching rates:", err)
 			}
 			time.Sleep(refreshPeriod)
 		}

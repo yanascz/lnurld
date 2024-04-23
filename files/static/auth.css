@@ -23,11 +23,6 @@ h1.accounts::before {
     content: '⛺';
 }
 
-h1.raffles::before {
-    margin-right: .1em;
-    content: '⚡';
-}
-
 h2 {
     margin-top: 1em;
     font-size: 2.4em;
@@ -115,6 +110,11 @@ div#balance p {
     font-size: 1.5em;
     text-transform: uppercase;
     color: grey;
+}
+
+div#balance.withdrawn h2,
+div#balance.withdrawn p {
+    text-decoration: line-through;
 }
 
 dl#prize-tickets {
@@ -209,6 +209,16 @@ main.raffles h1::before {
     content: '⚡';
 }
 
+main.raffle h1::before {
+    margin-right: .1em;
+    content: '⚡';
+}
+
+main.raffle ul {
+    padding: 0;
+    list-style-type: none;
+}
+
 dialog {
     width: 100%;
     max-width: 320px;
@@ -226,6 +236,10 @@ dialog::backdrop {
 dialog h2 {
     margin-top: 0;
     font-size: 1.5em;
+}
+
+dialog h2.ln {
+    margin-bottom: .5em;
 }
 
 dialog div {
@@ -246,6 +260,14 @@ dialog p {
     flex-direction: column;
     flex-grow: 1;
     font-size: 1em;
+}
+
+dialog a {
+    outline: none;
+}
+
+dialog img {
+    max-width: 100%;
 }
 
 dialog label {
@@ -286,6 +308,12 @@ dialog button.close {
     color: black;
     font-size: 2.1em;
     cursor: pointer;
+}
+
+dialog footer {
+    margin: .7em 0 1.4em;
+    font-size: .7em;
+    color: grey;
 }
 
 footer {

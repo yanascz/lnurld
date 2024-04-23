@@ -3,11 +3,12 @@ package main
 import (
 	"crypto/rand"
 	"github.com/gin-gonic/gin"
-	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v3"
 	"log"
 	"os"
+	"slices"
 	"strings"
+	"time"
 )
 
 type Config struct {
@@ -19,6 +20,7 @@ type Config struct {
 	Administrators []string
 	AccessControl  map[string][]string `yaml:"access-control"`
 	Accounts       map[string]Account
+	Withdrawal     WithdrawalConfig
 }
 
 func (config *Config) getCookieKey() []byte {
@@ -65,7 +67,7 @@ func (account *Account) getMaxSendable() int64 {
 	return msats(account.MaxSendable)
 }
 
-func msats(sats uint32) int64 {
+func msats[T uint32 | int64](sats T) int64 {
 	return int64(sats) * 1000
 }
 
@@ -77,7 +79,10 @@ func loadConfig(configFileName string) *Config {
 		Lnd: LndConfig{
 			Address:      "127.0.0.1:10009",
 			CertFile:     "/var/lib/lnd/tls.cert",
-			MacaroonFile: "/var/lib/lnd/data/chain/bitcoin/mainnet/invoice.macaroon",
+			MacaroonFile: "/var/lib/lnd/data/chain/bitcoin/mainnet/invoices.macaroon",
+		},
+		Withdrawal: WithdrawalConfig{
+			RequestExpiry: 90 * time.Second,
 		},
 	}
 

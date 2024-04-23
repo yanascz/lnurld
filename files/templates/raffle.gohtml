@@ -12,30 +12,43 @@
 </head>
 <body>
 
-<h1 class="raffles">{{.Title}}</h1>
+<main class="raffle">
+    <h1>{{.Title}}</h1>
+    <div id="balance"{{if .WithdrawalFinished}} class="withdrawn"{{end}}>
+        <h2><strong>{{number .TotalSatsReceived}}</strong> sat{{if ne .TotalSatsReceived 1}}s{{end}}</h2>
+        <p><strong>{{decimal .TotalFiatReceived}}</strong> {{.FiatCurrency}}</p>
+    </div>
+    <ul>
+        <li><strong>{{number .TicketPrice}}</strong> sat{{if ne .TicketPrice 1}}s{{end}} / ticket</li>
+        <li><strong>{{number .TicketsIssued}}</strong> ticket{{if ne .TicketsIssued 1}}s{{end}} issued</li>
+        <li><strong>{{number .TicketsPaid}}</strong> ticket{{if ne .TicketsPaid 1}}s{{end}} paid</li>
+    </ul>
+    <div class="buttons">
+        {{if not .DrawAvailable}}
+            <button onclick="location.href='/ln/raffle/{{.Id}}/qr-code?size=1280'">QR Code</button>
+        {{end}}
+        <button {{if ge .TicketsPaid .PrizesCount}}onclick="draw()"{{else}}disabled{{end}}>Draw</button>
+        {{if .Withdrawable}}
+            <button onclick="withdraw()">Withdraw</button>
+        {{end}}
+        {{if .Archivable}}
+            <button onclick="archive()">Archive</button>
+        {{end}}
+    </div>
+</main>
 
-<div id="balance">
-    <h2><strong>{{number .TotalSatsReceived}}</strong> sat{{if ne .TotalSatsReceived 1}}s{{end}}</h2>
-    <p><strong>{{decimal .TotalFiatReceived}}</strong> {{.FiatCurrency}}</p>
-</div>
-
-<ul>
-    <li><strong>{{number .TicketPrice}}</strong> sat{{if ne .TicketPrice 1}}s{{end}} / ticket</li>
-    <li><strong>{{number .TicketsIssued}}</strong> ticket{{if ne .TicketsIssued 1}}s{{end}} issued</li>
-    <li><strong>{{number .TicketsPaid}}</strong> ticket{{if ne .TicketsPaid 1}}s{{end}} paid</li>
-</ul>
-
-<div class="buttons">
-    {{if not .DrawAvailable}}
-        <button onclick="location.href='/ln/raffle/{{.Id}}/qr-code?size=1280'">QR Code</button>
-    {{end}}
-    <button {{if ge .TicketsPaid .PrizesCount}}onclick="draw()"{{else}}disabled{{end}}>Draw</button>
-    {{if .Archivable}}
-        <button onclick="archive()">Archive</button>
-    {{end}}
-</div>
+<dialog id="dialog">
+    <h2 class="ln">Withdraw via Lightning</h2>
+    <a id="link" href=""><img id="qrcode" src="" alt="LNURL-withdraw"></a>
+    <form method="dialog">
+        <button class="close">×</button>
+    </form>
+    <footer>Scan or tap the QR code to open it in your Lightning wallet. You can use any wallet that supports LNURL-withdraw.</footer>
+</dialog>
 
 <script>
+    const withdrawalExpiry = {{.WithdrawalExpiry}}
+
     function draw() {
         {{if not .DrawAvailable}}
         if (!confirm('Stop ticket sale and start raffle draw?')) {
@@ -45,18 +58,63 @@
         location.href = '/auth/raffles/{{.Id}}/draw'
     }
 
+    let k1
+    let deadline
+
+    function withdraw() {
+        post('/api/raffles/{{.Id}}/withdraw')
+            .then(response => {
+                if (response.ok) {
+                    return response.json()
+                }
+                return Promise.reject(response)
+            })
+            .then(body => {
+                k1 = body.k1
+                deadline = Date.now() + withdrawalExpiry
+                element('link').href = `lightning:${body.lnUrl}`
+                element('qrcode').src = `data:${body.qrCode}`
+                element('dialog').showModal()
+                awaitSuccess()
+            })
+    }
+
+    function awaitSuccess() {
+        if (!element('dialog').open) {
+            return
+        }
+        if (Date.now() > deadline) {
+            document.location.reload()
+        }
+        fetch(`/ln/withdraw/${k1}`)
+            .then(response => {
+                if (response.ok) {
+                    setTimeout(awaitSuccess, 1000)
+                } else {
+                    document.location.reload()
+                }
+            })
+    }
+
     function archive() {
         if (!confirm('Really archive the raffle?')) {
             return false
         }
-        const archiveRequest = {
+        post('/api/raffles/{{.Id}}/archive')
+            .then(() => document.location.reload())
+    }
+
+    function post(uri) {
+        return fetch(uri, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json'
             },
-        }
-        fetch('/api/raffles/{{.Id}}/archive', archiveRequest)
-            .then(() => document.location.reload())
+        })
+    }
+
+    function element(elementId) {
+        return document.getElementById(elementId)
     }
 </script>
 

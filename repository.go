@@ -184,16 +184,36 @@ func (repository *Repository) getRaffleDraw(raffle *Raffle) []string {
 	return readValues(raffleDrawFileName(repository, raffle.Id))
 }
 
+func (repository *Repository) isRaffleWithdrawalFinished(raffle *Raffle) bool {
+	_, err := os.Stat(raffleWithdrawalFileName(repository, raffle.Id))
+	return err == nil
+}
+
+func (repository *Repository) getRaffleWithdrawalFileName(raffle *Raffle) string {
+	return raffleWithdrawalFileName(repository, raffle.Id)
+}
+
 func (repository *Repository) archiveRaffleFiles(raffle *Raffle) error {
 	ticketsFileName := raffleTicketsFileName(repository, raffle.Id)
 	drawFileName := raffleDrawFileName(repository, raffle.Id)
+	withdrawalFileName := raffleWithdrawalFileName(repository, raffle.Id)
 	archiveSuffix := "." + time.Now().Format("20060102150405")
 
 	if err := os.Rename(drawFileName, drawFileName+archiveSuffix); err != nil {
 		return err
 	}
+	if err := os.Rename(ticketsFileName, ticketsFileName+archiveSuffix); err != nil {
+		return err
+	}
+	if err := os.Rename(withdrawalFileName, withdrawalFileName+archiveSuffix); !os.IsNotExist(err) {
+		return err
+	}
 
-	return os.Rename(ticketsFileName, ticketsFileName+archiveSuffix)
+	return nil
+}
+
+func (repository *Repository) createWithdrawal(request *WithdrawalRequest, paymentHash string) error {
+	return writeValues(request.fileName, []string{paymentHash})
 }
 
 func accountPaymentHashesFileName(repository *Repository, accountKey string) string {
@@ -228,6 +248,10 @@ func raffleDrawFileName(repository *Repository, raffleId string) string {
 	return raffleDirName(repository, raffleId) + pathSeparator + "draw" + csvExtension
 }
 
+func raffleWithdrawalFileName(repository *Repository, raffleId string) string {
+	return raffleDirName(repository, raffleId) + pathSeparator + "withdrawal" + csvExtension
+}
+
 func randomId() (string, error) {
 	random := make([]byte, 5)
 	if _, err := rand.Read(random); err != nil {
@@ -249,7 +273,7 @@ func writeObject(fileName string, object any) error {
 	}
 	defer file.Close()
 
-	if _, err = file.Write(jsonData); err != nil {
+	if _, err = file.Write(append(jsonData, '\n')); err != nil {
 		return err
 	}
 
@@ -282,8 +306,7 @@ func appendValue(fileName string, value string) error {
 	}
 	defer file.Close()
 
-	line := value + "\n"
-	if _, err = file.WriteString(line); err != nil {
+	if _, err = file.WriteString(value + "\n"); err != nil {
 		return err
 	}
 
@@ -298,8 +321,7 @@ func writeValues(fileName string, values []string) error {
 	defer file.Close()
 
 	for _, value := range values {
-		line := value + "\n"
-		if _, err = file.WriteString(line); err != nil {
+		if _, err = file.WriteString(value + "\n"); err != nil {
 			return err
 		}
 	}

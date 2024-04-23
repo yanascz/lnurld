@@ -10,7 +10,6 @@ require (
 	github.com/lightningnetwork/lnd v0.17.4-beta
 	github.com/mr-tron/base58 v1.2.0
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
-	golang.org/x/exp v0.0.0-20240409090435-93d18d7e34b8
 	golang.org/x/image v0.15.0
 	golang.org/x/text v0.14.0
 	google.golang.org/grpc v1.63.2
@@ -166,6 +165,7 @@ require (
 	go.uber.org/zap v1.17.0 // indirect
 	golang.org/x/arch v0.7.0 // indirect
 	golang.org/x/crypto v0.22.0 // indirect
+	golang.org/x/exp v0.0.0-20230315142452-642cacee5cc0 // indirect
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/net v0.24.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect

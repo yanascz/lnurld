@@ -143,3 +143,21 @@ func (client *LndClient) getInvoice(paymentHash string) (*Invoice, error) {
 
 	return &invoice, nil
 }
+
+func (client *LndClient) decodePaymentRequest(paymentRequest string) (string, int64) {
+	payReqString := lnrpc.PayReqString{PayReq: paymentRequest}
+	payReq, err := client.lnClient.DecodePayReq(client.ctx, &payReqString)
+	if err != nil {
+		log.Println("error decoding payment request:", err)
+		return "", 0
+	}
+
+	return payReq.PaymentHash, payReq.NumSatoshis
+}
+
+func (client *LndClient) sendPayment(paymentRequest string) error {
+	sendRequest := lnrpc.SendRequest{PaymentRequest: paymentRequest}
+	_, err := client.lnClient.SendPaymentSync(client.ctx, &sendRequest)
+
+	return err
+}

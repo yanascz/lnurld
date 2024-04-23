@@ -10,19 +10,19 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
-	"golang.org/x/exp/slices"
 	"log"
 	"math/rand"
 	"net/http"
 	"os"
 	"path"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 )
 
-type LnAuthInit struct {
+type LnUrlData struct {
 	K1     string `json:"k1"`
 	LnUrl  string `json:"lnUrl"`
 	QrCode string `json:"qrCode"`
@@ -68,8 +68,9 @@ type EventLocation struct {
 }
 
 const (
-	payRequestTag = "payRequest"
-	qrCodeSize    = 1280
+	payRequestTag      = "payRequest"
+	withdrawRequestTag = "withdrawRequest"
+	qrCodeSize         = 1280
 )
 
 var (
@@ -82,11 +83,12 @@ var (
 	//go:embed files/tombola.png
 	tombolaPngData []byte
 
-	config       *Config
-	repository   *Repository
-	lndClient    *LndClient
-	authService  *AuthService
-	ratesService *RatesService
+	config            *Config
+	repository        *Repository
+	lndClient         *LndClient
+	authService       *AuthService
+	withdrawalService *WithdrawalService
+	ratesService      *RatesService
 )
 
 func main() {
@@ -102,6 +104,7 @@ func main() {
 	repository = newRepository(config.ThumbnailDir, config.DataDir)
 	lndClient = newLndClient(config.Lnd)
 	authService = newAuthService()
+	withdrawalService = newWithdrawalService(config.Withdrawal)
 	ratesService = newRatesService(21 * time.Second)
 
 	lnurld := gin.Default()
@@ -121,6 +124,8 @@ func main() {
 	lnurld.GET("/ln/pay/:name/qr-code", lnPayQrCodeHandler)
 	lnurld.GET("/ln/raffle/:id", lnRaffleTicketHandler)
 	lnurld.GET("/ln/raffle/:id/qr-code", lnRaffleQrCodeHandler)
+	lnurld.GET("/ln/withdraw", lnWithdrawConfirmHandler)
+	lnurld.GET("/ln/withdraw/:k1", lnWithdrawRequestHandler)
 	lnurld.GET("/events/:id", eventHandler)
 	lnurld.POST("/events/:id/sign-up", eventSignUpHandler)
 	lnurld.GET("/static/*filepath", lnStaticFileHandler)
@@ -143,6 +148,7 @@ func main() {
 	authorized.POST("/api/raffles", apiRaffleCreateHandler)
 	authorized.GET("/api/raffles/:id", apiRaffleReadHandler)
 	authorized.PUT("/api/raffles/:id", apiRaffleUpdateHandler)
+	authorized.POST("/api/raffles/:id/withdraw", apiRaffleWithdrawHandler)
 	authorized.POST("/api/raffles/:id/archive", apiRaffleArchiveHandler)
 
 	log.Fatal(lnurld.Run(config.Listen))
@@ -155,25 +161,7 @@ func indexHandler(context *gin.Context) {
 func lnAuthInitHandler(context *gin.Context) {
 	k1 := authService.init()
 
-	scheme, host := getSchemeAndHost(context)
-	actualLnUrl := scheme + "://" + host + "/ln/auth?tag=login&k1=" + k1
-	encodedLnUrl, err := lnurl.LNURLEncode(actualLnUrl)
-	if err != nil {
-		abortWithInternalServerErrorResponse(context, fmt.Errorf("encoding LNURL: %w", err))
-		return
-	}
-
-	pngData, err := encodeQrCode(encodedLnUrl, lightningPngData, qrCodeSize, true)
-	if err != nil {
-		abortWithInternalServerErrorResponse(context, fmt.Errorf("encoding QR code: %w", err))
-		return
-	}
-
-	context.JSON(http.StatusOK, LnAuthInit{
-		K1:     k1,
-		LnUrl:  encodedLnUrl,
-		QrCode: pngDataUrl(pngData),
-	})
+	generateLnUrl(context, k1, "/ln/auth?tag=login&k1="+k1)
 }
 
 func lnAuthVerifyHandler(context *gin.Context) {
@@ -270,11 +258,7 @@ func lnPayQrCodeHandler(context *gin.Context) {
 		return
 	}
 
-	scheme, host := getSchemeAndHost(context)
-	lnUrl := scheme + "://" + host + "/ln/pay/" + accountKey
-	thumbnailData := getAccountThumbnailData(account)
-
-	generateQrCode(context, lnUrl, thumbnailData)
+	generateQrCode(context, "/ln/pay/"+accountKey, getAccountThumbnailData(account))
 }
 
 func lnRaffleTicketHandler(context *gin.Context) {
@@ -345,10 +329,56 @@ func lnRaffleQrCodeHandler(context *gin.Context) {
 		return
 	}
 
-	scheme, host := getSchemeAndHost(context)
-	lnUrl := scheme + "://" + host + "/ln/raffle/" + raffle.Id
+	generateQrCode(context, "/ln/raffle/"+raffle.Id, tombolaPngData)
+}
 
-	generateQrCode(context, lnUrl, tombolaPngData)
+func lnWithdrawConfirmHandler(context *gin.Context) {
+	k1 := context.Query("k1")
+	withdrawalRequest := withdrawalService.get(k1)
+	if withdrawalRequest == nil {
+		abortWithNotFoundResponse(context)
+		return
+	}
+
+	pr := context.Query("pr")
+	paymentHash, amount := lndClient.decodePaymentRequest(pr)
+	if paymentHash == "" || amount != withdrawalRequest.amount {
+		abortWithBadRequestResponse(context, "invalid payment request")
+		return
+	}
+
+	if err := repository.createWithdrawal(withdrawalRequest, paymentHash); err != nil {
+		abortWithNotFoundResponse(context)
+		return
+	}
+	if err := lndClient.sendPayment(pr); err != nil {
+		abortWithInternalServerErrorResponse(context, err)
+		return
+	}
+	withdrawalService.remove(k1)
+
+	context.JSON(http.StatusOK, lnurl.OkResponse())
+}
+
+func lnWithdrawRequestHandler(context *gin.Context) {
+	k1 := context.Param("k1")
+	withdrawalRequest := withdrawalService.get(k1)
+	if withdrawalRequest == nil {
+		abortWithNotFoundResponse(context)
+		return
+	}
+
+	scheme, host := getSchemeAndHost(context)
+	withdrawable := msats(withdrawalRequest.amount)
+
+	context.JSON(http.StatusOK, lnurl.LNURLWithdrawResponse{
+		Tag:                withdrawRequestTag,
+		K1:                 k1,
+		Callback:           scheme + "://" + host + "/ln/withdraw",
+		MinWithdrawable:    withdrawable,
+		MaxWithdrawable:    withdrawable,
+		DefaultDescription: withdrawalRequest.description,
+	})
 }
 
 func eventHandler(context *gin.Context) {
@@ -519,6 +549,7 @@ func authRaffleHandler(context *gin.Context) {
 
 	tickets := repository.getRaffleTickets(raffle)
 	drawAvailable := repository.isRaffleDrawAvailable(raffle)
+	withdrawalFinished := repository.isRaffleWithdrawalFinished(raffle)
 
 	var ticketsPaid int
 	var totalSatsReceived int64
@@ -531,17 +562,20 @@ func authRaffleHandler(context *gin.Context) {
 	}
 
 	context.HTML(http.StatusOK, "raffle.gohtml", gin.H{
-		"Id":                raffle.Id,
-		"Title":             raffle.Title,
-		"TicketPrice":       raffle.TicketPrice,
-		"FiatCurrency":      raffle.FiatCurrency,
-		"PrizesCount":       raffle.getPrizesCount(),
-		"TicketsIssued":     len(tickets),
-		"TicketsPaid":       ticketsPaid,
-		"TotalSatsReceived": totalSatsReceived,
-		"TotalFiatReceived": ratesService.satsToFiat(raffle.FiatCurrency, totalSatsReceived),
-		"DrawAvailable":     drawAvailable,
-		"Archivable":        drawAvailable && isAdministrator(context),
+		"Id":                 raffle.Id,
+		"Title":              raffle.Title,
+		"TicketPrice":        raffle.TicketPrice,
+		"FiatCurrency":       raffle.FiatCurrency,
+		"PrizesCount":        raffle.getPrizesCount(),
+		"TicketsIssued":      len(tickets),
+		"TicketsPaid":        ticketsPaid,
+		"TotalSatsReceived":  totalSatsReceived,
+		"TotalFiatReceived":  ratesService.satsToFiat(raffle.FiatCurrency, totalSatsReceived),
+		"DrawAvailable":      drawAvailable,
+		"Withdrawable":       drawAvailable && !withdrawalFinished,
+		"WithdrawalFinished": withdrawalFinished,
+		"WithdrawalExpiry":   config.Withdrawal.RequestExpiry.Milliseconds(),
+		"Archivable":         drawAvailable && isAdministrator(context),
 	})
 }
 
@@ -744,6 +778,32 @@ func apiRaffleUpdateHandler(context *gin.Context) {
 	context.JSON(http.StatusOK, updatedRaffle)
 }
 
+func apiRaffleWithdrawHandler(context *gin.Context) {
+	raffle := getAccessibleRaffle(context)
+	if raffle == nil {
+		return
+	}
+	if repository.isRaffleWithdrawalFinished(raffle) {
+		abortWithBadRequestResponse(context, "not withdrawable")
+		return
+	}
+
+	var totalSatsReceived int64
+	for _, paymentHash := range repository.getRaffleDraw(raffle) {
+		if invoice, _ := lndClient.getInvoice(paymentHash); invoice != nil {
+			totalSatsReceived += invoice.amount
+		}
+	}
+
+	k1 := withdrawalService.init(
+		repository.getRaffleWithdrawalFileName(raffle),
+		totalSatsReceived,
+		raffle.Title,
+	)
+
+	generateLnUrl(context, k1, "/ln/withdraw/"+k1)
+}
+
 func apiRaffleArchiveHandler(context *gin.Context) {
 	if !isAdministrator(context) {
 		abortWithNotFoundResponse(context)
@@ -833,7 +893,7 @@ func getAccountThumbnail(account *Account) *Thumbnail {
 
 	thumbnail, err := repository.getThumbnail(account.Thumbnail)
 	if err != nil {
-		log.Println("thumbnail not readable:", err)
+		log.Println("error reading thumbnail:", err)
 	}
 
 	return thumbnail
@@ -908,8 +968,7 @@ func getRaffleDraw(context *gin.Context, raffle *Raffle) []string {
 		raffleDraw[i], raffleDraw[j] = raffleDraw[j], raffleDraw[i]
 	})
 
-	err := repository.createRaffleDraw(raffle, raffleDraw)
-	if err != nil {
+	if err := repository.createRaffleDraw(raffle, raffleDraw); err != nil {
 		abortWithInternalServerErrorResponse(context, fmt.Errorf("storing raffle draw: %w", err))
 		return nil
 	}
@@ -942,8 +1001,30 @@ func createInvoice(context *gin.Context, msats int64, comment string, descriptio
 	return invoice
 }
 
-func generateQrCode(context *gin.Context, lnUrl string, thumbnailData []byte) {
-	encodedLnUrl, err := lnurl.LNURLEncode(lnUrl)
+func generateLnUrl(context *gin.Context, k1 string, uri string) {
+	scheme, host := getSchemeAndHost(context)
+	lnUrl, err := lnurl.LNURLEncode(scheme + "://" + host + uri)
+	if err != nil {
+		abortWithInternalServerErrorResponse(context, fmt.Errorf("encoding LNURL: %w", err))
+		return
+	}
+
+	pngData, err := encodeQrCode(lnUrl, lightningPngData, qrCodeSize, true)
+	if err != nil {
+		abortWithInternalServerErrorResponse(context, fmt.Errorf("encoding QR code: %w", err))
+		return
+	}
+
+	context.JSON(http.StatusOK, LnUrlData{
+		K1:     k1,
+		LnUrl:  lnUrl,
+		QrCode: pngDataUrl(pngData),
+	})
+}
+
+func generateQrCode(context *gin.Context, uri string, thumbnailData []byte) {
+	scheme, host := getSchemeAndHost(context)
+	lnUrl, err := lnurl.LNURLEncode(scheme + "://" + host + uri)
 	if err != nil {
 		abortWithInternalServerErrorResponse(context, fmt.Errorf("encoding LNURL: %w", err))
 		return
@@ -956,7 +1037,7 @@ func generateQrCode(context *gin.Context, lnUrl string, thumbnailData []byte) {
 		return
 	}
 
-	pngData, err := encodeQrCode(encodedLnUrl, thumbnailData, int(size), false)
+	pngData, err := encodeQrCode(lnUrl, thumbnailData, int(size), false)
 	if err != nil {
 		abortWithInternalServerErrorResponse(context, fmt.Errorf("encoding QR code: %w", err))
 		return
