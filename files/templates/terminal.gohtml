@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
     <link rel="stylesheet" media="all" href="/static/terminal.css">
+    <script src="/static/util.js"></script>
 
     <title>{{.Title}}</title>
 
@@ -103,17 +104,10 @@
 
     function createInvoice() {
         const createRequest = {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-                accountKey: {{.AccountKey}},
-                amount: amount
-            })
+            accountKey: {{.AccountKey}},
+            amount: amount
         }
-        fetch('/api/invoices', createRequest)
+        post('/api/invoices', createRequest)
             .then(response => {
                 if (response.ok) {
                     return response.json()
@@ -146,10 +140,6 @@
                     setTimeout(awaitSettlement, 1000)
                 }
             })
-    }
-
-    function element(elementId) {
-        return document.getElementById(elementId)
     }
 </script>
 

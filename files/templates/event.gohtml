@@ -9,6 +9,7 @@
     <meta property="og:description" content="{{datetime .DateTime}} | {{.Location.Name}}"/>
 
     <link rel="stylesheet" media="all" href="/static/public.css">
+    <script src="/static/util.js"></script>
 
     <title>{{.Title}}</title>
 
@@ -113,19 +114,6 @@
                         setTimeout(awaitSuccess, 1000)
                     }
                 })
-        }
-
-        function post(uri) {
-            return fetch(uri, {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json'
-                },
-            })
-        }
-
-        function element(elementId) {
-            return document.getElementById(elementId)
         }
     </script>
 {{end}}

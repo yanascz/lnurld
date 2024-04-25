@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="stylesheet" media="all" href="/static/auth.css">
+    <script src="/static/util.js"></script>
 
     <title>Events</title>
 
@@ -82,7 +83,7 @@
         locationUrlElement.value = ''
         capacityElement.value = ''
         descriptionElement.value = ''
-        dialogElement.onsubmit = () => submitEvent('POST', '/api/events')
+        dialogElement.onsubmit = () => submitEvent(post, '/api/events')
         dialogElement.showModal()
     }
 
@@ -98,25 +99,18 @@
                 locationUrlElement.value = body.location.url
                 capacityElement.value = body.capacity
                 descriptionElement.value = body.description
-                dialogElement.onsubmit = () => submitEvent('PUT', eventUri)
+                dialogElement.onsubmit = () => submitEvent(put, eventUri)
                 dialogElement.showModal()
             })
     }
 
-    function submitEvent(method, uri) {
-        fetch(uri, {
-            method,
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-                title: titleElement.value,
-                dateTime: toDateTime(dateElement.value, timeElement.value),
-                location: toLocation(locationNameElement.value, locationUrlElement.value),
-                capacity: Number(capacityElement.value),
-                description: descriptionElement.value
-            })
+    function submitEvent(submitFunction, uri) {
+        submitFunction(uri, {
+            title: titleElement.value,
+            dateTime: toDateTime(dateElement.value, timeElement.value),
+            location: toLocation(locationNameElement.value, locationUrlElement.value),
+            capacity: Number(capacityElement.value),
+            description: descriptionElement.value
         }).then(() => document.location.reload())
     }
 
@@ -138,10 +132,6 @@
 
     function toLocation(name, url) {
         return { name, url }
-    }
-
-    function element(elementId) {
-        return document.getElementById(elementId)
     }
 </script>
 

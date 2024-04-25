@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="stylesheet" media="all" href="/static/auth.css">
+    <script src="/static/util.js"></script>
 
     <title>{{.Title}}</title>
 
@@ -80,10 +81,6 @@
     function updateTickets() {
         const tickets = drawnTickets.length
         ticketsElement.innerText = tickets ? `${tickets} ticket${tickets !== 1 ? 's' : ''}` : ''
-    }
-
-    function element(elementId) {
-        return document.getElementById(elementId)
     }
 </script>
 

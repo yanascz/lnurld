@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="stylesheet" media="all" href="/static/auth.css">
+    <script src="/static/util.js"></script>
 
     <title>{{.AccountKey}}</title>
 
@@ -61,14 +62,7 @@
         if (!confirm('Really archive the account?')) {
             return false
         }
-        const archiveRequest = {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-        }
-        fetch('/api/accounts/{{.AccountKey}}/archive', archiveRequest)
+        post('/api/accounts/{{.AccountKey}}/archive')
             .then(() => document.location.reload())
     }
 </script>

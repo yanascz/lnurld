@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="stylesheet" media="all" href="/static/auth.css">
+    <script src="/static/util.js"></script>
 
     <title>Raffles</title>
 
@@ -75,7 +76,7 @@
         ticketPriceElement.value = ''
         fiatCurrencyElement.value = 'eur'
         prizesElement.replaceChildren(createPrizeElement({}))
-        dialogElement.onsubmit = () => submitRaffle('POST', '/api/raffles')
+        dialogElement.onsubmit = () => submitRaffle(post, '/api/raffles')
         dialogElement.showModal()
         updateButtons()
     }
@@ -89,7 +90,7 @@
                 ticketPriceElement.value = body.ticketPrice
                 fiatCurrencyElement.value = body.fiatCurrency
                 prizesElement.replaceChildren(...body.prizes.map(createPrizeElement))
-                dialogElement.onsubmit = () => submitRaffle('PUT', raffleUri)
+                dialogElement.onsubmit = () => submitRaffle(put, raffleUri)
                 dialogElement.showModal()
                 updateButtons()
             })
@@ -120,19 +121,12 @@
         removePrizeButton.disabled = prizesElement.children.length === 1
     }
 
-    function submitRaffle(method, uri) {
-        fetch(uri, {
-            method,
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-                title: titleElement.value,
-                ticketPrice: Number(ticketPriceElement.value),
-                fiatCurrency: fiatCurrencyElement.value,
-                prizes: toPrizes(prizesElement.children),
-            })
+    function submitRaffle(submitFunction, uri) {
+        submitFunction(uri, {
+            title: titleElement.value,
+            ticketPrice: Number(ticketPriceElement.value),
+            fiatCurrency: fiatCurrencyElement.value,
+            prizes: toPrizes(prizesElement.children),
         }).then(() => document.location.reload())
     }
 
@@ -153,10 +147,6 @@
 
     function closeDialog() {
         dialogElement.close()
-    }
-
-    function element(elementId) {
-        return document.getElementById(elementId)
     }
 </script>
 

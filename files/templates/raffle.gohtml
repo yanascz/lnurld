@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="stylesheet" media="all" href="/static/auth.css">
+    <script src="/static/util.js"></script>
 
     <title>{{.Title}}</title>
 
@@ -102,19 +103,6 @@
         }
         post('/api/raffles/{{.Id}}/archive')
             .then(() => document.location.reload())
-    }
-
-    function post(uri) {
-        return fetch(uri, {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json'
-            },
-        })
-    }
-
-    function element(elementId) {
-        return document.getElementById(elementId)
     }
 </script>
 
