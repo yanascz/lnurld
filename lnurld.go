@@ -83,12 +83,12 @@ var (
 	//go:embed files/tombola.png
 	tombolaPngData []byte
 
-	config            *Config
-	repository        *Repository
-	lndClient         *LndClient
-	authService       *AuthService
-	withdrawalService *WithdrawalService
-	ratesService      *RatesService
+	config                *Config
+	repository            *Repository
+	lndClient             *LndClient
+	authenticationService *AuthenticationService
+	withdrawalService     *WithdrawalService
+	ratesService          *RatesService
 )
 
 func main() {
@@ -103,7 +103,7 @@ func main() {
 	config = loadConfig(configFileName)
 	repository = newRepository(config.ThumbnailDir, config.DataDir)
 	lndClient = newLndClient(config.Lnd)
-	authService = newAuthService()
+	authenticationService = newAuthenticationService(config.Authentication)
 	withdrawalService = newWithdrawalService(config.Withdrawal)
 	ratesService = newRatesService(21 * time.Second)
 
@@ -159,14 +159,14 @@ func indexHandler(context *gin.Context) {
 }
 
 func lnAuthInitHandler(context *gin.Context) {
-	k1 := authService.init()
+	k1 := authenticationService.init()
 
 	generateLnUrl(context, k1, "/ln/auth?tag=login&k1="+k1)
 }
 
 func lnAuthVerifyHandler(context *gin.Context) {
 	k1, sig, key := context.Query("k1"), context.Query("sig"), context.Query("key")
-	if err := authService.verify(k1, sig, key); err != nil {
+	if err := authenticationService.verify(k1, sig, key); err != nil {
 		context.Error(fmt.Errorf("authentication failed: %w", err))
 		abortWithBadRequestResponse(context, "invalid request")
 		return
@@ -176,7 +176,7 @@ func lnAuthVerifyHandler(context *gin.Context) {
 }
 
 func lnAuthIdentityHandler(context *gin.Context) {
-	identity := authService.identity(context.Param("k1"))
+	identity := authenticationService.identity(context.Param("k1"))
 	if identity == "" {
 		abortWithNotFoundResponse(context)
 		return
@@ -400,6 +400,7 @@ func eventHandler(context *gin.Context) {
 		"Attendees":       len(attendees),
 		"AttendeeOrdinal": slices.Index(attendees, identity) + 1,
 		"SignUpPossible":  event.DateTime.After(time.Now()),
+		"LnAuthExpiry":    config.Authentication.RequestExpiry.Milliseconds(),
 		"IdentityId":      toIdentityId(identity),
 	})
 }

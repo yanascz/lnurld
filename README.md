@@ -69,30 +69,32 @@ accounts:
 
 Available configuration properties:
 
-| Property                     | Description                                                                 | Default value                                               |
-|:-----------------------------|:----------------------------------------------------------------------------|:------------------------------------------------------------|
-| `listen`                     | Host and port to listen on.                                                 | `127.0.0.1:8088`                                            |
-| `thumbnail-dir`              | Directory where to look for thumbnails.                                     | `/etc/lnurld/thumbnails`                                    |
-| `data-dir`                   | Directory where invoice payment hashes per account will be stored.          | `/var/lib/lnurld`                                           |
-| `lnd`                        | Configuration of your LND node.                                             | _see below_                                                 |
-| `lnd.address`                | Host and port of gRPC API interface.                                        | `127.0.0.1:10009`                                           |
-| `lnd.cert-file`              | Path to TLS certificate.                                                    | `/var/lib/lnd/tls.cert`                                     |
-| `lnd.macaroon-file`          | Path to macaroon file to use.                                               | `/var/lib/lnd/data/chain/bitcoin/mainnet/invoices.macaroon` |
-| `credentials`                | Map of users authorized to access the admin user interface.                 | _none_                                                      |
-| `administrators`             | List of admin users with access to all accounts, events and raffles.        | _none,                                                      |
-| `access-control`             | Map of accounts accessible by non-admin users.                              | _none,                                                      |
-| `accounts`                   | Map of available accounts.                                                  | _none_                                                      |
-| `accounts.*.currency`        | Terminal currency; `cad`, `chf`, `czk`, `eur`, `gbp` and `usd` supported.   | `eur`                                                       |
-| `accounts.*.max-sendable`    | Maximum sendable amount in sats.                                            | _none_                                                      |
-| `accounts.*.min-sendable`    | Minimum sendable amount in sats.                                            | _none_                                                      |
-| `accounts.*.description`     | Description of the account.                                                 | _none_                                                      |
-| `accounts.*.thumbnail`       | Name of PNG/JPEG thumbnail to use; 256×256 pixels recommended. _(optional)_ | _none_                                                      |
-| `accounts.*.is-also-email`   | Does the account match an email address?                                    | `false`                                                     |
-| `accounts.*.comment-allowed` | Maximum length of invoice comment.                                          | `0`                                                         |
-| `accounts.*.archivable`      | May the account storage file be archived on demand?                         | `false`                                                     |
-| `withdrawal`                 | Configuration of withdrawals.                                               | _see below_                                                 |
-| `withdrawal.fee-percent`     | Withdrawal fee in percent to cover withdrawal costs.                        | `0`                                                         |
-| `withdrawal.request-expiry`  | Expiry of withdrawal requests in specified units.                           | `90s`                                                       |
+| Property                        | Description                                                                 | Default value                                               |
+|:--------------------------------|:----------------------------------------------------------------------------|:------------------------------------------------------------|
+| `listen`                        | Host and port to listen on.                                                 | `127.0.0.1:8088`                                            |
+| `thumbnail-dir`                 | Directory where to look for thumbnails.                                     | `/etc/lnurld/thumbnails`                                    |
+| `data-dir`                      | Directory where invoice payment hashes per account will be stored.          | `/var/lib/lnurld`                                           |
+| `lnd`                           | Configuration of your LND node.                                             | _see below_                                                 |
+| `lnd.address`                   | Host and port of gRPC API interface.                                        | `127.0.0.1:10009`                                           |
+| `lnd.cert-file`                 | Path to TLS certificate.                                                    | `/var/lib/lnd/tls.cert`                                     |
+| `lnd.macaroon-file`             | Path to macaroon file to use.                                               | `/var/lib/lnd/data/chain/bitcoin/mainnet/invoices.macaroon` |
+| `credentials`                   | Map of users authorized to access the admin user interface.                 | _none_                                                      |
+| `administrators`                | List of admin users with access to all accounts, events and raffles.        | _none,                                                      |
+| `access-control`                | Map of accounts accessible by non-admin users.                              | _none,                                                      |
+| `accounts`                      | Map of available accounts.                                                  | _none_                                                      |
+| `accounts.*.currency`           | Terminal currency; `cad`, `chf`, `czk`, `eur`, `gbp` and `usd` supported.   | `eur`                                                       |
+| `accounts.*.max-sendable`       | Maximum sendable amount in sats.                                            | _none_                                                      |
+| `accounts.*.min-sendable`       | Minimum sendable amount in sats.                                            | _none_                                                      |
+| `accounts.*.description`        | Description of the account.                                                 | _none_                                                      |
+| `accounts.*.thumbnail`          | Name of PNG/JPEG thumbnail to use; 256×256 pixels recommended. _(optional)_ | _none_                                                      |
+| `accounts.*.is-also-email`      | Does the account match an email address?                                    | `false`                                                     |
+| `accounts.*.comment-allowed`    | Maximum length of invoice comment.                                          | `0`                                                         |
+| `accounts.*.archivable`         | May the account storage file be archived on demand?                         | `false`                                                     |
+| `authentication`                | Configuration of LN authentication.                                         | _see below_                                                 |
+| `authentication.request-expiry` | Expiry of authentication requests in specified units.                       | `90s`                                                       |
+| `withdrawal`                    | Configuration of LN withdrawals.                                            | _see below_                                                 |
+| `withdrawal.fee-percent`        | Withdrawal fee in percent to cover withdrawal costs.                        | `0`                                                         |
+| `withdrawal.request-expiry`     | Expiry of withdrawal requests in specified units.                           | `90s`                                                       |
 
 If a property is marked as optional or has a default value, you don’t have to specify it explicitly.
 
