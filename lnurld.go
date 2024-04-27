@@ -278,6 +278,11 @@ func lnRaffleTicketHandler(context *gin.Context) {
 	lnurlMetadata.Image.Bytes = tombolaPngData
 	lnurlMetadata.Image.Ext = "png"
 
+	if thumbnail := getRaffleThumbnail(raffle); thumbnail != nil {
+		lnurlMetadata.Image.Bytes = thumbnail.bytes
+		lnurlMetadata.Image.Ext = thumbnail.ext
+	}
+
 	amount := context.Query("amount")
 	if amount == "" {
 		scheme, host := getSchemeAndHost(context)
@@ -329,7 +334,12 @@ func lnRaffleQrCodeHandler(context *gin.Context) {
 		return
 	}
 
-	generateQrCode(context, "/ln/raffle/"+raffle.Id, tombolaPngData)
+	thumbnailData := tombolaPngData
+	if thumbnail := getRaffleThumbnail(raffle); thumbnail != nil {
+		thumbnailData = thumbnail.bytes
+	}
+
+	generateQrCode(context, "/ln/raffle/"+raffle.Id, thumbnailData)
 }
 
 func lnWithdrawConfirmHandler(context *gin.Context) {
@@ -946,6 +956,20 @@ func getAccessibleRaffle(context *gin.Context) *Raffle {
 
 	abortWithNotFoundResponse(context)
 	return nil
+}
+
+func getRaffleThumbnail(raffle *Raffle) *Thumbnail {
+	userThumbnail := config.Thumbnails[raffle.Owner]
+	if userThumbnail == "" {
+		return nil
+	}
+
+	thumbnail, err := repository.getThumbnail(userThumbnail)
+	if err != nil {
+		log.Println("error reading thumbnail:", err)
+	}
+
+	return thumbnail
 }
 
 func getRaffleDraw(context *gin.Context, raffle *Raffle) []string {

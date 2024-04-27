@@ -19,6 +19,7 @@ type Config struct {
 	Credentials    gin.Accounts
 	Administrators []string
 	AccessControl  map[string][]string `yaml:"access-control"`
+	Thumbnails     map[string]string   `yaml:"thumbnails"`
 	Accounts       map[string]Account
 	Authentication AuthenticationConfig
 	Withdrawal     WithdrawalConfig
@@ -107,6 +108,7 @@ func loadConfig(configFileName string) *Config {
 
 	validateAdministrators(&config)
 	validateAccessControl(&config)
+	validateThumbnails(&config)
 	for accountKey, account := range config.Accounts {
 		validateAccount(accountKey, &account)
 	}
@@ -131,6 +133,14 @@ func validateAccessControl(config *Config) {
 			if _, accountExists := config.Accounts[accountKey]; !accountExists {
 				log.Fatal("Unknown account in property access-control.", user, ": ", accountKey)
 			}
+		}
+	}
+}
+
+func validateThumbnails(config *Config) {
+	for user, _ := range config.Thumbnails {
+		if _, userExists := config.Credentials[user]; !userExists {
+			log.Fatal("Unknown user in property thumbnails: ", user)
 		}
 	}
 }
