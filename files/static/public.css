@@ -10,7 +10,14 @@ body {
 }
 
 main {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
     margin: 0 2em 2em;
+}
+
+main.event {
+    margin-bottom: 0;
 }
 
 main h1 {
@@ -19,7 +26,7 @@ main h1 {
 }
 
 main ul {
-    margin-top: 1em;
+    margin-top: .5em;
     padding: 0;
     font-size: 1.6em;
     font-weight: bold;
@@ -73,11 +80,11 @@ main p.formatted {
 main div {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    margin: 2em auto 0;
 }
 
 main button {
-    margin: 1.3em 0 0;
+    margin-bottom: 1em;
     border: none;
     border-radius: .5em;
     padding: .5em 1em;
@@ -86,6 +93,10 @@ main button {
     font-size: 1.5em;
     font-weight: bold;
     cursor: pointer;
+}
+
+main button.secondary {
+    background-color: grey;
 }
 
 main button:disabled {

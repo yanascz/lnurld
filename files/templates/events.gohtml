@@ -38,12 +38,14 @@
         </p>
         <div>
             <p>
-                <label for="date">Date</label>
-                <input id="date" type="date" required/>
+                <label for="startDate">Start</label>
+                <input id="startDate" type="date" required/>
+                <input id="startTime" type="time" required/>
             </p>
             <p>
-                <label for="time">Time</label>
-                <input id="time" type="time" required/>
+                <label for="endDate">End</label>
+                <input id="endDate" type="date" required/>
+                <input id="endTime" type="time" required/>
             </p>
         </div>
         <p>
@@ -68,8 +70,10 @@
 <script>
     const dialogElement = element('dialog');
     const titleElement = element('title')
-    const dateElement = element('date')
-    const timeElement = element('time')
+    const startDateElement = element('startDate')
+    const startTimeElement = element('startTime')
+    const endDateElement = element('endDate')
+    const endTimeElement = element('endTime')
     const locationNameElement = element('locationName')
     const locationUrlElement = element('locationUrl')
     const capacityElement = element('capacity')
@@ -77,8 +81,10 @@
 
     function openCreateDialog() {
         titleElement.value = ''
-        dateElement.value = ''
-        timeElement.value = ''
+        startDateElement.value = ''
+        startTimeElement.value = ''
+        endDateElement.value = ''
+        endTimeElement.value = ''
         locationNameElement.value = ''
         locationUrlElement.value = ''
         capacityElement.value = ''
@@ -92,9 +98,13 @@
         fetch(eventUri)
             .then(response => response.json())
             .then(body => {
+                const start = new Date(body.start);
+                const end = new Date(body.end);
                 titleElement.value = body.title
-                dateElement.value = toDate(body.dateTime)
-                timeElement.value = toTime(body.dateTime)
+                startDateElement.value = toLocalDate(start)
+                startTimeElement.value = toLocalTime(start)
+                endDateElement.value = toLocalDate(end)
+                endTimeElement.value = toLocalTime(end)
                 locationNameElement.value = body.location.name
                 locationUrlElement.value = body.location.url
                 capacityElement.value = body.capacity
@@ -105,9 +115,16 @@
     }
 
     function submitEvent(submitFunction, uri) {
+        let start = toIsoDateTime(startDateElement.value, startTimeElement.value);
+        let end = toIsoDateTime(endDateElement.value, endTimeElement.value);
+        if (end <= start) {
+            alert('Event ends earlier than it starts!')
+            return false
+        }
         submitFunction(uri, {
             title: titleElement.value,
-            dateTime: toDateTime(dateElement.value, timeElement.value),
+            start: start,
+            end: end,
             location: toLocation(locationNameElement.value, locationUrlElement.value),
             capacity: Number(capacityElement.value),
             description: descriptionElement.value
@@ -118,16 +135,25 @@
         dialogElement.close()
     }
 
-    function toDate(dateTime) {
-        return dateTime.substring(0, 10)
+    function toLocalDate(date) {
+        const year = toComponent(date.getFullYear(), 4);
+        const month = toComponent(date.getMonth() + 1);
+        const day = toComponent(date.getDate());
+        return `${year}-${month}-${day}`
     }
 
-    function toTime(dateTime) {
-        return dateTime.substring(11, 16)
+    function toLocalTime(date) {
+        const hours = toComponent(date.getHours());
+        const minutes = toComponent(date.getMinutes());
+        return `${hours}:${minutes}`
     }
 
-    function toDateTime(date, time, zoneOffset = '{{.TimeZoneOffset}}') {
-        return `${date}T${time}:00${zoneOffset}`
+    function toComponent(value, width = 2) {
+        return value.toString().padStart(width, '0')
+    }
+
+    function toIsoDateTime(localDate, localTime) {
+        return new Date(`${localDate}T${localTime}:00`).toISOString()
     }
 
     function toLocation(name, url) {

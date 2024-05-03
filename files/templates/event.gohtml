@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta property="og:type" content="website"/>
     <meta property="og:title" content="{{.Title}}"/>
-    <meta property="og:description" content="{{datetime .DateTime}} | {{.Location.Name}}"/>
+    <meta property="og:description" content="{{datetime .Start}} | {{.Location.Name}}"/>
 
     <link rel="stylesheet" media="all" href="/static/public.css">
     <script src="/static/util.js"></script>
@@ -16,10 +16,10 @@
 </head>
 <body>
 
-<main>
+<main class="event">
     <h1>{{.Title}}</h1>
     <ul>
-        <li class="datetime">{{datetime .DateTime}}</li>
+        <li class="datetime">{{datetime .Start}}</li>
         <li class="location">{{with .Location}}<a href="{{.Url}}">{{.Name}}</a>{{end}}</li>
         <li class="attendees">
             {{number .Attendees}} / {{number .Capacity}}
@@ -27,15 +27,14 @@
         </li>
     </ul>
     <p class="formatted">{{.Description}}</p>
-    {{if or (not .IdentityId) (and .SignUpPossible (not .AttendeeOrdinal))}}
-        <div>
-            {{if .SignUpPossible}}
-                <button onclick="signUp(this)">Sign up with Lightning</button>
-            {{else}}
-                <button onclick="logIn(this)">Log in with Lightning</button>
-            {{end}}
-        </div>
-    {{end}}
+    <div>
+        {{if and .SignUpPossible (not .AttendeeOrdinal)}}
+            <button onclick="signUp(this)">Sign up with Lightning</button>
+        {{else if not .IdentityId}}
+            <button onclick="logIn(this)">Log in with Lightning</button>
+        {{end}}
+        <button class="secondary" onclick="location.href='/events/{{.Id}}/ics'">Add to Calendar</button>
+    </div>
 </main>
 
 <footer>

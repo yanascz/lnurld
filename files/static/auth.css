@@ -244,6 +244,7 @@ dialog h2.ln {
 
 dialog div {
     display: flex;
+    gap: 0 .2em;
 }
 
 dialog div#prizes {
@@ -252,7 +253,6 @@ dialog div#prizes {
 
 dialog div span {
     align-self: center;
-    margin: 0 .2em;
 }
 
 dialog p {

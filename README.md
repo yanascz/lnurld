@@ -199,3 +199,11 @@ $ ./systemd/deploy.sh
 ```
 
 Alternatively checkout a specific branch/tag.
+
+When updating from revision `ec77e80` or earlier, run this event migration in your data directory:
+
+```shell
+$ sudo sed -e 's/"dateTime":\("[^"]*"\)/"start":\1,"end":\1/' -i events/*/data.json
+```
+
+Then you might want to update end dates of your events via the admin user interface.

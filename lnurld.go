@@ -52,21 +52,6 @@ type InvoiceStatus struct {
 	Settled bool `json:"settled"`
 }
 
-type Event struct {
-	Id          string        `json:"-"`
-	Owner       string        `json:"owner"`
-	Title       string        `json:"title" binding:"min=1,max=50"`
-	DateTime    time.Time     `json:"dateTime" binding:"required"`
-	Location    EventLocation `json:"location" binding:"required"`
-	Capacity    uint16        `json:"capacity" binding:"min=1,max=1000"`
-	Description string        `json:"description" binding:"min=1,max=500"`
-}
-
-type EventLocation struct {
-	Name string `json:"name" binding:"min=1,max=50"`
-	Url  string `json:"url" binding:"url,max=100"`
-}
-
 const (
 	payRequestTag      = "payRequest"
 	withdrawRequestTag = "withdrawRequest"
@@ -127,6 +112,7 @@ func main() {
 	lnurld.GET("/ln/withdraw", lnWithdrawConfirmHandler)
 	lnurld.GET("/ln/withdraw/:k1", lnWithdrawRequestHandler)
 	lnurld.GET("/events/:id", eventHandler)
+	lnurld.GET("/events/:id/ics", eventIcsHandler)
 	lnurld.POST("/events/:id/sign-up", eventSignUpHandler)
 	lnurld.GET("/static/*filepath", lnStaticFileHandler)
 
@@ -403,16 +389,30 @@ func eventHandler(context *gin.Context) {
 	context.HTML(http.StatusOK, "event.gohtml", gin.H{
 		"Id":              event.Id,
 		"Title":           event.Title,
-		"DateTime":        event.DateTime,
+		"Start":           event.Start,
 		"Location":        event.Location,
 		"Capacity":        event.Capacity,
 		"Description":     event.Description,
 		"Attendees":       len(attendees),
 		"AttendeeOrdinal": slices.Index(attendees, identity) + 1,
-		"SignUpPossible":  event.DateTime.After(time.Now()),
+		"SignUpPossible":  event.Start.After(time.Now()),
 		"LnAuthExpiry":    config.Authentication.RequestExpiry.Milliseconds(),
 		"IdentityId":      toIdentityId(identity),
 	})
+}
+
+func eventIcsHandler(context *gin.Context) {
+	event := getEvent(context)
+	if event == nil {
+		return
+	}
+
+	_, host := getSchemeAndHost(context)
+	icsFileName := "event-" + event.Id + ".ics"
+	icsData := iCalendarEvent(event, host)
+
+	context.Header("Content-Disposition", `attachment; filename="`+icsFileName+`"`)
+	context.Data(http.StatusOK, "text/calendar", []byte(icsData))
 }
 
 func eventSignUpHandler(context *gin.Context) {
@@ -420,7 +420,7 @@ func eventSignUpHandler(context *gin.Context) {
 	if event == nil {
 		return
 	}
-	if event.DateTime.Before(time.Now()) {
+	if event.Start.Before(time.Now()) {
 		abortWithBadRequestResponse(context, "already started")
 		return
 	}
@@ -526,12 +526,11 @@ func authEventsHandler(context *gin.Context) {
 		}
 	}
 	sort.Slice(events, func(i, j int) bool {
-		return events[i].DateTime.Before(events[j].DateTime)
+		return events[i].Start.Before(events[j].Start)
 	})
 
 	context.HTML(http.StatusOK, "events.gohtml", gin.H{
-		"Events":         events,
-		"TimeZoneOffset": time.Now().Format("-07:00"),
+		"Events": events,
 	})
 }
 

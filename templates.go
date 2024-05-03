@@ -12,6 +12,7 @@ import (
 
 func loadTemplates(engine *gin.Engine, pattern string) {
 	printer := message.NewPrinter(language.English)
+	location := time.Now().Location()
 	funcMap := template.FuncMap{
 		"number": func(number any) string {
 			return printer.Sprintf("%v", number)
@@ -26,7 +27,7 @@ func loadTemplates(engine *gin.Engine, pattern string) {
 			return date.Format("15:04")
 		},
 		"datetime": func(date time.Time) string {
-			return date.Format("02/01/2006 15:04")
+			return date.In(location).Format("02/01/2006 15:04")
 		},
 		"currency": func(currency Currency) string {
 			return strings.ToUpper(string(currency))
