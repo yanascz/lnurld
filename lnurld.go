@@ -117,6 +117,7 @@ func main() {
 	lnurld.GET("/static/*filepath", lnStaticFileHandler)
 
 	authorized := lnurld.Group("/", gin.BasicAuth(config.Credentials))
+	authorized.Use(setCacheControlHeader)
 	authorized.GET("/auth", authHomeHandler)
 	authorized.GET("/auth/accounts", authAccountsHandler)
 	authorized.GET("/auth/accounts/:name", authAccountHandler)
@@ -1069,6 +1070,10 @@ func generateQrCode(context *gin.Context, uri string, thumbnailData []byte) {
 	}
 
 	context.Data(http.StatusOK, "image/png", pngData)
+}
+
+func setCacheControlHeader(context *gin.Context) {
+	context.Header("Cache-Control", "no-store, must-revalidate")
 }
 
 func abortWithNotFoundResponse(context *gin.Context) {
