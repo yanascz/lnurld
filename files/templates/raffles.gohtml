@@ -26,6 +26,16 @@
     <div class="buttons">
         <button onclick="openCreateDialog()">Create</button>
     </div>
+    {{if .DrawnRaffles}}
+        <h2 class="drawn-raffles">Drawn Raffles</h2>
+        <ul>
+            {{range .DrawnRaffles}}
+                <li>
+                    <a href="/auth/raffles/{{.Id}}"><strong>{{.Title}}</strong></a>
+                </li>
+            {{end}}
+        </ul>
+    {{end}}
 </main>
 
 <dialog id="dialog">

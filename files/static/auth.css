@@ -24,6 +24,7 @@ h1.accounts::before {
 }
 
 h2 {
+    display: flex;
     margin-top: 1em;
     font-size: 2.4em;
 }
@@ -31,6 +32,11 @@ h2 {
 h2.invoices::before {
     margin-right: .3em;
     content: '📒';
+}
+
+h2.drawn-raffles::before {
+    margin-right: .3em;
+    content: '🏆';
 }
 
 h2#prize {
@@ -182,8 +188,9 @@ main {
 }
 
 main ul {
-    list-style-type: disc;
+    max-width: 300px;
     padding-left: 1em;
+    list-style-type: disc;
 }
 
 main ul button {
@@ -207,6 +214,10 @@ main.events h1::before {
 main.raffles h1::before {
     margin-right: .1em;
     content: '⚡';
+}
+
+main.raffles ul {
+    align-self: stretch;
 }
 
 main.raffle h1::before {

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/hex"
 	"github.com/mr-tron/base58"
+	"sort"
 )
 
 type Raffle struct {
@@ -37,4 +38,11 @@ func raffleTicketNumber(paymentHash string) string {
 		return base58.Encode(bytes)[0:5]
 	}
 	return ""
+}
+
+func sortRaffles(raffles []*Raffle) []*Raffle {
+	sort.Slice(raffles, func(i, j int) bool {
+		return raffles[i].Title < raffles[j].Title
+	})
+	return raffles
 }

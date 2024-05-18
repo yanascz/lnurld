@@ -537,17 +537,20 @@ func authEventsHandler(context *gin.Context) {
 
 func authRafflesHandler(context *gin.Context) {
 	var raffles []*Raffle
+	var drawnRaffles []*Raffle
 	for _, raffle := range repository.getRaffles() {
 		if isUserAuthorized(context, raffle.Owner) {
-			raffles = append(raffles, raffle)
+			if repository.isRaffleDrawAvailable(raffle) {
+				drawnRaffles = append(drawnRaffles, raffle)
+			} else {
+				raffles = append(raffles, raffle)
+			}
 		}
 	}
-	sort.Slice(raffles, func(i, j int) bool {
-		return raffles[i].Title < raffles[j].Title
-	})
 
 	context.HTML(http.StatusOK, "raffles.gohtml", gin.H{
-		"Raffles":        raffles,
+		"Raffles":        sortRaffles(raffles),
+		"DrawnRaffles":   sortRaffles(drawnRaffles),
 		"FiatCurrencies": supportedCurrencies(),
 		"ExchangeRates":  ratesService.getExchangeRates(),
 	})
@@ -770,6 +773,10 @@ func apiRaffleReadHandler(context *gin.Context) {
 func apiRaffleUpdateHandler(context *gin.Context) {
 	raffle := getAccessibleRaffle(context)
 	if raffle == nil {
+		return
+	}
+	if repository.isRaffleDrawAvailable(raffle) {
+		abortWithBadRequestResponse(context, "not updatable")
 		return
 	}
 

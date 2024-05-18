@@ -34,7 +34,7 @@
     {{end}}
 </div>
 
-{{if gt (len .Invoices) 0}}
+{{if .Invoices}}
     <h2 class="invoices">Invoices</h2>
     <ul class="invoices">
         {{$previousDate := ""}}
