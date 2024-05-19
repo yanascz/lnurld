@@ -26,6 +26,16 @@
     <div class="buttons">
         <button onclick="openCreateDialog()">Create</button>
     </div>
+    {{if .PastEvents}}
+        <h2 class="past-events">Past Events</h2>
+        <ul>
+            {{range .PastEvents}}
+                <li>
+                    <a href="/events/{{.Id}}"><strong>{{.Title}}</strong></a>
+                </li>
+            {{end}}
+        </ul>
+    {{end}}
 </main>
 
 <dialog id="dialog">

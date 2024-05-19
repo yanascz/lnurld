@@ -521,17 +521,20 @@ func authAccountTerminalHandler(context *gin.Context) {
 
 func authEventsHandler(context *gin.Context) {
 	var events []*Event
+	var pastEvents []*Event
 	for _, event := range repository.getEvents() {
 		if isUserAuthorized(context, event.Owner) {
-			events = append(events, event)
+			if event.isInPast() {
+				pastEvents = append(pastEvents, event)
+			} else {
+				events = append(events, event)
+			}
 		}
 	}
-	sort.Slice(events, func(i, j int) bool {
-		return events[i].Start.Before(events[j].Start)
-	})
 
 	context.HTML(http.StatusOK, "events.gohtml", gin.H{
-		"Events": events,
+		"Events":     sortEvents(events),
+		"PastEvents": sortPastEvents(pastEvents),
 	})
 }
 
@@ -724,6 +727,10 @@ func apiEventReadHandler(context *gin.Context) {
 func apiEventUpdateHandler(context *gin.Context) {
 	event := getAccessibleEvent(context)
 	if event == nil {
+		return
+	}
+	if event.isInPast() {
+		abortWithBadRequestResponse(context, "not updatable")
 		return
 	}
 

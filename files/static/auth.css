@@ -34,6 +34,11 @@ h2.invoices::before {
     content: '📒';
 }
 
+h2.past-events::before {
+    margin-right: .3em;
+    content: '⌛️';
+}
+
 h2.drawn-raffles::before {
     margin-right: .3em;
     content: '🏆';

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"sort"
 	"strings"
 	"time"
 )
@@ -19,6 +20,24 @@ type Event struct {
 type EventLocation struct {
 	Name string `json:"name" binding:"min=1,max=50"`
 	Url  string `json:"url" binding:"url,max=100"`
+}
+
+func (event *Event) isInPast() bool {
+	return event.End.Before(time.Now())
+}
+
+func sortEvents(events []*Event) []*Event {
+	sort.Slice(events, func(i, j int) bool {
+		return events[i].Start.Before(events[j].Start)
+	})
+	return events
+}
+
+func sortPastEvents(events []*Event) []*Event {
+	sort.Slice(events, func(i, j int) bool {
+		return events[i].End.After(events[j].End)
+	})
+	return events
 }
 
 func iCalendarEvent(event *Event, host string) string {
