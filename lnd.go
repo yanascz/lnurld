@@ -18,6 +18,7 @@ type LndConfig struct {
 	Address      string
 	CertFile     string `yaml:"cert-file"`
 	MacaroonFile string `yaml:"macaroon-file"`
+	CacheSize    uint16 `yaml:"cache-size"`
 }
 
 type Invoice struct {
@@ -76,7 +77,7 @@ func newLndClient(config LndConfig) *LndClient {
 		log.Fatal(err)
 	}
 
-	invoices, err := lru.New[string, Invoice](1024)
+	invoices, err := lru.New[string, Invoice](int(config.CacheSize))
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -82,6 +82,7 @@ func loadConfig(configFileName string) *Config {
 			Address:      "127.0.0.1:10009",
 			CertFile:     "/var/lib/lnd/tls.cert",
 			MacaroonFile: "/var/lib/lnd/data/chain/bitcoin/mainnet/invoices.macaroon",
+			CacheSize:    1024,
 		},
 		Authentication: AuthenticationConfig{
 			RequestExpiry: 90 * time.Second,

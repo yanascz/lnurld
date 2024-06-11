@@ -78,6 +78,7 @@ Available configuration properties:
 | `lnd.address`                   | Host and port of gRPC API interface.                                      | `127.0.0.1:10009`                                           |
 | `lnd.cert-file`                 | Path to TLS certificate.                                                  | `/var/lib/lnd/tls.cert`                                     |
 | `lnd.macaroon-file`             | Path to macaroon file to use.                                             | `/var/lib/lnd/data/chain/bitcoin/mainnet/invoices.macaroon` |
+| `lnd.cache-size`                | Size of cache for LND invoices.                                           | `1024`                                                      |
 | `credentials`                   | Map of users authorized to access the admin user interface.               | _none_                                                      |
 | `administrators`                | List of admin users with access to all accounts, events and raffles.      | _none,                                                      |
 | `access-control`                | Map of accounts accessible by non-admin users.                            | _none,                                                      |
