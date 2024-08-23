@@ -57,6 +57,7 @@ accounts:
     description: Sats for Satoshi
     is-also-email: true
     comment-allowed: 210
+    success-message: Thanks for support!
   cafe:
     currency: usd
     min-sendable: 1
@@ -91,6 +92,7 @@ Available configuration properties:
 | `accounts.*.thumbnail`          | Name of thumbnail file to use. _(optional)_                               | _none_                                                      |
 | `accounts.*.is-also-email`      | Does the account match an email address?                                  | `false`                                                     |
 | `accounts.*.comment-allowed`    | Maximum length of invoice comment.                                        | `0`                                                         |
+| `accounts.*.success-message`    | Success message for payments; up to 144 characters. _(optional)_          | _none_                                                      |
 | `accounts.*.archivable`         | May the account storage file be archived on demand?                       | `false`                                                     |
 | `authentication`                | Configuration of LN authentication.                                       | _see below_                                                 |
 | `authentication.request-expiry` | Expiry of authentication requests in specified units.                     | `90s`                                                       |

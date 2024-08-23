@@ -232,9 +232,14 @@ func lnPayHandler(context *gin.Context) {
 		return
 	}
 
+	var successAction *lnurl.SuccessAction
+	if strings.TrimSpace(account.SuccessMessage) != "" {
+		successAction = lnurl.Action(account.SuccessMessage, "")
+	}
+
 	context.JSON(http.StatusOK, lnurl.LNURLPayValues{
 		PR:            invoice.paymentRequest,
-		SuccessAction: lnurl.Action("Thanks, payment received!", ""),
+		SuccessAction: successAction,
 		Routes:        []string{},
 	})
 }

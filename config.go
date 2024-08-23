@@ -51,6 +51,7 @@ type Account struct {
 	Thumbnail      string
 	IsAlsoEmail    bool   `yaml:"is-also-email"`
 	CommentAllowed uint16 `yaml:"comment-allowed"`
+	SuccessMessage string `yaml:"success-message"`
 	Archivable     bool
 }
 
@@ -110,9 +111,7 @@ func loadConfig(configFileName string) *Config {
 	validateAdministrators(&config)
 	validateAccessControl(&config)
 	validateThumbnails(&config)
-	for accountKey, account := range config.Accounts {
-		validateAccount(accountKey, &account)
-	}
+	validateAccounts(&config)
 
 	return &config
 }
@@ -146,21 +145,26 @@ func validateThumbnails(config *Config) {
 	}
 }
 
-func validateAccount(accountKey string, account *Account) {
-	if !slices.Contains(supportedCurrencies(), account.getCurrency()) {
-		logInvalidAccountValue(accountKey, "currency", account.Currency)
-	}
-	if account.MaxSendable < 1 {
-		logInvalidAccountValue(accountKey, "max-sendable", account.MaxSendable)
-	}
-	if account.MinSendable < 1 || account.MinSendable > account.MaxSendable {
-		logInvalidAccountValue(accountKey, "min-sendable", account.MinSendable)
-	}
-	if strings.TrimSpace(account.Description) == "" {
-		logInvalidAccountValue(accountKey, "description", account.Description)
-	}
-	if account.CommentAllowed > 2000 {
-		logInvalidAccountValue(accountKey, "comment-allowed", account.CommentAllowed)
+func validateAccounts(config *Config) {
+	for accountKey, account := range config.Accounts {
+		if !slices.Contains(supportedCurrencies(), account.getCurrency()) {
+			logInvalidAccountValue(accountKey, "currency", account.Currency)
+		}
+		if account.MaxSendable < 1 {
+			logInvalidAccountValue(accountKey, "max-sendable", account.MaxSendable)
+		}
+		if account.MinSendable < 1 || account.MinSendable > account.MaxSendable {
+			logInvalidAccountValue(accountKey, "min-sendable", account.MinSendable)
+		}
+		if strings.TrimSpace(account.Description) == "" {
+			logInvalidAccountValue(accountKey, "description", account.Description)
+		}
+		if account.CommentAllowed > 2000 {
+			logInvalidAccountValue(accountKey, "comment-allowed", account.CommentAllowed)
+		}
+		if len(account.SuccessMessage) > 144 {
+			logInvalidAccountValue(accountKey, "success-message", account.SuccessMessage)
+		}
 	}
 }
 
