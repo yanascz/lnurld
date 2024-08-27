@@ -10,6 +10,7 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
+	"github.com/nbd-wtf/go-nostr"
 	"log"
 	"math/rand"
 	"net/http"
@@ -53,9 +54,7 @@ type InvoiceStatus struct {
 }
 
 const (
-	payRequestTag      = "payRequest"
-	withdrawRequestTag = "withdrawRequest"
-	qrCodeSize         = 1280
+	qrCodeSize = 1280
 )
 
 var (
@@ -73,6 +72,7 @@ var (
 	lndClient             *LndClient
 	authenticationService *AuthenticationService
 	withdrawalService     *WithdrawalService
+	nostrService          *NostrService
 	ratesService          *RatesService
 )
 
@@ -88,6 +88,7 @@ func main() {
 	config = loadConfig(configFileName)
 	repository = newRepository(config.ThumbnailDir, config.DataDir)
 	lndClient = newLndClient(config.Lnd)
+	nostrService = newNostrService(config.DataDir, config.Nostr)
 	authenticationService = newAuthenticationService(config.Authentication)
 	withdrawalService = newWithdrawalService(config.Withdrawal)
 	ratesService = newRatesService(21 * time.Second)
@@ -152,7 +153,7 @@ func lnAuthInitHandler(context *gin.Context) {
 }
 
 func lnAuthVerifyHandler(context *gin.Context) {
-	k1, sig, key := context.Query("k1"), context.Query("sig"), context.Query("key")
+	k1, sig, key := context.Query(k1Param), context.Query(sigParam), context.Query(keyParam)
 	if err := authenticationService.verify(k1, sig, key); err != nil {
 		context.Error(fmt.Errorf("authentication failed: %w", err))
 		abortWithBadRequestResponse(context, "invalid request")
@@ -197,14 +198,21 @@ func lnPayHandler(context *gin.Context) {
 		lnurlMetadata.Image.Ext = thumbnail.ext
 	}
 
-	amount := context.Query("amount")
+	amount := context.Query(amountParam)
 	if amount == "" {
-		context.JSON(http.StatusOK, lnurl.LNURLPayParams{
+		var nostrPubkey string
+		if account.AllowsNostr {
+			nostrPubkey = nostrService.getPublicKey()
+		}
+
+		context.JSON(http.StatusOK, LnUrlPayParams{
 			Callback:        scheme + "://" + host + context.Request.RequestURI,
 			MaxSendable:     account.getMaxSendable(),
 			MinSendable:     account.getMinSendable(),
 			EncodedMetadata: lnurlMetadata.Encode(),
 			CommentAllowed:  int64(account.CommentAllowed),
+			AllowsNostr:     account.AllowsNostr,
+			NostrPubkey:     nostrPubkey,
 			Tag:             payRequestTag,
 		})
 		return
@@ -216,14 +224,34 @@ func lnPayHandler(context *gin.Context) {
 		return
 	}
 
-	comment := context.Query("comment")
-	if commentLength := len(comment); commentLength > int(account.CommentAllowed) {
+	comment := context.Query(commentParam)
+	if len(comment) > int(account.CommentAllowed) {
 		abortWithBadRequestResponse(context, "invalid comment length")
 		return
 	}
 
-	metadataHash := sha256.Sum256([]byte(lnurlMetadata.Encode()))
-	invoice := createInvoice(context, msats, comment, metadataHash[:])
+	var zapRequest *nostr.Event
+	if zapRequestJson := context.Query(nostrParam); zapRequestJson != "" {
+		if !account.AllowsNostr {
+			abortWithBadRequestResponse(context, "zap requests not allowed")
+			return
+		}
+		zapRequest, err = parseZapRequest(zapRequestJson, amount)
+		if err != nil {
+			abortWithBadRequestResponse(context, "invalid zap request")
+			return
+		}
+	}
+
+	var descriptionBytes []byte
+	if zapRequest != nil {
+		descriptionBytes = zapRequest.Serialize()
+	} else {
+		descriptionBytes = []byte(lnurlMetadata.Encode())
+	}
+
+	descriptionHash := sha256.Sum256(descriptionBytes)
+	invoice := createInvoice(context, msats, comment, descriptionHash[:])
 	if invoice == nil {
 		return
 	}
@@ -234,7 +262,7 @@ func lnPayHandler(context *gin.Context) {
 
 	var successAction *lnurl.SuccessAction
 	if strings.TrimSpace(account.SuccessMessage) != "" {
-		successAction = lnurl.Action(account.SuccessMessage, "")
+		successAction = successMessage(account.SuccessMessage)
 	}
 
 	context.JSON(http.StatusOK, lnurl.LNURLPayValues{
@@ -242,6 +270,10 @@ func lnPayHandler(context *gin.Context) {
 		SuccessAction: successAction,
 		Routes:        []string{},
 	})
+
+	if zapRequest != nil {
+		go awaitSettlement(zapRequest, invoice.getPaymentHash())
+	}
 }
 
 func lnPayQrCodeHandler(context *gin.Context) {
@@ -275,7 +307,7 @@ func lnRaffleTicketHandler(context *gin.Context) {
 		lnurlMetadata.Image.Ext = thumbnail.ext
 	}
 
-	amount := context.Query("amount")
+	amount := context.Query(amountParam)
 	if amount == "" {
 		scheme, host := getSchemeAndHost(context)
 		context.JSON(http.StatusOK, lnurl.LNURLPayParams{
@@ -294,13 +326,13 @@ func lnRaffleTicketHandler(context *gin.Context) {
 		return
 	}
 
-	if len(context.Query("comment")) > 0 {
+	if len(context.Query(commentParam)) > 0 {
 		abortWithBadRequestResponse(context, "comment not supported")
 		return
 	}
 
-	metadataHash := sha256.Sum256([]byte(lnurlMetadata.Encode()))
-	invoice := createInvoice(context, msats, "", metadataHash[:])
+	descriptionHash := sha256.Sum256([]byte(lnurlMetadata.Encode()))
+	invoice := createInvoice(context, msats, "", descriptionHash[:])
 	if invoice == nil {
 		return
 	}
@@ -311,7 +343,7 @@ func lnRaffleTicketHandler(context *gin.Context) {
 
 	context.JSON(http.StatusOK, lnurl.LNURLPayValues{
 		PR:            invoice.paymentRequest,
-		SuccessAction: lnurl.Action("Ticket "+raffleTicketNumber(invoice.getPaymentHash()), ""),
+		SuccessAction: successMessage("Ticket " + raffleTicketNumber(invoice.getPaymentHash())),
 		Routes:        []string{},
 	})
 }
@@ -335,14 +367,14 @@ func lnRaffleQrCodeHandler(context *gin.Context) {
 }
 
 func lnWithdrawConfirmHandler(context *gin.Context) {
-	k1 := context.Query("k1")
+	k1 := context.Query(k1Param)
 	withdrawalRequest := withdrawalService.get(k1)
 	if withdrawalRequest == nil {
 		abortWithNotFoundResponse(context)
 		return
 	}
 
-	pr := context.Query("pr")
+	pr := context.Query(prParam)
 	paymentHash, amount := lndClient.decodePaymentRequest(pr)
 	if paymentHash == "" || amount != withdrawalRequest.amount {
 		abortWithBadRequestResponse(context, "invalid payment request")
@@ -1044,6 +1076,17 @@ func createInvoice(context *gin.Context, msats int64, comment string, descriptio
 	}
 
 	return invoice
+}
+
+func awaitSettlement(zapRequest *nostr.Event, paymentHash string) {
+	for i := 0; i < invoiceExpiryInSeconds; i++ {
+		invoice, _ := lndClient.getInvoice(paymentHash)
+		if invoice != nil && invoice.isSettled() {
+			go nostrService.publishZapReceipt(zapRequest, invoice)
+			return
+		}
+		time.Sleep(1 * time.Second)
+	}
 }
 
 func generateLnUrl(context *gin.Context, k1 string, uri string) {

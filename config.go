@@ -16,6 +16,7 @@ type Config struct {
 	ThumbnailDir   string `yaml:"thumbnail-dir"`
 	DataDir        string `yaml:"data-dir"`
 	Lnd            LndConfig
+	Nostr          NostrConfig
 	Credentials    gin.Accounts
 	Administrators []string
 	AccessControl  map[string][]string `yaml:"access-control"`
@@ -51,6 +52,7 @@ type Account struct {
 	Thumbnail      string
 	IsAlsoEmail    bool   `yaml:"is-also-email"`
 	CommentAllowed uint16 `yaml:"comment-allowed"`
+	AllowsNostr    bool   `yaml:"allows-nostr"`
 	SuccessMessage string `yaml:"success-message"`
 	Archivable     bool
 }

@@ -14,6 +14,8 @@ import (
 	"time"
 )
 
+const invoiceExpiryInSeconds = 300
+
 type LndConfig struct {
 	Address      string
 	CertFile     string `yaml:"cert-file"`
@@ -94,7 +96,7 @@ func (client *LndClient) createInvoice(msats int64, memo string, descriptionHash
 		Memo:            memo,
 		DescriptionHash: descriptionHash,
 		ValueMsat:       msats,
-		Expiry:          300,
+		Expiry:          invoiceExpiryInSeconds,
 	}
 
 	newLnInvoice, err := client.lnClient.AddInvoice(client.ctx, &lnInvoice)

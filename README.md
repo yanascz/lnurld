@@ -14,6 +14,7 @@ You may test it by sending some sats to ⚡lnurld@yanas.cz or by scanning the fo
 * [LUD-09: `successAction` field for `payRequest`](https://github.com/fiatjaf/lnurl-rfc/blob/luds/09.md)
 * [LUD-12: Comments in `payRequest`](https://github.com/fiatjaf/lnurl-rfc/blob/luds/12.md)
 * [LUD-16: Paying to static internet identifiers](https://github.com/fiatjaf/lnurl-rfc/blob/luds/16.md)
+* [NIP-57: Lightning Zaps](https://github.com/nostr-protocol/nips/blob/master/57.md)
 * Multiple customizable accounts
 * Lightning Network terminal
 * Lightning Network raffle
@@ -80,6 +81,8 @@ Available configuration properties:
 | `lnd.cert-file`                 | Path to TLS certificate.                                                  | `/var/lib/lnd/tls.cert`                                     |
 | `lnd.macaroon-file`             | Path to macaroon file to use.                                             | `/var/lib/lnd/data/chain/bitcoin/mainnet/invoices.macaroon` |
 | `lnd.cache-size`                | Size of cache for LND invoices.                                           | `1024`                                                      |
+| `nostr`                         | Configuration of built-in Nostr service.                                  | _see below_                                                 |
+| `nostr.relays`                  | List of default relays used when publishing zap receipts.                 | _none_                                                      |
 | `credentials`                   | Map of users authorized to access the admin user interface.               | _none_                                                      |
 | `administrators`                | List of admin users with access to all accounts, events and raffles.      | _none,                                                      |
 | `access-control`                | Map of accounts accessible by non-admin users.                            | _none,                                                      |
@@ -92,6 +95,7 @@ Available configuration properties:
 | `accounts.*.thumbnail`          | Name of thumbnail file to use. _(optional)_                               | _none_                                                      |
 | `accounts.*.is-also-email`      | Does the account match an email address?                                  | `false`                                                     |
 | `accounts.*.comment-allowed`    | Maximum length of invoice comment.                                        | `0`                                                         |
+| `accounts.*.allows-nostr`       | Does the account support lightning zaps?                                  | `false`                                                     |
 | `accounts.*.success-message`    | Success message for payments; up to 144 characters. _(optional)_          | _none_                                                      |
 | `accounts.*.archivable`         | May the account storage file be archived on demand?                       | `false`                                                     |
 | `authentication`                | Configuration of LN authentication.                                       | _see below_                                                 |
