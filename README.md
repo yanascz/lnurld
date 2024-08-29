@@ -133,7 +133,7 @@ Don’t forget to stop the server before setting up systemd service!
 
 ```shell
 $ sudo cp lnurld /usr/local/bin
-$ sudo cp systemd/lnurld.service /lib/systemd/system
+$ sudo cp systemd/lnurld.service /etc/systemd/system
 $ sudo systemctl start lnurld.service
 $ sudo systemctl enable lnurld.service
 ```
