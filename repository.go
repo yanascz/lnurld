@@ -213,6 +213,22 @@ func (repository *Repository) archiveRaffleFiles(raffle *Raffle) error {
 	return nil
 }
 
+func (repository *Repository) isRaffleLocked(raffle *Raffle) bool {
+	_, err := os.Stat(raffleLockFileName(repository, raffle.Id))
+	return err == nil
+}
+
+func (repository *Repository) lockRaffle(raffle *Raffle) error {
+	fileName := raffleLockFileName(repository, raffle.Id)
+	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	return nil
+}
+
 func (repository *Repository) createWithdrawal(request *WithdrawalRequest, paymentHash string) error {
 	return writeValues(request.fileName, []string{paymentHash})
 }
@@ -255,6 +271,10 @@ func raffleDrawFileName(repository *Repository, raffleId string) string {
 
 func raffleWithdrawalFileName(repository *Repository, raffleId string) string {
 	return raffleDirName(repository, raffleId) + "withdrawal" + csvExtension
+}
+
+func raffleLockFileName(repository *Repository, raffleId string) string {
+	return raffleDirName(repository, raffleId) + ".lock"
 }
 
 func randomId() (string, error) {

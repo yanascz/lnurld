@@ -161,7 +161,7 @@ div.buttons {
 }
 
 div.buttons button {
-    margin-bottom: 1em;
+    margin-bottom: .6em;
     border: none;
     border-radius: .5em;
     padding: .5em 1em;

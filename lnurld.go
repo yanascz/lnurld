@@ -138,6 +138,7 @@ func main() {
 	authorized.PUT("/api/raffles/:id", apiRaffleUpdateHandler)
 	authorized.POST("/api/raffles/:id/withdraw", apiRaffleWithdrawHandler)
 	authorized.POST("/api/raffles/:id/archive", apiRaffleArchiveHandler)
+	authorized.POST("/api/raffles/:id/lock", apiRaffleLockHandler)
 
 	log.Fatal(lnurld.Run(config.Listen))
 }
@@ -605,6 +606,7 @@ func authRaffleHandler(context *gin.Context) {
 	tickets := repository.getRaffleTickets(raffle)
 	drawAvailable := repository.isRaffleDrawAvailable(raffle)
 	withdrawalFinished := repository.isRaffleWithdrawalFinished(raffle)
+	locked := repository.isRaffleLocked(raffle)
 
 	var ticketsPaid int
 	var totalSatsReceived int64
@@ -627,10 +629,11 @@ func authRaffleHandler(context *gin.Context) {
 		"TotalSatsReceived":  totalSatsReceived,
 		"TotalFiatReceived":  ratesService.satsToFiat(raffle.FiatCurrency, totalSatsReceived),
 		"DrawAvailable":      drawAvailable,
-		"Withdrawable":       drawAvailable && !withdrawalFinished,
+		"Withdrawable":       drawAvailable && !withdrawalFinished && !locked,
 		"WithdrawalFinished": withdrawalFinished,
 		"WithdrawalExpiry":   config.Withdrawal.RequestExpiry.Milliseconds(),
-		"Archivable":         drawAvailable && isAdministrator(context),
+		"Archivable":         drawAvailable && !locked && isAdministrator(context),
+		"Lockable":           drawAvailable && !withdrawalFinished && !locked && isAdministrator(context),
 	})
 }
 
@@ -846,7 +849,7 @@ func apiRaffleWithdrawHandler(context *gin.Context) {
 	if raffle == nil {
 		return
 	}
-	if repository.isRaffleWithdrawalFinished(raffle) {
+	if repository.isRaffleWithdrawalFinished(raffle) || repository.isRaffleLocked(raffle) {
 		abortWithBadRequestResponse(context, "not withdrawable")
 		return
 	}
@@ -877,10 +880,38 @@ func apiRaffleArchiveHandler(context *gin.Context) {
 	if raffle == nil {
 		return
 	}
+	if !repository.isRaffleDrawAvailable(raffle) {
+		abortWithBadRequestResponse(context, "not archivable")
+		return
+	}
 
 	err := repository.archiveRaffleFiles(raffle)
 	if err != nil {
 		abortWithInternalServerErrorResponse(context, fmt.Errorf("archiving raffle files: %w", err))
+		return
+	}
+
+	context.Status(http.StatusNoContent)
+}
+
+func apiRaffleLockHandler(context *gin.Context) {
+	if !isAdministrator(context) {
+		abortWithNotFoundResponse(context)
+		return
+	}
+
+	raffle := getAccessibleRaffle(context)
+	if raffle == nil {
+		return
+	}
+	if !repository.isRaffleDrawAvailable(raffle) || repository.isRaffleWithdrawalFinished(raffle) {
+		abortWithBadRequestResponse(context, "not lockable")
+		return
+	}
+
+	err := repository.lockRaffle(raffle)
+	if err != nil {
+		abortWithInternalServerErrorResponse(context, fmt.Errorf("locking raffle: %w", err))
 		return
 	}
 

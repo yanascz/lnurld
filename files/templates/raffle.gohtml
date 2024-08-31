@@ -35,6 +35,9 @@
         {{if .Archivable}}
             <button onclick="archive()">Archive</button>
         {{end}}
+        {{if .Lockable}}
+            <button onclick="lock()">Lock</button>
+        {{end}}
     </div>
 </main>
 
@@ -102,6 +105,14 @@
             return false
         }
         post('/api/raffles/{{.Id}}/archive')
+            .then(() => document.location.reload())
+    }
+
+    function lock() {
+        if (!confirm('Really lock the raffle?')) {
+            return false
+        }
+        post('/api/raffles/{{.Id}}/lock')
             .then(() => document.location.reload())
     }
 </script>
