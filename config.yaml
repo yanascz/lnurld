@@ -1,0 +1,88 @@
+# Host and port to listen on.
+listen: 127.0.0.1:8088
+
+# Directory with PNG/JPEG thumbnails; 256×256 pixels recommended.
+thumbnail-dir: /etc/lnurld/thumbnails
+
+# Directory where payment hashes and other data will be stored.
+data-dir: /var/lib/lnurld
+
+# Configuration of your LND node.
+lnd:
+  # Host and port of gRPC API interface.
+  address: 127.0.0.1:10009
+  # Path to TLS certificate.
+  cert-file: /var/lib/lnd/tls.cert
+  # Path to macaroon file to use.
+  macaroon-file: /var/lib/lnd/data/chain/bitcoin/mainnet/invoices.macaroon
+  # Size of cache for LND invoices.
+  cache-size: 1024
+
+# Configuration of built-in Nostr service.
+nostr:
+  # List of default relays used when publishing zap receipts.
+  relays:
+    - wss://eden.nostr.land
+    - wss://nos.lol
+    - wss://nostr.bitcoiner.social
+    - wss://nostr.einundzwanzig.space
+    - wss://purplepag.es
+    - wss://relay.snort.social
+
+# !!! MODIFY BEFORE PRODUCTION USE !!!
+# Map of users authorized to access the admin user interface.
+credentials:
+  satoshi: 4dm!nS3cr3t
+  barista: S3cr3t
+
+# List of admin users with access to all accounts, events and raffles.
+administrators: [satoshi]
+
+# Map of accounts accessible by non-admin users.
+access-control:
+  barista: [cafe]
+
+# Map of raffle thumbnail files per user.
+thumbnails:
+  barista: cafe.png
+
+# !!! MODIFY BEFORE PRODUCTION USE !!!
+# Map of available accounts.
+accounts:
+  satoshi:
+    # Fiat currency; cad, chf, czk, eur, gbp, usd supported.
+    currency: usd # optional; default eur
+    # Minimum sendable amount in sats.
+    min-sendable: 1
+    # Maximum sendable amount in sats.
+    max-sendable: 1_000_000
+    # Description of the account.
+    description: Sats for Satoshi
+    # Name of thumbnail file to use.
+    thumbnail: satoshi.png # optional
+    # Does the account match an email address?
+    is-also-email: true # optional; default false
+    # Maximum length of invoice comments.
+    comment-allowed: 210 # optional; default 0
+    # Does the account support lightning zaps?
+    allows-nostr: true # optional; default false
+    # Success message for payments; up to 144 characters.
+    success-message: Thanks for support! # optional
+    # May the account storage file be archived on demand?
+    archivable: false # optional; default false
+  cafe:
+    min-sendable: 1
+    max-sendable: 1_000_000
+    description: Bitcoin Café
+
+# Configuration of LN authentication.
+authentication:
+  # Expiry of authentication requests.
+  request-expiry: 90s # min 60s; max 600s
+
+# Configuration of LN withdrawals.
+withdrawal:
+  # Withdrawal fee in percent to cover operational costs.
+  fee-percent: 0 # min 0; max 10
+  # Expiry of withdrawal requests.
+  request-expiry: 90s # min 60s; max 600s

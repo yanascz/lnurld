@@ -16,8 +16,8 @@ const (
 
 type LnUrlPayParams struct {
 	Callback        string `json:"callback"`
-	MaxSendable     int64  `json:"maxSendable"`
 	MinSendable     int64  `json:"minSendable"`
+	MaxSendable     int64  `json:"maxSendable"`
 	EncodedMetadata string `json:"metadata"`
 	CommentAllowed  int64  `json:"commentAllowed"`
 	AllowsNostr     bool   `json:"allowsNostr"`

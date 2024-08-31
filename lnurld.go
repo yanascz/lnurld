@@ -207,8 +207,8 @@ func lnPayHandler(context *gin.Context) {
 
 		context.JSON(http.StatusOK, LnUrlPayParams{
 			Callback:        scheme + "://" + host + context.Request.RequestURI,
-			MaxSendable:     account.getMaxSendable(),
 			MinSendable:     account.getMinSendable(),
+			MaxSendable:     account.getMaxSendable(),
 			EncodedMetadata: lnurlMetadata.Encode(),
 			CommentAllowed:  int64(account.CommentAllowed),
 			AllowsNostr:     account.AllowsNostr,
@@ -312,8 +312,8 @@ func lnRaffleTicketHandler(context *gin.Context) {
 		scheme, host := getSchemeAndHost(context)
 		context.JSON(http.StatusOK, lnurl.LNURLPayParams{
 			Callback:        scheme + "://" + host + context.Request.RequestURI,
-			MaxSendable:     ticketPrice,
 			MinSendable:     ticketPrice,
+			MaxSendable:     ticketPrice,
 			EncodedMetadata: lnurlMetadata.Encode(),
 			Tag:             payRequestTag,
 		})

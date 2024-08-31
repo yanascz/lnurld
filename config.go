@@ -46,8 +46,8 @@ func (config *Config) getCookieKey() []byte {
 
 type Account struct {
 	Currency       Currency `yaml:"currency"`
-	MaxSendable    uint32   `yaml:"max-sendable"`
 	MinSendable    uint32   `yaml:"min-sendable"`
+	MaxSendable    uint32   `yaml:"max-sendable"`
 	Description    string
 	Thumbnail      string
 	IsAlsoEmail    bool   `yaml:"is-also-email"`

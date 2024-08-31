@@ -38,73 +38,13 @@ $ go build
 
 ```shell
 $ sudo mkdir /etc/lnurld
-$ sudo chown bitcoin:bitcoin /etc/lnurld
-$ sudo -u bitcoin vim /etc/lnurld/config.yaml
+$ sudo cp config.yaml /etc/lnurld
+$ sudo sed -i s/S3cr3t/$(openssl rand -base64 12 | tr / -)/ /etc/lnurld/config.yaml
 ```
 
-Example configuration with one admin, one user with restricted access and two accounts:
+**Make sure to review the config file before running `lnurld` in production!** 
 
-```yaml
-credentials:
-  satoshi: 4dm!nS3cr3t
-  barista: S3cr3t
-administrators: [satoshi]
-access-control:
-  barista: [cafe]
-accounts:
-  satoshi:
-    min-sendable: 1
-    max-sendable: 1_000_000
-    description: Sats for Satoshi
-    is-also-email: true
-    comment-allowed: 210
-    success-message: Thanks for support!
-  cafe:
-    currency: usd
-    min-sendable: 1
-    max-sendable: 1_000_000
-    description: Bitcoin Café 
-    thumbnail: cafe.png
-```
-
-(Create image `cafe.png` in `/etc/lnurld/thumbnails` if you want it served by `lnurld`.)
-
-Available configuration properties:
-
-| Property                        | Description                                                               | Default value                                               |
-|:--------------------------------|:--------------------------------------------------------------------------|:------------------------------------------------------------|
-| `listen`                        | Host and port to listen on.                                               | `127.0.0.1:8088`                                            |
-| `thumbnail-dir`                 | Directory with PNG/JPEG thumbnails; 256×256 pixels recommended.           | `/etc/lnurld/thumbnails`                                    |
-| `data-dir`                      | Directory where payment hashes and other data will be stored.             | `/var/lib/lnurld`                                           |
-| `lnd`                           | Configuration of your LND node.                                           | _see below_                                                 |
-| `lnd.address`                   | Host and port of gRPC API interface.                                      | `127.0.0.1:10009`                                           |
-| `lnd.cert-file`                 | Path to TLS certificate.                                                  | `/var/lib/lnd/tls.cert`                                     |
-| `lnd.macaroon-file`             | Path to macaroon file to use.                                             | `/var/lib/lnd/data/chain/bitcoin/mainnet/invoices.macaroon` |
-| `lnd.cache-size`                | Size of cache for LND invoices.                                           | `1024`                                                      |
-| `nostr`                         | Configuration of built-in Nostr service.                                  | _see below_                                                 |
-| `nostr.relays`                  | List of default relays used when publishing zap receipts.                 | _none_                                                      |
-| `credentials`                   | Map of users authorized to access the admin user interface.               | _none_                                                      |
-| `administrators`                | List of admin users with access to all accounts, events and raffles.      | _none,                                                      |
-| `access-control`                | Map of accounts accessible by non-admin users.                            | _none,                                                      |
-| `thumbnails`                    | Map of raffle thumbnail files per user.                                   | _none,                                                      |
-| `accounts`                      | Map of available accounts.                                                | _none_                                                      |
-| `accounts.*.currency`           | Terminal currency; `cad`, `chf`, `czk`, `eur`, `gbp` and `usd` supported. | `eur`                                                       |
-| `accounts.*.max-sendable`       | Maximum sendable amount in sats.                                          | _none_                                                      |
-| `accounts.*.min-sendable`       | Minimum sendable amount in sats.                                          | _none_                                                      |
-| `accounts.*.description`        | Description of the account.                                               | _none_                                                      |
-| `accounts.*.thumbnail`          | Name of thumbnail file to use. _(optional)_                               | _none_                                                      |
-| `accounts.*.is-also-email`      | Does the account match an email address?                                  | `false`                                                     |
-| `accounts.*.comment-allowed`    | Maximum length of invoice comment.                                        | `0`                                                         |
-| `accounts.*.allows-nostr`       | Does the account support lightning zaps?                                  | `false`                                                     |
-| `accounts.*.success-message`    | Success message for payments; up to 144 characters. _(optional)_          | _none_                                                      |
-| `accounts.*.archivable`         | May the account storage file be archived on demand?                       | `false`                                                     |
-| `authentication`                | Configuration of LN authentication.                                       | _see below_                                                 |
-| `authentication.request-expiry` | Expiry of authentication requests in specified units.                     | `90s`                                                       |
-| `withdrawal`                    | Configuration of LN withdrawals.                                          | _see below_                                                 |
-| `withdrawal.fee-percent`        | Withdrawal fee in percent to cover withdrawal costs.                      | `0`                                                         |
-| `withdrawal.request-expiry`     | Expiry of withdrawal requests in specified units.                         | `90s`                                                       |
-
-If a property is marked as optional or has a default value, you don’t have to specify it explicitly.
+(Create image `satoshi.png` in `/etc/lnurld/thumbnails` if you want it served by `lnurld`.)
 
 ### Create data directory
 
