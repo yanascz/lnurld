@@ -14,11 +14,12 @@ import (
 )
 
 const (
-	pathSeparator  = string(os.PathSeparator)
-	eventsDirName  = "events" + pathSeparator
-	rafflesDirName = "raffles" + pathSeparator
-	dataFileName   = "data.json"
-	csvExtension   = ".csv"
+	pathSeparator   = string(os.PathSeparator)
+	accountsDirName = "accounts" + pathSeparator
+	eventsDirName   = "events" + pathSeparator
+	rafflesDirName  = "raffles" + pathSeparator
+	dataFileName    = "data.json"
+	csvExtension    = ".csv"
 )
 
 type Thumbnail struct {
@@ -58,16 +59,16 @@ func (repository *Repository) getThumbnail(fileName string) (*Thumbnail, error) 
 	}, nil
 }
 
-func (repository *Repository) addAccountPaymentHash(accountKey string, paymentHash string) error {
-	return appendValue(accountPaymentHashesFileName(repository, accountKey), paymentHash)
+func (repository *Repository) addAccountInvoice(accountKey string, invoice *Invoice) error {
+	return appendValue(accountInvoicesFileName(repository, accountKey), invoice.getPaymentHash())
 }
 
-func (repository *Repository) getAccountPaymentHashes(accountKey string) []string {
-	return readValues(accountPaymentHashesFileName(repository, accountKey))
+func (repository *Repository) getAccountInvoices(accountKey string) []string {
+	return readValues(accountInvoicesFileName(repository, accountKey))
 }
 
-func (repository *Repository) archiveAccountPaymentHashes(accountKey string) error {
-	fileName := accountPaymentHashesFileName(repository, accountKey)
+func (repository *Repository) archiveAccountInvoices(accountKey string) error {
+	fileName := accountInvoicesFileName(repository, accountKey)
 	archiveFileName := fileName + "." + time.Now().Format("20060102150405")
 
 	return os.Rename(fileName, archiveFileName)
@@ -163,8 +164,8 @@ func (repository *Repository) updateRaffle(raffle *Raffle) error {
 	return writeObject(raffleDataFileName(repository, raffle.Id), raffle)
 }
 
-func (repository *Repository) addRaffleTicket(raffle *Raffle, paymentHash string) error {
-	return appendValue(raffleTicketsFileName(repository, raffle.Id), paymentHash)
+func (repository *Repository) addRaffleTicket(raffle *Raffle, invoice *Invoice) error {
+	return appendValue(raffleTicketsFileName(repository, raffle.Id), invoice.getPaymentHash())
 }
 
 func (repository *Repository) getRaffleTickets(raffle *Raffle) []string {
@@ -216,40 +217,44 @@ func (repository *Repository) createWithdrawal(request *WithdrawalRequest, payme
 	return writeValues(request.fileName, []string{paymentHash})
 }
 
-func accountPaymentHashesFileName(repository *Repository, accountKey string) string {
-	return repository.dataDir + accountKey + csvExtension
+func accountDirName(repository *Repository, accountKey string) string {
+	return repository.dataDir + accountsDirName + accountKey + pathSeparator
+}
+
+func accountInvoicesFileName(repository *Repository, accountKey string) string {
+	return accountDirName(repository, accountKey) + "invoices" + csvExtension
 }
 
 func eventDirName(repository *Repository, eventId string) string {
-	return repository.dataDir + eventsDirName + eventId
+	return repository.dataDir + eventsDirName + eventId + pathSeparator
 }
 
 func eventDataFileName(repository *Repository, eventId string) string {
-	return eventDirName(repository, eventId) + pathSeparator + dataFileName
+	return eventDirName(repository, eventId) + dataFileName
 }
 
 func eventAttendeesFileName(repository *Repository, eventId string) string {
-	return eventDirName(repository, eventId) + pathSeparator + "attendees" + csvExtension
+	return eventDirName(repository, eventId) + "attendees" + csvExtension
 }
 
 func raffleDirName(repository *Repository, raffleId string) string {
-	return repository.dataDir + rafflesDirName + raffleId
+	return repository.dataDir + rafflesDirName + raffleId + pathSeparator
 }
 
 func raffleDataFileName(repository *Repository, raffleId string) string {
-	return raffleDirName(repository, raffleId) + pathSeparator + dataFileName
+	return raffleDirName(repository, raffleId) + dataFileName
 }
 
 func raffleTicketsFileName(repository *Repository, raffleId string) string {
-	return raffleDirName(repository, raffleId) + pathSeparator + "tickets" + csvExtension
+	return raffleDirName(repository, raffleId) + "tickets" + csvExtension
 }
 
 func raffleDrawFileName(repository *Repository, raffleId string) string {
-	return raffleDirName(repository, raffleId) + pathSeparator + "draw" + csvExtension
+	return raffleDirName(repository, raffleId) + "draw" + csvExtension
 }
 
 func raffleWithdrawalFileName(repository *Repository, raffleId string) string {
-	return raffleDirName(repository, raffleId) + pathSeparator + "withdrawal" + csvExtension
+	return raffleDirName(repository, raffleId) + "withdrawal" + csvExtension
 }
 
 func randomId() (string, error) {

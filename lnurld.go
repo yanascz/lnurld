@@ -255,8 +255,8 @@ func lnPayHandler(context *gin.Context) {
 	if invoice == nil {
 		return
 	}
-	if err := repository.addAccountPaymentHash(accountKey, invoice.getPaymentHash()); err != nil {
-		abortWithInternalServerErrorResponse(context, fmt.Errorf("storing payment hash: %w", err))
+	if err := repository.addAccountInvoice(accountKey, invoice); err != nil {
+		abortWithInternalServerErrorResponse(context, fmt.Errorf("storing invoice: %w", err))
 		return
 	}
 
@@ -336,8 +336,8 @@ func lnRaffleTicketHandler(context *gin.Context) {
 	if invoice == nil {
 		return
 	}
-	if err := repository.addRaffleTicket(raffle, invoice.getPaymentHash()); err != nil {
-		abortWithInternalServerErrorResponse(context, fmt.Errorf("storing payment hash: %w", err))
+	if err := repository.addRaffleTicket(raffle, invoice); err != nil {
+		abortWithInternalServerErrorResponse(context, fmt.Errorf("storing ticket: %w", err))
 		return
 	}
 
@@ -504,13 +504,13 @@ func authAccountHandler(context *gin.Context) {
 		return
 	}
 
-	paymentHashes := repository.getAccountPaymentHashes(accountKey)
+	invoices := repository.getAccountInvoices(accountKey)
 
 	var invoicesSettled int
 	var totalSatsReceived int64
 	var commentsCount int
-	var invoices []AccountInvoice
-	for _, paymentHash := range paymentHashes {
+	var accountInvoices []AccountInvoice
+	for _, paymentHash := range invoices {
 		invoice, err := lndClient.getInvoice(paymentHash)
 		if err == nil && invoice.isSettled() {
 			invoicesSettled++
@@ -518,7 +518,7 @@ func authAccountHandler(context *gin.Context) {
 			if invoice.memo != "" {
 				commentsCount++
 			}
-			invoices = append(invoices, AccountInvoice{
+			accountInvoices = append(accountInvoices, AccountInvoice{
 				Amount:     invoice.amount,
 				SettleDate: invoice.settleDate,
 				Comment:    invoice.memo,
@@ -526,20 +526,20 @@ func authAccountHandler(context *gin.Context) {
 		}
 	}
 
-	sort.Slice(invoices, func(i, j int) bool {
-		return invoices[i].SettleDate.After(invoices[j].SettleDate)
+	sort.Slice(accountInvoices, func(i, j int) bool {
+		return accountInvoices[i].SettleDate.After(accountInvoices[j].SettleDate)
 	})
 
 	context.HTML(http.StatusOK, "account.gohtml", gin.H{
 		"AccountKey":        accountKey,
 		"FiatCurrency":      account.getCurrency(),
-		"InvoicesIssued":    len(paymentHashes),
+		"InvoicesIssued":    len(invoices),
 		"InvoicesSettled":   invoicesSettled,
 		"CommentsCount":     commentsCount,
 		"TotalSatsReceived": totalSatsReceived,
 		"TotalFiatReceived": ratesService.satsToFiat(account.getCurrency(), totalSatsReceived),
 		"Archivable":        account.Archivable && invoicesSettled > 0,
-		"Invoices":          invoices,
+		"Invoices":          accountInvoices,
 	})
 }
 
@@ -670,7 +670,7 @@ func apiAccountArchiveHandler(context *gin.Context) {
 		return
 	}
 
-	err := repository.archiveAccountPaymentHashes(accountKey)
+	err := repository.archiveAccountInvoices(accountKey)
 	if err != nil {
 		abortWithInternalServerErrorResponse(context, fmt.Errorf("archiving storage file: %w", err))
 		return
@@ -704,8 +704,8 @@ func apiInvoicesHandler(context *gin.Context) {
 	if invoice == nil {
 		return
 	}
-	if err := repository.addAccountPaymentHash(accountKey, invoice.getPaymentHash()); err != nil {
-		abortWithInternalServerErrorResponse(context, fmt.Errorf("storing payment hash: %w", err))
+	if err := repository.addAccountInvoice(accountKey, invoice); err != nil {
+		abortWithInternalServerErrorResponse(context, fmt.Errorf("storing invoice: %w", err))
 		return
 	}
 

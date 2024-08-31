@@ -147,6 +147,12 @@ $ ./systemd/deploy.sh
 
 Alternatively checkout a specific branch/tag.
 
+When updating from revision `4da3fcf` or earlier, run this account migration in your data directory:
+
+```shell
+$ for f in *.csv*; do d=accounts/${f%.csv*}; sudo -u bitcoin mkdir -p $d; sudo mv $f $d/invoices.csv${f#*.csv}; done
+```
+
 When updating from revision `ec77e80` or earlier, run this event migration in your data directory:
 
 ```shell
