@@ -64,11 +64,10 @@
         </p>
         <p>
             <label for="prizes">
-                Prizes (first one drawn last)
-                <button id="add-prize" onclick="addPrizeElement(); return false;">+</button>
-                <button id="remove-prize" onclick="removePrizeElement(); return false;">–</button>
+                Prizes (the first one drawn last)
+                <button id="add-prize" onclick="addPrize(); return false">+</button>
             </label>
-            <div id="prizes"></div>
+            <textarea id="prizes" rows="7" placeholder="1× the most valuable prize&#10;3× another valuable prize&#10;...&#10;5× the least valuable prize" required></textarea>
         </p>
         <div class="buttons">
             <button>Submit</button>
@@ -79,95 +78,91 @@
 <script>
     const exchangeRates = {{.ExchangeRates}}
 
-    const dialogElement = element('dialog');
+    const dialogElement = element('dialog')
     const titleElement = element('title')
     const ticketPriceElement = element('ticket-price')
     const fiatAmountElement = element('fiat-amount')
     const fiatCurrencyElement = element('fiat-currency')
     const prizesElement = element('prizes')
     const addPrizeButton = element('add-prize')
-    const removePrizeButton = element('remove-prize')
 
     function openCreateDialog() {
         titleElement.value = ''
         ticketPriceElement.value = ''
         fiatAmountElement.value = ''
         fiatCurrencyElement.value = 'eur'
-        prizesElement.replaceChildren(createPrizeElement({}))
+        prizesElement.value = ''
         dialogElement.onsubmit = () => submitRaffle(post, '/api/raffles')
         dialogElement.showModal()
-        updateButtons()
     }
 
     function openEditDialog(raffleId) {
-        const raffleUri = `/api/raffles/${raffleId}`;
+        const raffleUri = `/api/raffles/${raffleId}`
         fetch(raffleUri)
             .then(response => response.json())
             .then(body => {
                 titleElement.value = body.title
                 ticketPriceElement.value = body.ticketPrice
                 fiatCurrencyElement.value = body.fiatCurrency
-                prizesElement.replaceChildren(...body.prizes.map(createPrizeElement))
+                prizesElement.value = body.prizes.map(prizeToString).join('\n')
                 dialogElement.onsubmit = () => submitRaffle(put, raffleUri)
                 dialogElement.showModal()
                 updateFiatAmount()
-                updateButtons()
             })
     }
 
-    function createPrizeElement({name = '', quantity = 1}) {
-        const prizeElement = document.createElement('div')
-        prizeElement.innerHTML = `
-            <input type="text" name="name" maxlength="50" value="${name}" required/>
-            <span>×</span>
-            <input type="number" name="quantity" min="1" max="10" value="${quantity}" required/>
-        `
-        return prizeElement
+    function prizeToString({name = '', quantity = 1}) {
+        return `${quantity}× ${name}`
     }
 
-    function addPrizeElement() {
-        prizesElement.appendChild(createPrizeElement({}))
-        updateButtons()
-    }
-
-    function removePrizeElement() {
-        prizesElement.lastChild.remove()
-        updateButtons()
+    function addPrize() {
+        prizesElement.value += (prizesElement.value ? '\n' : '') + prizeToString({})
+        prizesElement.focus()
     }
 
     function updateFiatAmount() {
         const exchangeRate = exchangeRates[fiatCurrencyElement.value]
-        const fiatAmount = exchangeRate * ticketPriceElement.value;
+        const fiatAmount = exchangeRate * ticketPriceElement.value
         fiatAmountElement.value = fiatAmount ? fiatAmount.toFixed(2) : ''
     }
 
-    function updateButtons() {
-        addPrizeButton.disabled = prizesElement.children.length === 21
-        removePrizeButton.disabled = prizesElement.children.length === 1
-    }
-
     function submitRaffle(submitFunction, uri) {
+        const prizes = stringToPrizes(prizesElement.value)
+        if (!validatePrizes(prizes)) {
+            return false
+        }
         submitFunction(uri, {
             title: titleElement.value,
             ticketPrice: Number(ticketPriceElement.value),
             fiatCurrency: fiatCurrencyElement.value,
-            prizes: toPrizes(prizesElement.children),
+            prizes,
         }).then(() => document.location.reload())
     }
 
-    function toPrizes(prizesElements) {
-        const prizes = []
-        for (const prizeElement of prizesElements) {
-            prizes.push({
-                name: childValue(prizeElement, 'name'),
-                quantity: Number(childValue(prizeElement, 'quantity'))
-            })
-        }
-        return prizes
+    function stringToPrizes(value) {
+        return value.split(/\s*\n\s*/).filter(line => line).map(line => {
+            const [_, quantity, name] = line.match(/^(\d+)\s*×\s*(.*)$/) ?? []
+            return {
+                name: name,
+                quantity: Number(quantity)
+            }
+        })
     }
 
-    function childValue(element, childName) {
-        return element.children[childName].value
+    function validatePrizes(prizes) {
+        if (prizes.some(({ quantity }) => !Number.isInteger(quantity))) {
+            return alert('Invalid configuration of prizes!')
+        }
+        if (prizes.some(({ quantity }) => quantity < 1 || quantity > 10)) {
+            return alert('Prize quantity must be between 1 and 10!')
+        }
+        if (prizes.some(({ name }) => name.length < 1 || name.length > 50)) {
+            return alert('Prize name must be between 1 and 50 characters!')
+        }
+        if (prizes.length > 21) {
+            return alert('At most 21 prizes may be configured!')
+        }
+        return true
     }
 
     function closeDialog() {
