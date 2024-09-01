@@ -36,6 +36,9 @@
             <button onclick="lock()">Lock</button>
         {{end}}
     </div>
+    {{if lt .TicketsPaid .PrizesCount}}
+        <footer>{{.PrizesCount}} ticket{{if ne .PrizesCount 1}}s{{end}} required</footer>
+    {{end}}
 </main>
 
 <dialog id="dialog">
