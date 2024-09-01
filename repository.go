@@ -194,25 +194,6 @@ func (repository *Repository) getRaffleWithdrawalFileName(raffle *Raffle) string
 	return raffleWithdrawalFileName(repository, raffle.Id)
 }
 
-func (repository *Repository) archiveRaffleFiles(raffle *Raffle) error {
-	ticketsFileName := raffleTicketsFileName(repository, raffle.Id)
-	drawFileName := raffleDrawFileName(repository, raffle.Id)
-	withdrawalFileName := raffleWithdrawalFileName(repository, raffle.Id)
-	archiveSuffix := "." + time.Now().Format("20060102150405")
-
-	if err := os.Rename(drawFileName, drawFileName+archiveSuffix); err != nil {
-		return err
-	}
-	if err := os.Rename(ticketsFileName, ticketsFileName+archiveSuffix); err != nil {
-		return err
-	}
-	if err := os.Rename(withdrawalFileName, withdrawalFileName+archiveSuffix); !os.IsNotExist(err) {
-		return err
-	}
-
-	return nil
-}
-
 func (repository *Repository) isRaffleLocked(raffle *Raffle) bool {
 	_, err := os.Stat(raffleLockFileName(repository, raffle.Id))
 	return err == nil

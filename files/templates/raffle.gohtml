@@ -32,9 +32,6 @@
         {{if .Withdrawable}}
             <button onclick="withdraw()">Withdraw</button>
         {{end}}
-        {{if .Archivable}}
-            <button onclick="archive()">Archive</button>
-        {{end}}
         {{if .Lockable}}
             <button onclick="lock()">Lock</button>
         {{end}}
@@ -98,14 +95,6 @@
                     document.location.reload()
                 }
             })
-    }
-
-    function archive() {
-        if (!confirm('Really archive the raffle?')) {
-            return false
-        }
-        post('/api/raffles/{{.Id}}/archive')
-            .then(() => document.location.reload())
     }
 
     function lock() {
