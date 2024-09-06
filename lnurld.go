@@ -430,7 +430,7 @@ func eventHandler(context *gin.Context) {
 		"Start":           event.Start,
 		"Location":        event.Location,
 		"Capacity":        event.Capacity,
-		"Description":     event.Description,
+		"Description":     event.getDescriptionParagraphs(),
 		"Attendees":       len(attendees),
 		"AttendeeOrdinal": slices.Index(attendees, identity) + 1,
 		"SignUpPossible":  event.Start.After(time.Now()),

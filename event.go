@@ -1,6 +1,7 @@
 package main
 
 import (
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -24,6 +25,12 @@ type EventLocation struct {
 
 func (event *Event) isInPast() bool {
 	return event.End.Before(time.Now())
+}
+
+var paragraphSeparator = regexp.MustCompile("(\\s*\n){2,}")
+
+func (event *Event) getDescriptionParagraphs() []string {
+	return paragraphSeparator.Split(event.Description, -1)
 }
 
 func sortEvents(events []*Event) []*Event {

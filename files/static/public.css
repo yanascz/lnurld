@@ -13,7 +13,7 @@ main {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    margin: 0 2em 2em;
+    margin: 0 1.5em 1.5em;
 }
 
 main.event {
@@ -21,14 +21,14 @@ main.event {
 }
 
 main h1 {
-    margin-top: 1em;
+    margin-top: .7em;
     font-size: 2em;
 }
 
 main ul {
-    margin-top: .5em;
+    margin: .5em 0 .2em;
     padding: 0;
-    font-size: 1.6em;
+    font-size: 1.5em;
     font-weight: bold;
     list-style-type: none;
 }
@@ -70,27 +70,29 @@ main li span {
 
 main p {
     margin-top: 1em;
-    font-size: 1.3em;
+    font-size: 1.1em;
+    line-height: 1.5em;
 }
 
 main p.formatted {
+    margin-top: .8em;
     white-space: pre-line;
 }
 
 main div {
     display: flex;
     flex-direction: column;
-    margin: 2em auto 0;
+    margin: 1.7em auto 0;
 }
 
 main button {
     margin-bottom: .6em;
     border: none;
     border-radius: .5em;
-    padding: .5em 1em;
+    padding: .6em 1.2em;
     background-color: #f7931a;
     color: white;
-    font-size: 1.5em;
+    font-size: 1.3em;
     font-weight: bold;
     cursor: pointer;
 }
@@ -104,7 +106,7 @@ main button:disabled {
 }
 
 footer {
-    margin-bottom: 4em;
+    margin-bottom: 2em;
     text-align: center;
     color: grey;
 }
