@@ -13,21 +13,25 @@
 </head>
 <body>
 
+<header>
+    <h1 class="event">Events</h1>
+    <button onclick="openCreateDialog()">+</button>
+</header>
+
 <main class="events">
-    <h1>Events</h1>
-    <ul>
-        {{range .Events}}
-            <li>
-                <a href="/events/{{.Id}}"><strong>{{.Title}}</strong></a>
-                <button onclick="openEditDialog('{{.Id}}')">Edit</button>
-            </li>
-        {{end}}
-    </ul>
-    <div class="buttons">
-        <button onclick="openCreateDialog()">Create</button>
-    </div>
+    {{if .Events}}
+        <h3>Current</h3>
+        <ul>
+            {{range .Events}}
+                <li class="flex">
+                    <a href="/events/{{.Id}}"><strong>{{.Title}}</strong></a>
+                    <button onclick="openEditDialog('{{.Id}}')">Edit</button>
+                </li>
+            {{end}}
+        </ul>
+    {{end}}
     {{if .PastEvents}}
-        <h2 class="past-events">Past Events</h2>
+        <h3>Past</h3>
         <ul>
             {{range .PastEvents}}
                 <li>

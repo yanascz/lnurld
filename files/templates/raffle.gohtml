@@ -13,17 +13,20 @@
 </head>
 <body>
 
+<header class="center">
+    <h1 class="raffle">{{.Title}}</h1>
+</header>
+
 <main class="raffle">
-    <h1>{{.Title}}</h1>
-    <div id="balance"{{if .WithdrawalFinished}} class="withdrawn"{{end}}>
+    <div class="balance{{if .WithdrawalFinished}} withdrawn{{end}}">
         <h2><strong>{{number .TotalSatsReceived}}</strong> sat{{if ne .TotalSatsReceived 1}}s{{end}}</h2>
         <p><strong>{{decimal .TotalFiatReceived}}</strong> {{.FiatCurrency}}</p>
     </div>
-    <ul>
-        <li><strong>{{number .TicketPrice}}</strong> sat{{if ne .TicketPrice 1}}s{{end}} / ticket</li>
-        <li><strong>{{number .TicketsIssued}}</strong> ticket{{if ne .TicketsIssued 1}}s{{end}} issued</li>
-        <li><strong>{{number .TicketsPaid}}</strong> ticket{{if ne .TicketsPaid 1}}s{{end}} paid</li>
-    </ul>
+    <div class="statistics">
+        <p><strong>{{number .TicketPrice}}</strong> sat{{if ne .TicketPrice 1}}s{{end}} / ticket</p>
+        <p><strong>{{number .TicketsIssued}}</strong> ticket{{if ne .TicketsIssued 1}}s{{end}} issued</p>
+        <p><strong>{{number .TicketsPaid}}</strong> ticket{{if ne .TicketsPaid 1}}s{{end}} paid</p>
+    </div>
     <div class="buttons">
         {{if not .DrawAvailable}}
             <button onclick="location.href='/ln/raffle/{{.Id}}/qr-code?size=1280'">QR Code</button>

@@ -12,13 +12,17 @@
 </head>
 <body>
 
-<h1 class="accounts">Accounts</h1>
+<header>
+    <h1 class="account">Accounts</h1>
+</header>
 
-<ul class="accounts">
-    {{range .}}
-        <li><a href="/auth/accounts/{{.}}"><strong>{{.}}</strong></a></li>
-    {{end}}
-</ul>
+<main class="accounts">
+    <ul>
+        {{range .}}
+            <li><a href="/auth/accounts/{{.}}"><strong>{{.}}</strong></a></li>
+        {{end}}
+    </ul>
+</main>
 
 </body>
 </html>

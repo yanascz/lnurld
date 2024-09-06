@@ -13,49 +13,54 @@
 </head>
 <body>
 
-<h1 class="accounts">{{.AccountKey}}</h1>
+<header class="center">
+    <h1 class="account">{{.AccountKey}}</h1>
+</header>
 
-<div id="balance">
-    <h2><strong>{{number .TotalSatsReceived}}</strong> sat{{if ne .TotalSatsReceived 1}}s{{end}}</h2>
-    <p><strong>{{decimal .TotalFiatReceived}}</strong> {{.FiatCurrency}}</p>
-</div>
-
-<ul>
-    <li><strong>{{number .InvoicesIssued}}</strong> invoice{{if ne .InvoicesIssued 1}}s{{end}} issued</li>
-    <li><strong>{{number .InvoicesSettled}}</strong> invoice{{if ne .InvoicesSettled 1}}s{{end}} settled</li>
-    <li><strong>{{number .CommentsCount}}</strong> comment{{if ne .CommentsCount 1}}s{{end}}</li>
-</ul>
-
-<div class="buttons">
-    <button onclick="location.href='/ln/pay/{{.AccountKey}}/qr-code?size=1280'">QR Code</button>
-    <button onclick="location.href='/auth/accounts/{{.AccountKey}}/terminal'">Terminal</button>
-    {{if .Archivable}}
-        <button onclick="archive()">Archive</button>
-    {{end}}
-</div>
-
-{{if .Invoices}}
-    <h2 class="invoices">Invoices</h2>
-    <ul class="invoices">
-        {{$previousDate := ""}}
-        {{range .Invoices}}
-            {{$date := date .SettleDate}}
-            {{if ne $date $previousDate}}
-                <li class="date">{{$date}}</li>
-                {{$previousDate = $date}}
-            {{end}}
-            <li>
-                <div class="flex">
-                    <div><strong>{{time .SettleDate}}</strong></div>
-                    <div><strong>{{number .Amount}}</strong> sat{{if ne .Amount 1}}s{{end}}</div>
-                </div>
-                {{if .Comment}}
-                    <em>{{.Comment}}</em>
-                {{end}}
-            </li>
+<main class="account">
+    <div class="balance">
+        <h2><strong>{{number .TotalSatsReceived}}</strong> sat{{if ne .TotalSatsReceived 1}}s{{end}}</h2>
+        <p><strong>{{decimal .TotalFiatReceived}}</strong> {{.FiatCurrency}}</p>
+    </div>
+    <div class="statistics">
+        <p><strong>{{number .InvoicesIssued}}</strong> invoice{{if ne .InvoicesIssued 1}}s{{end}} issued</p>
+        <p><strong>{{number .InvoicesSettled}}</strong> invoice{{if ne .InvoicesSettled 1}}s{{end}} settled</p>
+        <p><strong>{{number .CommentsCount}}</strong> comment{{if ne .CommentsCount 1}}s{{end}}</p>
+    </div>
+    <div class="buttons">
+        <button onclick="location.href='/ln/pay/{{.AccountKey}}/qr-code?size=1280'">QR Code</button>
+        <button onclick="location.href='/auth/accounts/{{.AccountKey}}/terminal'">Terminal</button>
+        {{if .Archivable}}
+            <button onclick="archive()">Archive</button>
         {{end}}
-    </ul>
-{{end}}
+    </div>
+    {{if .Invoices}}
+        <div class="invoices">
+            {{$previousDate := ""}}
+            {{range .Invoices}}
+                {{$date := date .SettleDate}}
+                {{if ne $date $previousDate}}
+                    {{if $previousDate}}
+                        </ul>
+                    {{end}}
+                    <h3>{{$date}}</h3>
+                    <ul>
+                    {{$previousDate = $date}}
+                {{end}}
+                <li>
+                    <div>
+                        <p><strong>{{time .SettleDate}}</strong></p>
+                        <p><strong>{{number .Amount}}</strong> sat{{if ne .Amount 1}}s{{end}}</p>
+                    </div>
+                    {{if .Comment}}
+                        <comment>{{.Comment}}</comment>
+                    {{end}}
+                </li>
+            {{end}}
+            </ul>
+        </div>
+    {{end}}
+</main>
 
 <script>
     function archive() {

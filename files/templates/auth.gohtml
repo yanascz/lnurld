@@ -12,15 +12,19 @@
 </head>
 <body>
 
-<h1>LNURLd</h1>
+<header>
+    <h1>LNURL Daemon</h1>
+</header>
 
-<ul>
-    {{if .}}
-        <li class="accounts"><a href="/auth/accounts"><strong>Accounts</strong></a></li>
-    {{end}}
-    <li class="events"><a href="/auth/events"><strong>Events</strong></a></li>
-    <li class="raffles"><a href="/auth/raffles"><strong>Raffles</strong></a></li>
-</ul>
+<main class="dashboard">
+    <ul>
+        {{if .}}
+            <li class="accounts"><a href="/auth/accounts"><strong>Accounts</strong></a></li>
+        {{end}}
+        <li class="events"><a href="/auth/events"><strong>Events</strong></a></li>
+        <li class="raffles"><a href="/auth/raffles"><strong>Raffles</strong></a></li>
+    </ul>
+</main>
 
 </body>
 </html>

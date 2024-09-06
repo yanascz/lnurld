@@ -5,169 +5,28 @@
 }
 
 body {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin: 0 2em 4em;
+    padding: 24px 24px 32px;
     background-color: #fde8ce;
-}
-
-h1 {
-    display: flex;
-    margin-top: 1em;
-    font-size: 3em;
-}
-
-h1.accounts::before {
-    margin-right: .3em;
-    content: '⛺';
-}
-
-h2 {
-    display: flex;
-    margin-top: 1em;
-    font-size: 2.4em;
-}
-
-h2.invoices::before {
-    margin-right: .3em;
-    content: '📒';
-}
-
-h2.past-events::before {
-    margin-right: .3em;
-    content: '⌛️';
-}
-
-h2.drawn-raffles::before {
-    margin-right: .3em;
-    content: '🏆';
-}
-
-h2#prize {
-    font-size: 2em;
-    font-weight: normal;
-}
-
-p {
-    margin-top: 1em;
-    font-size: 2em;
-}
-
-ul {
-    margin-top: 1em;
-    padding: 0;
-    list-style-type: none;
-    font-size: 2em;
-}
-
-ul.accounts {
-    padding-left: 1em;
-    list-style-type: disc;
-}
-
-ul.invoices {
-    width: 100%;
-    max-width: 300px;
-    margin-top: 0;
-    font-size: 1.5em;
-}
-
-ul.invoices li.date {
-    margin-top: 1em;
-    font-size: 1.3em;
-}
-
-ul.invoices li div.flex {
-    display: flex;
-    justify-content: space-between;
-}
-
-ul li {
-    margin-bottom: .4em;
-}
-
-ul li.accounts::before {
-    margin-right: .3em;
-    content: '⛺';
-}
-
-ul li.events::before {
-    margin-right: .3em;
-    content: '🗓';
-}
-
-ul li.raffles::before {
-    margin-right: .3em;
-    content: '⚡';
 }
 
 a {
     color: #f7931a;
 }
 
-div#balance {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-div#balance h2 {
-    font-weight: normal;
-}
-
-div#balance p {
-    margin-top: .4em;
-    font-size: 1.5em;
-    text-transform: uppercase;
-    color: grey;
-}
-
-div#balance.withdrawn h2,
-div#balance.withdrawn p {
-    text-decoration: line-through;
-}
-
-dl#prize-tickets {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    max-width: 50em;
-}
-
-dl#prize-tickets div {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 16em;
-}
-
-dl#prize-tickets dt {
-    margin-top: .4em;
-    font-size: 4em;
-    font-weight: bold;
-}
-
-dl#prize-tickets dd {
-    margin-top: .4em;
-    font-size: 1.5em;
-    color: grey;
-}
-
 div.buttons {
     display: flex;
     flex-direction: column;
-    margin: 1em auto 0;
+    margin: 24px auto 0;
 }
 
 div.buttons button {
-    margin-bottom: .6em;
+    margin-bottom: 12px;
+    padding: 12px 24px;
     border: none;
-    border-radius: .5em;
-    padding: .5em 1em;
+    border-radius: 8px;
     background-color: grey;
     color: white;
-    font-size: 1.5em;
+    font-size: 20px;
     font-weight: bold;
     cursor: pointer;
 }
@@ -181,62 +40,245 @@ div.buttons button:disabled {
     cursor: default;
 }
 
-div.raffle {
-    margin-top: 3em;
+header {
+    display: flex;
+    max-width: 360px;
+    margin: 0 auto;
+    align-items: center;
+    justify-content: space-between;
+}
+
+header.center {
+    justify-content: center;
+}
+
+header h1 {
+    display: flex;
+    font-size: 36px;
+}
+
+header h1.account::before {
+    margin-right: 12px;
+    content: '⛺';
+}
+
+header h1.event::before {
+    margin-right: 12px;
+    content: '🗓';
+}
+
+header h1.raffle::before {
+    margin-right: 8px;
+    content: '⚡';
+}
+
+header button {
+    padding: 4px 12px 8px;
+    border: none;
+    border-radius: 8px;
+    background-color: #f7931a;
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
 }
 
 main {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    max-width: 360px;
     margin: auto;
 }
 
-main ul {
-    max-width: 300px;
-    padding-left: 1em;
-    list-style-type: disc;
+main h2 {
+    display: flex;
+    margin-top: 24px;
+    font-size: 32px;
 }
 
-main ul button {
-    display: block;
-    margin-top: .2em;
-    padding: .4em .8em;
+main h3 {
+    margin: 20px 16px 8px;
+    font-size: 20px;
+    font-weight: normal;
+}
+
+main ul {
+    align-self: stretch;
+    margin-top: 0;
+    padding: 0;
+    border-radius: 12px;
+    background-color: #fff9;
+    list-style-type: none;
+    font-size: 20px;
+}
+
+main ul li {
+    padding: 12px 16px 12px;
+    border-bottom: 1px solid #fde8ce;
+}
+
+main ul li a {
+    text-decoration: none;
+}
+
+main ul li.flex {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-right: 12px;
+}
+
+main ul li.flex button {
+    align-self: flex-start;
+    padding: 6px 12px;
     border: none;
-    border-radius: .5em;
+    border-radius: 8px;
     background-color: grey;
     color: white;
-    font-size: .5em;
+    font-size: 12px;
     font-weight: bold;
     cursor: pointer;
 }
 
-main.events h1::before {
-    margin-right: .3em;
+main div.balance {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+main div.balance h2 {
+    font-weight: normal;
+}
+
+main div.balance p {
+    margin-top: 4px;
+    font-size: 20px;
+    text-transform: uppercase;
+    color: grey;
+}
+
+main div.statistics {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 24px 0 8px;
+    font-size: 24px;
+}
+
+main.dashboard {
+    margin-top: 24px;
+}
+
+main.dashboard ul {
+    font-size: 28px;
+}
+
+main.dashboard ul li {
+    padding-top: 10px;
+}
+
+main.dashboard ul li::before {
+    margin-right: 12px;
+}
+
+main.dashboard ul li.accounts::before {
+    content: '⛺';
+}
+
+main.dashboard ul li.events::before {
     content: '🗓';
 }
 
-main.raffles h1::before {
-    margin-right: .1em;
+main.dashboard ul li.raffles::before {
     content: '⚡';
 }
 
-main.raffles ul {
+main.accounts {
+    margin-top: 24px;
+}
+
+main.account {
+    align-items: center;
+}
+
+main.account div.invoices {
     align-self: stretch;
 }
 
-main.raffle h1::before {
-    margin-right: .1em;
-    content: '⚡';
+main.account div.invoices ul {
+    font-size: 16px;
 }
 
-main.raffle ul {
-    padding: 0;
-    list-style-type: none;
+main.account div.invoices ul li {
+    margin: 0;
+    padding: 12px 16px 12px;
+    border-bottom: 1px solid #fde8ce;
+}
+
+main.account div.invoices ul li div {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+main.account div.invoices ul li comment {
+    display: block;
+    margin-top: 2px;
+    color: grey;
+}
+
+main.raffle {
+    align-items: center;
+}
+
+main.raffle div.withdrawn h2,
+main.raffle div.withdrawn p {
+    text-decoration: line-through;
+}
+
+main.draw {
+    max-width: unset;
+    align-items: center;
+}
+
+main.draw h2 {
+    margin-top: 28px;
+    font-size: 24px;
+    font-weight: normal;
+}
+
+main.draw dl {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    max-width: 768px;
+}
+
+main.draw dl div {
+    display: flex;
+    width: 256px;
+    flex-direction: column;
+    align-items: center;
+}
+
+main.draw dl dt {
+    margin-top: 24px;
+    font-size: 64px;
+    font-weight: bold;
+}
+
+main.draw dl dd {
+    margin-top: 8px;
+    font-size: 20px;
+    color: grey;
+}
+
+main.draw div.buttons {
+    margin-top: 44px;
 }
 
 dialog {
-    width: 100%;
+    width: 90%;
     max-width: 320px;
     margin: auto;
     padding-bottom: 0;
@@ -251,20 +293,16 @@ dialog::backdrop {
 
 dialog h2 {
     margin-top: 0;
-    font-size: 1.5em;
+    font-size: 24px;
 }
 
 dialog h2.ln {
-    margin-bottom: .5em;
+    margin-bottom: 12px;
 }
 
 dialog div {
     display: flex;
-    gap: 0 .2em;
-}
-
-dialog div#prizes {
-    flex-direction: column;
+    gap: 0 4px;
 }
 
 dialog div span {
@@ -273,9 +311,10 @@ dialog div span {
 
 dialog p {
     display: flex;
+    margin-top: 12px;
     flex-direction: column;
     flex-grow: 1;
-    font-size: 1em;
+    font-size: 16px;
 }
 
 dialog a {
@@ -288,29 +327,30 @@ dialog img {
 
 dialog label {
     display: block;
-    margin-bottom: .2em;
+    margin-bottom: 4px;
     color: grey;
 }
 
 dialog label button {
-    font-size: 1em;
+    font-size: 16px;
 }
 
 dialog input {
     display: flex;
     flex-grow: 1;
-    font-size: 1em;
+    font-size: 16px;
 }
 
 dialog select {
-    font-size: 1em;
+    font-size: 16px;
 }
 
 dialog textarea {
-    font-size: 1em;
+    font-size: 16px;
 }
 
 dialog div.buttons {
+    margin: 16px auto 8px;
     align-items: center;
 }
 
@@ -318,20 +358,23 @@ dialog button.close {
     position: absolute;
     top: 0;
     right: 0;
-    padding: .2em .4em;
+    padding: 8px 14px;
     border: none;
     background-color: white;
     color: black;
-    font-size: 2.1em;
+    font-size: 32px;
     cursor: pointer;
 }
 
 dialog footer {
-    margin: .7em 0 1.4em;
-    font-size: .7em;
+    margin: 8px 0 16px;
+    font-size: 11px;
+    line-height: 15px;
+    text-align: left;
     color: grey;
 }
 
 footer {
+    text-align: center;
     color: grey;
 }

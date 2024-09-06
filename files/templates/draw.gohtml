@@ -13,20 +13,23 @@
 </head>
 <body>
 
-<h1 class="raffles">{{.Title}}</h1>
+<header class="center">
+    <h1 class="raffle">{{.Title}}</h1>
+</header>
 
-<h2 id="prize">???</h2>
-<dl id="prize-tickets">
-    <div>
-        <dt>???</dt>
-        <dd>?</dd>
+<main class="draw">
+    <h2 id="prize">???</h2>
+    <dl id="prize-tickets">
+        <div>
+            <dt>???</dt>
+            <dd>?</dd>
+        </div>
+    </dl>
+    <div class="buttons">
+        <button id="next-prize" accesskey="p">Next prize</button>
+        <button id="next-ticket" accesskey="t">Next ticket</button>
     </div>
-</dl>
-
-<div class="buttons raffle">
-    <button id="next-prize" accesskey="p">Next prize</button>
-    <button id="next-ticket" accesskey="t">Next ticket</button>
-</div>
+</main>
 
 <footer id="tickets"></footer>
 
