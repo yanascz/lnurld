@@ -91,7 +91,7 @@ func main() {
 	nostrService = newNostrService(config.DataDir, config.Nostr)
 	authenticationService = newAuthenticationService(config.Authentication)
 	withdrawalService = newWithdrawalService(config.Withdrawal)
-	ratesService = newRatesService(21 * time.Second)
+	ratesService = newRatesService(30 * time.Second)
 
 	lnurld := gin.Default()
 	_ = lnurld.SetTrustedProxies(nil)

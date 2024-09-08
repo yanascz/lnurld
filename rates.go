@@ -39,16 +39,16 @@ func newRatesService(refreshPeriod time.Duration) *RatesService {
 
 	service := RatesService{currencies: currencies[1:]}
 	if err := service.fetchRates(); err != nil {
-		log.Fatal(err)
+		log.Fatalln("error fetching rates:", err)
 	}
 
 	go func() {
 		for true {
+			time.Sleep(refreshPeriod)
 			err := service.fetchRates()
 			if err != nil {
-				log.Println("error fetching rates:", err)
+				log.Println("error updating rates:", err)
 			}
-			time.Sleep(refreshPeriod)
 		}
 	}()
 
