@@ -5,7 +5,7 @@
 }
 
 body {
-    padding: 24px 24px 32px;
+    margin: 24px 24px 32px;
     background-color: #fde8ce;
 }
 
@@ -49,6 +49,7 @@ header {
 }
 
 header.center {
+    padding-top: 8px;
     justify-content: center;
 }
 
@@ -369,7 +370,6 @@ dialog button.close {
 dialog footer {
     margin: 8px 0 16px;
     font-size: 11px;
-    line-height: 15px;
     text-align: left;
     color: grey;
 }

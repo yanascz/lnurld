@@ -13,7 +13,7 @@ main {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    margin: 0 1.5em 1.5em;
+    margin: 0 24px 24px;
 }
 
 main.event {
@@ -21,35 +21,36 @@ main.event {
 }
 
 main h1 {
-    margin-top: .7em;
-    font-size: 2em;
+    margin-top: 24px;
+    font-size: 32px;
 }
 
 main ul {
-    margin: .5em 0 .2em;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 20px 0 8px;
     padding: 0;
-    font-size: 1.5em;
+    font-size: 24px;
     font-weight: bold;
-    list-style-type: none;
 }
 
 main li {
     display: flex;
-    margin-top: .5em;
 }
 
 main li.datetime::before {
-    margin-right: .3em;
+    margin-right: 8px;
     content: '🗓';
 }
 
 main li.location::before {
-    margin-right: .3em;
+    margin-right: 8px;
     content: '📍';
 }
 
 main li.attendees::before {
-    margin-right: .3em;
+    margin-right: 8px;
     content: '👤';
 }
 
@@ -59,40 +60,40 @@ main li.attendees span {
 }
 
 main li.attendees span::before {
-    margin-right: .3em;
+    margin-right: 8px;
     content: '✅';
 }
 
 main li span {
     align-self: center;
-    margin-left: .7em;
+    margin-left: 16px;
 }
 
 main p {
-    margin-top: 1em;
-    font-size: 1.1em;
-    line-height: 1.5em;
+    margin-top: 16px;
+    font-size: 18px;
+    line-height: 28px;
 }
 
 main p.formatted {
-    margin-top: .8em;
+    margin-top: 12px;
     white-space: pre-line;
 }
 
 main div {
     display: flex;
     flex-direction: column;
-    margin: 1.7em auto 0;
+    margin: 28px auto 0;
 }
 
 main button {
-    margin-bottom: .6em;
+    margin-bottom: 12px;
+    padding: 12px 24px;
     border: none;
-    border-radius: .5em;
-    padding: .6em 1.2em;
+    border-radius: 8px;
     background-color: #f7931a;
     color: white;
-    font-size: 1.3em;
+    font-size: 20px;
     font-weight: bold;
     cursor: pointer;
 }
@@ -106,12 +107,13 @@ main button:disabled {
 }
 
 footer {
-    margin-bottom: 2em;
+    margin-bottom: 32px;
     text-align: center;
     color: grey;
 }
 
 dialog {
+    width: 90%;
     max-width: 320px;
     margin: auto;
     border: none;
@@ -124,13 +126,13 @@ dialog::backdrop {
 }
 
 dialog h2 {
-    margin-bottom: .5em;
-    font-size: 1.5em;
+    margin-bottom: 12px;
+    font-size: 24px;
 }
 
 dialog p {
-    margin-top: .7em;
-    font-size: .7em;
+    margin-top: 8px;
+    font-size: 11px;
     color: grey;
 }
 
@@ -146,11 +148,11 @@ dialog button {
     position: absolute;
     top: 0;
     right: 0;
-    padding: .2em .4em;
+    padding: 8px 14px;
     border: none;
     background-color: white;
     color: black;
-    font-size: 2.1em;
+    font-size: 32px;
     cursor: pointer;
 }
 
