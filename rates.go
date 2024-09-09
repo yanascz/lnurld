@@ -56,7 +56,14 @@ func newRatesService(refreshPeriod time.Duration) *RatesService {
 }
 
 func (service *RatesService) fetchRates() error {
-	response, err := http.Get("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=" + service.currencies)
+	url := "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=" + service.currencies
+	request, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return err
+	}
+
+	request.Header.Set("User-Agent", "lnurld/1.0")
+	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		return err
 	}
