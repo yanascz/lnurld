@@ -5,7 +5,7 @@
 }
 
 body {
-    margin: 24px 24px 32px;
+    margin: 24px 16px 32px;
     background-color: #fde8ce;
 }
 
@@ -44,6 +44,7 @@ header {
     display: flex;
     max-width: 360px;
     margin: 0 auto;
+    padding: 0 8px;
     align-items: center;
     justify-content: space-between;
 }
@@ -104,8 +105,7 @@ main h3 {
 }
 
 main ul {
-    align-self: stretch;
-    margin-top: 0;
+    margin: 0;
     padding: 0;
     border-radius: 12px;
     background-color: #fff9;
@@ -114,7 +114,7 @@ main ul {
 }
 
 main ul li {
-    padding: 12px 16px 12px;
+    display: flex;
 }
 
 main ul li:not(:last-child) {
@@ -122,26 +122,54 @@ main ul li:not(:last-child) {
 }
 
 main ul li a {
+    display: flex;
+    flex-grow: 1;
+    align-items: center;
+    padding: 12px 16px 12px;
+    gap: 8px;
     text-decoration: none;
 }
 
-main ul li.flex {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-right: 12px;
+main ul li a::after {
+    content: '⌃';
+    rotate: 90deg;
+    color: #fde8ce;
 }
 
-main ul li.flex button {
+main ul li a * {
+    flex-grow: 1;
+}
+
+main ul li a div {
+    display: flex;
+    flex-direction: column;
+}
+
+main ul li p.subdued {
+    margin-top: 2px;
+    font-size: 16px;
+    color: grey;
+}
+
+main ul li p span {
+    white-space: nowrap;
+}
+
+main ul li button {
     align-self: flex-start;
-    padding: 6px 12px;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    margin: 12px 12px 0 0;
+    padding: 0;
     border: none;
     border-radius: 8px;
     background-color: grey;
     color: white;
-    font-size: 12px;
-    font-weight: bold;
+    font-size: 20px;
+    line-height: 20px;
     cursor: pointer;
+    transform: scaleX(-1);
 }
 
 main div.balance {
@@ -177,23 +205,15 @@ main.dashboard ul {
     font-size: 28px;
 }
 
-main.dashboard ul li {
-    padding-top: 10px;
-}
-
-main.dashboard ul li::before {
-    margin-right: 12px;
-}
-
-main.dashboard ul li.accounts::before {
+main.dashboard ul li.accounts a::before {
     content: '⛺';
 }
 
-main.dashboard ul li.events::before {
+main.dashboard ul li.events a::before {
     content: '🗓';
 }
 
-main.dashboard ul li.raffles::before {
+main.dashboard ul li.raffles a::before {
     content: '⚡';
 }
 
@@ -214,24 +234,14 @@ main.account div.invoices ul {
 }
 
 main.account div.invoices ul li {
-    margin: 0;
+    flex-direction: column;
     padding: 12px 16px 12px;
-}
-
-main.account div.invoices ul li:not(:last-child) {
-    border-bottom: 1px solid #fde8ce;
 }
 
 main.account div.invoices ul li div {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
-}
-
-main.account div.invoices ul li comment {
-    display: block;
-    margin-top: 2px;
-    color: grey;
 }
 
 main.raffle {

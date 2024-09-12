@@ -18,8 +18,15 @@
 
 <main class="accounts">
     <ul>
-        {{range .}}
-            <li><a href="/auth/accounts/{{.}}"><strong>{{.}}</strong></a></li>
+        {{range $accountKey, $account := .Accounts}}
+            <li>
+                <a href="/auth/accounts/{{$accountKey}}">
+                    <div>
+                        <p><strong>{{$accountKey}}</strong></p>
+                        <p class="subdued">{{$account.Description}}</p>
+                    </div>
+                </a>
+            </li>
         {{end}}
     </ul>
 </main>

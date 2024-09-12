@@ -15,7 +15,7 @@ type Raffle struct {
 	Prizes       []RafflePrize `json:"prizes" binding:"min=1,max=21"`
 }
 
-func (raffle *Raffle) getPrizesCount() int {
+func (raffle *Raffle) GetPrizesCount() int {
 	var prizesCount int
 	for _, prize := range raffle.Prizes {
 		prizesCount += int(prize.Quantity)

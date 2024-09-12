@@ -18,14 +18,26 @@
     <button onclick="openCreateDialog()">+</button>
 </header>
 
+{{define "raffle"}}
+    <a href="/auth/raffles/{{.Id}}">
+        <div>
+            <p><strong>{{.Title}}</strong></p>
+            <p class="subdued">
+                <span><strong>{{number .TicketPrice}}</strong> sat{{if ne .TicketPrice 1}}s{{end}} / ticket</span> •
+                <span><strong>{{.GetPrizesCount}}</strong> prize{{if ne .GetPrizesCount 1}}s{{end}}</span>
+            </p>
+        </div>
+    </a>
+{{end}}
+
 <main class="raffles">
     {{if .Raffles}}
         <h3>Open</h3>
         <ul>
             {{range .Raffles}}
-                <li class="flex">
-                    <a href="/auth/raffles/{{.Id}}"><strong>{{.Title}}</strong></a>
-                    <button onclick="openEditDialog('{{.Id}}')">Edit</button>
+                <li>
+                    {{template "raffle" .}}
+                    <button onclick="openEditDialog('{{.Id}}')">✎</button>
                 </li>
             {{end}}
         </ul>
@@ -34,9 +46,7 @@
         <h3>Drawn</h3>
         <ul>
             {{range .DrawnRaffles}}
-                <li>
-                    <a href="/auth/raffles/{{.Id}}"><strong>{{.Title}}</strong></a>
-                </li>
+                <li>{{template "raffle" .}}</li>
             {{end}}
         </ul>
     {{end}}

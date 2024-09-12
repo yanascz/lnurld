@@ -486,16 +486,15 @@ func lnStaticFileHandler(context *gin.Context) {
 }
 
 func authHomeHandler(context *gin.Context) {
-	accountKeys := getAccessibleAccountKeys(context)
-
-	context.HTML(http.StatusOK, "auth.gohtml", accountKeys)
+	context.HTML(http.StatusOK, "auth.gohtml", gin.H{
+		"AccountsCount": len(getAccessibleAccounts(context)),
+	})
 }
 
 func authAccountsHandler(context *gin.Context) {
-	accountKeys := getAccessibleAccountKeys(context)
-	sort.Strings(accountKeys)
-
-	context.HTML(http.StatusOK, "accounts.gohtml", accountKeys)
+	context.HTML(http.StatusOK, "accounts.gohtml", gin.H{
+		"Accounts": getAccessibleAccounts(context),
+	})
 }
 
 func authAccountHandler(context *gin.Context) {
@@ -622,7 +621,7 @@ func authRaffleHandler(context *gin.Context) {
 		"Title":              raffle.Title,
 		"TicketPrice":        raffle.TicketPrice,
 		"FiatCurrency":       raffle.FiatCurrency,
-		"PrizesCount":        raffle.getPrizesCount(),
+		"PrizesCount":        raffle.GetPrizesCount(),
 		"TicketsIssued":      len(tickets),
 		"TicketsPaid":        ticketsPaid,
 		"TotalSatsReceived":  totalSatsReceived,
@@ -935,15 +934,15 @@ func getAccessibleAccount(context *gin.Context) (string, *Account) {
 	return "", nil
 }
 
-func getAccessibleAccountKeys(context *gin.Context) []string {
-	var accountKeys []string
-	for accountKey := range config.Accounts {
+func getAccessibleAccounts(context *gin.Context) map[string]Account {
+	accessibleAccounts := map[string]Account{}
+	for accountKey, account := range config.Accounts {
 		if isAccountAccessible(context, accountKey) {
-			accountKeys = append(accountKeys, accountKey)
+			accessibleAccounts[accountKey] = account
 		}
 	}
 
-	return accountKeys
+	return accessibleAccounts
 }
 
 func isAccountAccessible(context *gin.Context, accountKey string) bool {
@@ -1041,7 +1040,7 @@ func getRaffleDraw(context *gin.Context, raffle *Raffle) []string {
 		}
 	}
 
-	if len(raffleDraw) < raffle.getPrizesCount() {
+	if len(raffleDraw) < raffle.GetPrizesCount() {
 		abortWithBadRequestResponse(context, "not enough tickets")
 		return nil
 	}

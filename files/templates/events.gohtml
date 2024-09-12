@@ -18,14 +18,23 @@
     <button onclick="openCreateDialog()">+</button>
 </header>
 
+{{define "event"}}
+    <a href="/events/{{.Id}}">
+        <div>
+            <p><strong>{{.Title}}</strong></p>
+            <p class="subdued"><span>{{datetime .Start}}</span> • <span>{{.Location.Name}}</span></p>
+        </div>
+    </a>
+{{end}}
+
 <main class="events">
     {{if .Events}}
         <h3>Current</h3>
         <ul>
             {{range .Events}}
-                <li class="flex">
-                    <a href="/events/{{.Id}}"><strong>{{.Title}}</strong></a>
-                    <button onclick="openEditDialog('{{.Id}}')">Edit</button>
+                <li>
+                    {{template "event" .}}
+                    <button onclick="openEditDialog('{{.Id}}')">✎</button>
                 </li>
             {{end}}
         </ul>
@@ -34,9 +43,7 @@
         <h3>Past</h3>
         <ul>
             {{range .PastEvents}}
-                <li>
-                    <a href="/events/{{.Id}}"><strong>{{.Title}}</strong></a>
-                </li>
+                <li>{{template "event" .}}</li>
             {{end}}
         </ul>
     {{end}}
