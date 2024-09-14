@@ -50,7 +50,10 @@
 {{if not .AttendeeOrdinal}}
     <dialog id="dialog">
         <h2>Log in with Lightning</h2>
-        <a id="link" href=""><img id="qrcode" src="" alt="LNURL-auth"></a>
+        <div class="lnurl">
+            <a id="link" href=""><img id="qrcode" src="" alt="LNURL-auth"></a>
+            <div id="success">✓</div>
+        </div>
         <form method="dialog">
             <button>×</button>
         </form>
@@ -68,6 +71,9 @@
                 .then(response => {
                     if (response.status === 401) {
                         initLnAuth(signUpButton)
+                    } else if (element('dialog').open) {
+                        element('success').style.visibility = 'visible'
+                        setTimeout(() => document.location.reload(), 3000)
                     } else {
                         document.location.reload()
                     }

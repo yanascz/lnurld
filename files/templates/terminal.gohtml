@@ -135,7 +135,7 @@
             .then(invoice => {
                 if (invoice.settled) {
                     element('success').style.visibility = 'visible'
-                    setTimeout(() => document.location.reload(), 8000)
+                    setTimeout(() => document.location.reload(), 7000)
                 } else {
                     setTimeout(awaitSettlement, 1000)
                 }

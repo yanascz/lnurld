@@ -125,6 +125,28 @@ dialog::backdrop {
     opacity: .5;
 }
 
+dialog div.lnurl {
+    position: relative;
+}
+
+dialog div#success {
+    visibility: hidden;
+    position: absolute;
+    top: 10%;
+    left: 10%;
+    width: 80%;
+    height: 80%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    background-color: green;
+    font-size: 200px;
+    font-weight: bold;
+    color: white;
+    opacity: .97;
+}
+
 dialog h2 {
     margin-bottom: 12px;
     font-size: 24px;
