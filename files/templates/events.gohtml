@@ -47,6 +47,9 @@
             {{end}}
         </ul>
     {{end}}
+    {{if and (not .Events) (not .PastEvents)}}
+        <footer>No events to show.</footer>
+    {{end}}
 </main>
 
 <dialog id="dialog">

@@ -242,6 +242,14 @@ main.account div.invoices ul li div {
     justify-content: space-between;
 }
 
+main.events footer {
+    margin-top: 20px;
+}
+
+main.raffles footer {
+    margin-top: 20px;
+}
+
 main.raffle {
     align-items: center;
 }
