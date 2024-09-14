@@ -554,10 +554,13 @@ func authAccountTerminalHandler(context *gin.Context) {
 }
 
 func authEventsHandler(context *gin.Context) {
+	authenticatedUser := getAuthenticatedUser(context)
+
 	var events []*Event
 	var pastEvents []*Event
 	for _, event := range repository.getEvents() {
 		if isUserAuthorized(context, event.Owner) {
+			event.IsMine = event.Owner == authenticatedUser
 			if event.isInPast() {
 				pastEvents = append(pastEvents, event)
 			} else {
@@ -573,10 +576,13 @@ func authEventsHandler(context *gin.Context) {
 }
 
 func authRafflesHandler(context *gin.Context) {
+	authenticatedUser := getAuthenticatedUser(context)
+
 	var raffles []*Raffle
 	var drawnRaffles []*Raffle
 	for _, raffle := range repository.getRaffles() {
 		if isUserAuthorized(context, raffle.Owner) {
+			raffle.IsMine = raffle.Owner == authenticatedUser
 			if repository.isRaffleDrawAvailable(raffle) {
 				drawnRaffles = append(drawnRaffles, raffle)
 			} else {
@@ -739,7 +745,7 @@ func apiEventCreateHandler(context *gin.Context) {
 		abortWithBadRequestResponse(context, err.Error())
 		return
 	}
-	event.Owner = context.GetString(gin.AuthUserKey)
+	event.Owner = getAuthenticatedUser(context)
 
 	err := repository.createEvent(&event)
 	if err != nil {
@@ -792,7 +798,7 @@ func apiRaffleCreateHandler(context *gin.Context) {
 		abortWithBadRequestResponse(context, err.Error())
 		return
 	}
-	raffle.Owner = context.GetString(gin.AuthUserKey)
+	raffle.Owner = getAuthenticatedUser(context)
 
 	err := repository.createRaffle(&raffle)
 	if err != nil {
@@ -944,11 +950,11 @@ func getAccessibleAccounts(context *gin.Context) map[string]Account {
 }
 
 func isAccountAccessible(context *gin.Context, accountKey string) bool {
-	user := context.GetString(gin.AuthUserKey)
-	if slices.Contains(config.Administrators, user) {
+	authenticatedUser := getAuthenticatedUser(context)
+	if slices.Contains(config.Administrators, authenticatedUser) {
 		return true
 	}
-	return slices.Contains(config.AccessControl[user], accountKey)
+	return slices.Contains(config.AccessControl[authenticatedUser], accountKey)
 }
 
 func getAccountThumbnail(account *Account) *Thumbnail {
@@ -1056,13 +1062,17 @@ func getRaffleDraw(context *gin.Context, raffle *Raffle) []string {
 }
 
 func isUserAuthorized(context *gin.Context, owner string) bool {
-	user := context.GetString(gin.AuthUserKey)
-	return user == owner || slices.Contains(config.Administrators, user)
+	authenticatedUser := getAuthenticatedUser(context)
+	return authenticatedUser == owner || slices.Contains(config.Administrators, authenticatedUser)
 }
 
 func isAdministrator(context *gin.Context) bool {
-	user := context.GetString(gin.AuthUserKey)
-	return slices.Contains(config.Administrators, user)
+	authenticatedUser := getAuthenticatedUser(context)
+	return slices.Contains(config.Administrators, authenticatedUser)
+}
+
+func getAuthenticatedUser(context *gin.Context) string {
+	return context.GetString(gin.AuthUserKey)
 }
 
 func createInvoice(context *gin.Context, msats int64, comment string, descriptionHash []byte) *Invoice {

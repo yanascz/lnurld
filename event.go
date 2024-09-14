@@ -10,6 +10,7 @@ import (
 type Event struct {
 	Id          string        `json:"-"`
 	Owner       string        `json:"owner"`
+	IsMine      bool          `json:"-"`
 	Title       string        `json:"title" binding:"min=1,max=50"`
 	Start       time.Time     `json:"start"`
 	End         time.Time     `json:"end" binding:"gtfield=Start"`
@@ -35,14 +36,22 @@ func (event *Event) getDescriptionParagraphs() []string {
 
 func sortEvents(events []*Event) []*Event {
 	sort.Slice(events, func(i, j int) bool {
-		return events[i].Start.Before(events[j].Start)
+		eventI, eventJ := events[i], events[j]
+		if eventI.IsMine == eventJ.IsMine {
+			return eventI.Start.Before(eventJ.Start)
+		}
+		return eventI.IsMine
 	})
 	return events
 }
 
 func sortPastEvents(events []*Event) []*Event {
 	sort.Slice(events, func(i, j int) bool {
-		return events[i].End.After(events[j].End)
+		eventI, eventJ := events[i], events[j]
+		if eventI.IsMine == eventJ.IsMine {
+			return eventI.End.After(eventJ.End)
+		}
+		return eventI.IsMine
 	})
 	return events
 }

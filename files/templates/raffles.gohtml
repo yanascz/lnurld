@@ -26,6 +26,9 @@
                 <span>{{number .TicketPrice "sat"}} / ticket</span> •
                 <span>{{number .GetPrizesCount "prize"}}</span>
             </p>
+            {{if not .IsMine}}
+                <small>by <strong>{{.Owner}}</strong></small>
+            {{end}}
         </div>
     </a>
 {{end}}

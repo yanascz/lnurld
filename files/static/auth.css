@@ -154,6 +154,12 @@ main ul li p span {
     white-space: nowrap;
 }
 
+main ul li small {
+    margin-bottom: 2px;
+    font-size: 12px;
+    color: grey;
+}
+
 main ul li button {
     align-self: flex-start;
     flex-shrink: 0;

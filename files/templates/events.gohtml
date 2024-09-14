@@ -22,7 +22,13 @@
     <a href="/events/{{.Id}}">
         <div>
             <p><strong>{{.Title}}</strong></p>
-            <p class="subdued"><span>{{datetime .Start}}</span> • <span>{{.Location.Name}}</span></p>
+            <p class="subdued">
+                <span>{{datetime .Start}}</span> •
+                <span>{{.Location.Name}}</span>
+            </p>
+            {{if not .IsMine}}
+                <small>by <strong>{{.Owner}}</strong></small>
+            {{end}}
         </div>
     </a>
 {{end}}

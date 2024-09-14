@@ -9,6 +9,7 @@ import (
 type Raffle struct {
 	Id           string        `json:"-"`
 	Owner        string        `json:"owner"`
+	IsMine       bool          `json:"-"`
 	Title        string        `json:"title" binding:"min=1,max=50"`
 	TicketPrice  uint32        `json:"ticketPrice" binding:"min=1,max=1000000"`
 	FiatCurrency Currency      `json:"fiatCurrency" binding:"required"`
@@ -42,7 +43,11 @@ func raffleTicketNumber(paymentHash string) string {
 
 func sortRaffles(raffles []*Raffle) []*Raffle {
 	sort.Slice(raffles, func(i, j int) bool {
-		return raffles[i].Title < raffles[j].Title
+		raffleI, raffleJ := raffles[i], raffles[j]
+		if raffleI.IsMine == raffleJ.IsMine {
+			return raffleI.Title < raffleJ.Title
+		}
+		return raffleI.IsMine
 	})
 	return raffles
 }
