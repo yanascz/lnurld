@@ -60,8 +60,6 @@ const (
 var (
 	//go:embed files/static
 	staticFs embed.FS
-	//go:embed files/templates
-	templatesFs embed.FS
 	//go:embed files/lightning.png
 	lightningPngData []byte
 	//go:embed files/tombola.png

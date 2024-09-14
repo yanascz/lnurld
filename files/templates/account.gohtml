@@ -19,13 +19,13 @@
 
 <main class="account">
     <div class="balance">
-        <h2><strong>{{number .TotalSatsReceived}}</strong> sat{{if ne .TotalSatsReceived 1}}s{{end}}</h2>
-        <p><strong>{{decimal .TotalFiatReceived}}</strong> {{.FiatCurrency}}</p>
+        <h2>{{number .TotalSatsReceived "sat"}}</h2>
+        <p>{{currency .TotalFiatReceived .FiatCurrency}}</p>
     </div>
     <div class="statistics">
-        <p><strong>{{number .InvoicesIssued}}</strong> invoice{{if ne .InvoicesIssued 1}}s{{end}} issued</p>
-        <p><strong>{{number .InvoicesSettled}}</strong> invoice{{if ne .InvoicesSettled 1}}s{{end}} settled</p>
-        <p><strong>{{number .CommentsCount}}</strong> comment{{if ne .CommentsCount 1}}s{{end}}</p>
+        <p>{{number .InvoicesIssued "invoice"}} issued</p>
+        <p>{{number .InvoicesSettled "invoice"}} settled</p>
+        <p>{{number .CommentsCount "comment"}}</p>
     </div>
     <div class="buttons">
         <button onclick="location.href='/ln/pay/{{.AccountKey}}/qr-code?size=1280'">QR Code</button>
@@ -50,7 +50,7 @@
                 <li>
                     <div>
                         <p><strong>{{time .SettleDate}}</strong></p>
-                        <p><strong>{{number .Amount}}</strong> sat{{if ne .Amount 1}}s{{end}}</p>
+                        <p>{{number .Amount "sat"}}</p>
                     </div>
                     {{if .Comment}}
                         <p class="subdued">{{.Comment}}</p>

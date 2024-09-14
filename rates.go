@@ -6,6 +6,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -24,6 +25,10 @@ const (
 
 func supportedCurrencies() []Currency {
 	return []Currency{CAD, CHF, CZK, EUR, GBP, USD}
+}
+
+func currencyCode(currency Currency) string {
+	return strings.ToUpper(string(currency))
 }
 
 type RatesService struct {

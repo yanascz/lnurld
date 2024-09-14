@@ -93,7 +93,6 @@ main {
 }
 
 main h2 {
-    display: flex;
     margin-top: 24px;
     font-size: 32px;
 }
@@ -185,7 +184,6 @@ main div.balance h2 {
 main div.balance p {
     margin-top: 4px;
     font-size: 20px;
-    text-transform: uppercase;
     color: grey;
 }
 

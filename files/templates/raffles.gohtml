@@ -23,8 +23,8 @@
         <div>
             <p><strong>{{.Title}}</strong></p>
             <p class="subdued">
-                <span><strong>{{number .TicketPrice}}</strong> sat{{if ne .TicketPrice 1}}s{{end}} / ticket</span> •
-                <span><strong>{{.GetPrizesCount}}</strong> prize{{if ne .GetPrizesCount 1}}s{{end}}</span>
+                <span>{{number .TicketPrice "sat"}} / ticket</span> •
+                <span>{{number .GetPrizesCount "prize"}}</span>
             </p>
         </div>
     </a>
@@ -72,7 +72,7 @@
             <label for="fiat-currency">Fiat Currency</label>
             <select id="fiat-currency" oninput="updateFiatAmount()" required>
                 {{range .FiatCurrencies}}
-                    <option value="{{.}}">{{currency .}}</option>
+                    <option value="{{.}}">{{currencyCode .}}</option>
                 {{end}}
             </select>
         </p>

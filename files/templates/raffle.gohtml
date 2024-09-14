@@ -19,13 +19,13 @@
 
 <main class="raffle">
     <div class="balance{{if .WithdrawalFinished}} withdrawn{{end}}">
-        <h2><strong>{{number .TotalSatsReceived}}</strong> sat{{if ne .TotalSatsReceived 1}}s{{end}}</h2>
-        <p><strong>{{decimal .TotalFiatReceived}}</strong> {{.FiatCurrency}}</p>
+        <h2>{{number .TotalSatsReceived "sat"}}</h2>
+        <p>{{currency .TotalFiatReceived .FiatCurrency}}</p>
     </div>
     <div class="statistics">
-        <p><strong>{{number .TicketPrice}}</strong> sat{{if ne .TicketPrice 1}}s{{end}} / ticket</p>
-        <p><strong>{{number .TicketsIssued}}</strong> ticket{{if ne .TicketsIssued 1}}s{{end}} issued</p>
-        <p><strong>{{number .TicketsPaid}}</strong> ticket{{if ne .TicketsPaid 1}}s{{end}} paid</p>
+        <p>{{number .TicketPrice "sat"}} / ticket</p>
+        <p>{{number .TicketsIssued "ticket"}} issued</p>
+        <p>{{number .TicketsPaid "ticket"}} paid</p>
     </div>
     <div class="buttons">
         {{if not .DrawAvailable}}
@@ -40,7 +40,7 @@
         {{end}}
     </div>
     {{if lt .TicketsPaid .PrizesCount}}
-        <footer>{{.PrizesCount}} ticket{{if ne .PrizesCount 1}}s{{end}} required</footer>
+        <footer>{{number .PrizesCount "ticket"}} required</footer>
     {{end}}
 </main>
 

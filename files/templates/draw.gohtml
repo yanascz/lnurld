@@ -82,8 +82,9 @@
     }
 
     function updateTickets() {
-        const tickets = drawnTickets.length
-        ticketsElement.innerText = tickets ? `${tickets} ticket${tickets !== 1 ? 's' : ''}` : ''
+        const count = drawnTickets.length
+        const label = `ticket${count !== 1 ? 's' : ''}`;
+        ticketsElement.innerHTML = count ? `<strong>${count}</strong> ${label} remaining` : ''
     }
 </script>
 
