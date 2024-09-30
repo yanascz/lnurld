@@ -25,6 +25,9 @@
                         <p><strong>{{$accountKey}}</strong></p>
                         <p class="subdued">{{$account.Description}}</p>
                     </div>
+                    {{if $account.NewInvoicesCount}}
+                        <div class="subdued"><strong>{{$account.NewInvoicesCount}}</strong></div>
+                    {{end}}
                 </a>
             </li>
         {{end}}

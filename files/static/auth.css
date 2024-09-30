@@ -144,6 +144,11 @@ main ul li a div {
     flex-direction: column;
 }
 
+main ul li a div.subdued {
+    flex-grow: 0;
+    color: #fde8ce;
+}
+
 main ul li p.subdued {
     margin-top: 2px;
     font-size: 16px;
@@ -238,8 +243,19 @@ main.account div.invoices ul {
 }
 
 main.account div.invoices ul li {
+    position: relative;
     flex-direction: column;
     padding: 12px 16px 12px;
+}
+
+main.account div.invoices ul li.new::before {
+    position: absolute;
+    top: 8px;
+    left: 6px;
+    bottom: 8px;
+    border-left: 4px solid #fde8ce;
+    border-radius: 2px;
+    content: '';
 }
 
 main.account div.invoices ul li div {

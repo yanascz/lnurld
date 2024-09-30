@@ -33,10 +33,16 @@ type LnAuthIdentity struct {
 	Identity string `json:"identity"`
 }
 
+type AccountSummary struct {
+	Description      string
+	NewInvoicesCount int
+}
+
 type AccountInvoice struct {
 	Amount     int64
 	SettleDate time.Time
 	Comment    string
+	IsNew      bool
 }
 
 type InvoiceRequest struct {
@@ -490,8 +496,21 @@ func authHomeHandler(context *gin.Context) {
 }
 
 func authAccountsHandler(context *gin.Context) {
+	authenticatedUser := getAuthenticatedUser(context)
+	userState := repository.getUserState(authenticatedUser)
+
+	accounts := map[string]AccountSummary{}
+	for accountKey, account := range getAccessibleAccounts(context) {
+		currentInvoicesCount := repository.getAccountInvoicesCount(accountKey)
+		previousInvoicesCount := userState.AccountInvoicesCounts[accountKey]
+		accounts[accountKey] = AccountSummary{
+			Description:      account.Description,
+			NewInvoicesCount: currentInvoicesCount - previousInvoicesCount,
+		}
+	}
+
 	context.HTML(http.StatusOK, "accounts.gohtml", gin.H{
-		"Accounts": getAccessibleAccounts(context),
+		"Accounts": accounts,
 	})
 }
 
@@ -501,13 +520,18 @@ func authAccountHandler(context *gin.Context) {
 		return
 	}
 
+	authenticatedUser := getAuthenticatedUser(context)
+	userState := repository.getUserState(authenticatedUser)
+	previousInvoicesCount := userState.AccountInvoicesCounts[accountKey]
+
 	invoices := repository.getAccountInvoices(accountKey)
+	invoicesIssued := len(invoices)
 
 	var invoicesSettled int
 	var totalSatsReceived int64
 	var commentsCount int
 	var accountInvoices []AccountInvoice
-	for _, paymentHash := range invoices {
+	for i, paymentHash := range invoices {
 		invoice, err := lndClient.getInvoice(paymentHash)
 		if err == nil && invoice.isSettled() {
 			invoicesSettled++
@@ -519,8 +543,14 @@ func authAccountHandler(context *gin.Context) {
 				Amount:     invoice.amount,
 				SettleDate: invoice.settleDate,
 				Comment:    invoice.memo,
+				IsNew:      i >= previousInvoicesCount,
 			})
 		}
+	}
+
+	userState.AccountInvoicesCounts[accountKey] = invoicesIssued
+	if err := repository.updateUserState(authenticatedUser, userState); err != nil {
+		log.Println("error updating user state:", err)
 	}
 
 	sort.Slice(accountInvoices, func(i, j int) bool {
@@ -530,7 +560,7 @@ func authAccountHandler(context *gin.Context) {
 	context.HTML(http.StatusOK, "account.gohtml", gin.H{
 		"AccountKey":        accountKey,
 		"FiatCurrency":      account.getCurrency(),
-		"InvoicesIssued":    len(invoices),
+		"InvoicesIssued":    invoicesIssued,
 		"InvoicesSettled":   invoicesSettled,
 		"CommentsCount":     commentsCount,
 		"TotalSatsReceived": totalSatsReceived,

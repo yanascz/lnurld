@@ -47,7 +47,7 @@
                     <ul>
                     {{$previousDate = $date}}
                 {{end}}
-                <li>
+                <li{{if .IsNew}} class="new"{{end}}>
                     <div>
                         <p><strong>{{time .SettleDate}}</strong></p>
                         <p>{{number .Amount "sat"}}</p>

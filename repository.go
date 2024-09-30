@@ -15,10 +15,11 @@ import (
 
 const (
 	pathSeparator   = string(os.PathSeparator)
+	usersDirName    = "users" + pathSeparator
 	accountsDirName = "accounts" + pathSeparator
 	eventsDirName   = "events" + pathSeparator
 	rafflesDirName  = "raffles" + pathSeparator
-	dataFileName    = "data.json"
+	jsonExtension   = ".json"
 	csvExtension    = ".csv"
 )
 
@@ -27,12 +28,17 @@ type Thumbnail struct {
 	ext   string
 }
 
+type UserState struct {
+	AccountInvoicesCounts map[string]int `json:"accountInvoicesCounts"`
+}
+
 type Repository struct {
 	thumbnailDir string
 	dataDir      string
 }
 
 func newRepository(thumbnailDir string, dataDir string) *Repository {
+	_ = createDir(dataDir + usersDirName)
 	_ = createDir(dataDir + accountsDirName)
 	_ = createDir(dataDir + eventsDirName)
 	_ = createDir(dataDir + rafflesDirName)
@@ -60,6 +66,22 @@ func (repository *Repository) getThumbnail(fileName string) (*Thumbnail, error) 
 	}, nil
 }
 
+func (repository *Repository) getUserState(user string) *UserState {
+	state := UserState{AccountInvoicesCounts: map[string]int{}}
+	if err := readObject(userStateFileName(repository, user), &state); err != nil {
+		if !os.IsNotExist(err) {
+			log.Println("error reading user state:", err)
+		}
+	}
+
+	return &state
+}
+
+func (repository *Repository) updateUserState(user string, state *UserState) error {
+	_ = createDir(userDirName(repository, user))
+	return writeObject(userStateFileName(repository, user), state)
+}
+
 func (repository *Repository) addAccountInvoice(accountKey string, invoice *Invoice) error {
 	_ = createDir(accountDirName(repository, accountKey))
 	return appendValue(accountInvoicesFileName(repository, accountKey), invoice.getPaymentHash())
@@ -67,6 +89,13 @@ func (repository *Repository) addAccountInvoice(accountKey string, invoice *Invo
 
 func (repository *Repository) getAccountInvoices(accountKey string) []string {
 	return readValues(accountInvoicesFileName(repository, accountKey))
+}
+
+func (repository *Repository) getAccountInvoicesCount(accountKey string) int {
+	if info, err := os.Stat(accountInvoicesFileName(repository, accountKey)); err == nil {
+		return int(info.Size() / 65) // payment hash + line feed
+	}
+	return 0
 }
 
 func (repository *Repository) archiveAccountInvoices(accountKey string) error {
@@ -216,6 +245,14 @@ func (repository *Repository) createWithdrawal(request *WithdrawalRequest, payme
 	return writeValues(request.fileName, []string{paymentHash})
 }
 
+func userDirName(repository *Repository, user string) string {
+	return repository.dataDir + usersDirName + user + pathSeparator
+}
+
+func userStateFileName(repository *Repository, user string) string {
+	return userDirName(repository, user) + "state" + jsonExtension
+}
+
 func accountDirName(repository *Repository, accountKey string) string {
 	return repository.dataDir + accountsDirName + accountKey + pathSeparator
 }
@@ -229,7 +266,7 @@ func eventDirName(repository *Repository, eventId string) string {
 }
 
 func eventDataFileName(repository *Repository, eventId string) string {
-	return eventDirName(repository, eventId) + dataFileName
+	return eventDirName(repository, eventId) + "data" + jsonExtension
 }
 
 func eventAttendeesFileName(repository *Repository, eventId string) string {
@@ -241,7 +278,7 @@ func raffleDirName(repository *Repository, raffleId string) string {
 }
 
 func raffleDataFileName(repository *Repository, raffleId string) string {
-	return raffleDirName(repository, raffleId) + dataFileName
+	return raffleDirName(repository, raffleId) + "data" + jsonExtension
 }
 
 func raffleTicketsFileName(repository *Repository, raffleId string) string {
