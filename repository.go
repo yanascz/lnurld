@@ -33,8 +33,9 @@ type Repository struct {
 }
 
 func newRepository(thumbnailDir string, dataDir string) *Repository {
-	_ = os.Mkdir(dataDir+eventsDirName, 0755)
-	_ = os.Mkdir(dataDir+rafflesDirName, 0755)
+	_ = createDir(dataDir + accountsDirName)
+	_ = createDir(dataDir + eventsDirName)
+	_ = createDir(dataDir + rafflesDirName)
 
 	return &Repository{
 		thumbnailDir: thumbnailDir,
@@ -60,6 +61,7 @@ func (repository *Repository) getThumbnail(fileName string) (*Thumbnail, error) 
 }
 
 func (repository *Repository) addAccountInvoice(accountKey string, invoice *Invoice) error {
+	_ = createDir(accountDirName(repository, accountKey))
 	return appendValue(accountInvoicesFileName(repository, accountKey), invoice.getPaymentHash())
 }
 
@@ -80,7 +82,7 @@ func (repository *Repository) createEvent(event *Event) error {
 		return err
 	}
 
-	err = os.Mkdir(eventDirName(repository, eventId), 0755)
+	err = createDir(eventDirName(repository, eventId))
 	if err != nil {
 		return err
 	}
@@ -129,7 +131,7 @@ func (repository *Repository) createRaffle(raffle *Raffle) error {
 		return err
 	}
 
-	err = os.Mkdir(raffleDirName(repository, raffleId), 0755)
+	err = createDir(raffleDirName(repository, raffleId))
 	if err != nil {
 		return err
 	}
@@ -265,6 +267,10 @@ func randomId() (string, error) {
 	}
 
 	return base58.Encode(random), nil
+}
+
+func createDir(name string) error {
+	return os.Mkdir(name, 0755)
 }
 
 func writeObject(fileName string, object any) error {
