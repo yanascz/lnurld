@@ -45,8 +45,8 @@ header {
     max-width: 360px;
     margin: 0 auto;
     padding: 0 8px;
-    align-items: center;
     justify-content: space-between;
+    align-items: center;
 }
 
 header.center {
@@ -123,8 +123,8 @@ main ul li:not(:last-child) {
 main ul li a {
     display: flex;
     flex-grow: 1;
-    align-items: center;
     padding: 12px 16px 12px;
+    align-items: center;
     gap: 8px;
     text-decoration: none;
 }
@@ -184,6 +184,7 @@ main ul li button {
 
 main div.balance {
     display: flex;
+    margin: 4px 0;
     flex-direction: column;
     align-items: center;
 }
@@ -194,15 +195,15 @@ main div.balance h2 {
 
 main div.balance p {
     margin-top: 4px;
-    font-size: 20px;
+    font-size: 16px;
     color: grey;
 }
 
 main div.statistics {
     display: flex;
+    margin: 24px 0 8px;
     flex-direction: column;
     gap: 8px;
-    margin: 24px 0 8px;
     font-size: 24px;
 }
 
@@ -281,45 +282,66 @@ main.raffle div.withdrawn p {
     text-decoration: line-through;
 }
 
-main.draw {
-    max-width: unset;
+main.draw div.prize {
+    display: flex;
+    height: 64px;
+    margin: 24px 16px;
     align-items: center;
+    gap: 16px;
 }
 
-main.draw h2 {
-    margin-top: 28px;
-    font-size: 24px;
+main.draw div.prize svg {
+    flex-shrink: 0;
+    width: 64px;
+    color: #fff9
+}
+
+main.draw div.prize div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+main.draw div.prize div h2 {
+    margin: 0;
+    font-size: 20px;
     font-weight: normal;
 }
 
-main.draw dl {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    max-width: 768px;
+main.draw div.prize div p {
+    font-size: 16px;
+    color: grey;
 }
 
-main.draw dl div {
+main.draw div.prize p sup {
+    font-size: 10px;
+    vertical-align: text-top;
+}
+
+main.draw div.ticket {
     display: flex;
-    width: 256px;
+    padding: 44px 0 48px;
     flex-direction: column;
     align-items: center;
+    gap: 12px;
+    border-radius: 12px;
+    background: #fff9;
 }
 
-main.draw dl dt {
-    margin-top: 24px;
+main.draw div.ticket h3 {
+    margin: 0;
     font-size: 64px;
     font-weight: bold;
 }
 
-main.draw dl dd {
-    margin-top: 8px;
+main.draw div.ticket p {
+    margin: 0;
     font-size: 20px;
     color: grey;
 }
 
 main.draw div.buttons {
-    margin-top: 44px;
+    margin-top: 32px;
 }
 
 dialog {

@@ -689,7 +689,7 @@ func authRaffleDrawHandler(context *gin.Context) {
 
 	context.HTML(http.StatusOK, "draw.gohtml", gin.H{
 		"Title":        raffle.Title,
-		"Prizes":       raffle.Prizes,
+		"Prizes":       raffle.GetPrizes(),
 		"DrawnTickets": drawnTickets,
 	})
 }

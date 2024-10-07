@@ -16,6 +16,16 @@ type Raffle struct {
 	Prizes       []RafflePrize `json:"prizes" binding:"min=1,max=21"`
 }
 
+func (raffle *Raffle) GetPrizes() []string {
+	var prizes []string
+	for _, prize := range raffle.Prizes {
+		for i := uint8(0); i < prize.Quantity; i++ {
+			prizes = append(prizes, prize.Name)
+		}
+	}
+	return prizes
+}
+
 func (raffle *Raffle) GetPrizesCount() int {
 	var prizesCount int
 	for _, prize := range raffle.Prizes {
