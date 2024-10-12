@@ -7,6 +7,7 @@ import (
 	"golang.org/x/text/message"
 	"html/template"
 	"log"
+	"strconv"
 	"time"
 )
 
@@ -28,6 +29,9 @@ func loadTemplates(engine *gin.Engine, pattern string) {
 			}
 			return htmlValue(numberFormatted, unit)
 		},
+		"ordinal": func(ordinal int) template.HTML {
+			return template.HTML(strconv.Itoa(ordinal) + "<sup>" + ordinalSuffix(ordinal) + "</sup>")
+		},
 		"currency": func(amount any, currency Currency) template.HTML {
 			return htmlValue(printer.Sprintf("%.2f", amount), currencyCode(currency))
 		},
@@ -40,6 +44,9 @@ func loadTemplates(engine *gin.Engine, pattern string) {
 		},
 		"datetime": func(date time.Time) string {
 			return date.In(location).Format("02/01/2006 15:04")
+		},
+		"inc": func(number int) int {
+			return number + 1
 		},
 	}
 
@@ -54,4 +61,11 @@ func loadTemplates(engine *gin.Engine, pattern string) {
 
 func htmlValue(value string, unit string) template.HTML {
 	return template.HTML("<strong>" + value + "</strong> " + unit)
+}
+
+func ordinalSuffix(ordinal int) string {
+	if i := ((ordinal+90)%100-10)%10 - 1; i >= 0 && i < 3 {
+		return []string{"st", "nd", "rd"}[i]
+	}
+	return "th"
 }

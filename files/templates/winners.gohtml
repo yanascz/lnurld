@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" media="all" href="/static/auth.css">
+
+    <title>{{.Title}}</title>
+
+</head>
+<body>
+
+<header class="center">
+    <h1 class="raffle">{{.Title}}</h1>
+</header>
+
+<main>
+    {{$ordinal := 1}}
+    {{range .PrizeWinners}}
+        <h3>{{.Prize}}</h3>
+        <ul class="plain">
+            {{range .Tickets}}
+                <li>
+                    <div>
+                        <p><strong>{{.Number}}</strong></p>
+                        <p class="subdued">{{.PaymentHash}}</p>
+                    </div>
+                    <aside class="large">{{ordinal $ordinal}}</aside>
+                </li>
+                {{$ordinal = inc $ordinal}}
+            {{end}}
+        </ul>
+    {{end}}
+</main>
+
+</body>
+</html>

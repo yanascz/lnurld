@@ -40,6 +40,11 @@ div.buttons button:disabled {
     cursor: default;
 }
 
+sup {
+    font-size: .6em;
+    vertical-align: text-top;
+}
+
 header {
     display: flex;
     max-width: 360px;
@@ -144,11 +149,6 @@ main ul li a div {
     flex-direction: column;
 }
 
-main ul li a div.subdued {
-    flex-grow: 0;
-    color: #fde8ce;
-}
-
 main ul li p.subdued {
     margin-top: 2px;
     font-size: 16px;
@@ -157,6 +157,16 @@ main ul li p.subdued {
 
 main ul li p span {
     white-space: nowrap;
+}
+
+main ul li aside {
+    flex-grow: 0;
+    color: #fde8ce;
+}
+
+main ul li aside.large {
+    margin-top: -2px;
+    font-size: 32px;
 }
 
 main ul li small {
@@ -180,6 +190,12 @@ main ul li button {
     line-height: 20px;
     cursor: pointer;
     transform: scaleX(-1);
+}
+
+main ul.plain li {
+    padding: 12px 16px 12px;
+    align-items: center;
+    justify-content: space-between;
 }
 
 main div.balance {
@@ -283,10 +299,10 @@ main.raffle div.withdrawn p {
 }
 
 main.draw div.prize {
+    position: relative;
     display: flex;
-    height: 64px;
-    margin: 24px 16px;
-    align-items: center;
+    margin: 28px 16px 20px;
+    align-items: flex-start;
     gap: 16px;
 }
 
@@ -296,26 +312,20 @@ main.draw div.prize svg {
     color: #fff9
 }
 
-main.draw div.prize div {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-main.draw div.prize div h2 {
-    margin: 0;
+main.draw div.prize h2 {
+    margin-top: 4px;
     font-size: 20px;
     font-weight: normal;
 }
 
-main.draw div.prize div p {
-    font-size: 16px;
+main.draw div.prize p {
+    position: absolute;
+    top: 4px;
+    width: 64px;
+    font-size: 20px;
+    /*font-weight: bold;*/
+    text-align: center;
     color: grey;
-}
-
-main.draw div.prize p sup {
-    font-size: 10px;
-    vertical-align: text-top;
 }
 
 main.draw div.ticket {

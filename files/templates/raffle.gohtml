@@ -31,7 +31,11 @@
         {{if not .DrawAvailable}}
             <button onclick="location.href='/ln/raffle/{{.Id}}/qr-code?size=1280'">QR Code</button>
         {{end}}
-        <button {{if ge .TicketsPaid .PrizesCount}}onclick="draw()"{{else}}disabled{{end}}>Draw</button>
+        {{if not .DrawFinished}}
+            <button {{if ge .TicketsPaid .PrizesCount}}onclick="draw()"{{else}}disabled{{end}}>Draw</button>
+        {{else}}
+            <button onclick="location.href='/auth/raffles/{{.Id}}/draw'">Winners</button>
+        {{end}}
         {{if .Withdrawable}}
             <button onclick="withdraw()">Withdraw</button>
         {{end}}

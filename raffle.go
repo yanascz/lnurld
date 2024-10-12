@@ -44,11 +44,51 @@ type RaffleTicket struct {
 	PaymentHash string `json:"paymentHash"`
 }
 
+type RaffleDrawCommit struct {
+	SkippedTickets []string `json:"skippedTickets"`
+}
+
+type RafflePrizeWinners struct {
+	Prize   string
+	Tickets []RaffleTicket
+}
+
 func raffleTicketNumber(paymentHash string) string {
 	if bytes, err := hex.DecodeString(paymentHash); err == nil {
 		return base58.Encode(bytes)[0:5]
 	}
 	return ""
+}
+
+func raffleTickets(paymentHashes []string) []RaffleTicket {
+	var tickets []RaffleTicket
+	for _, paymentHash := range paymentHashes {
+		tickets = append(tickets, RaffleTicket{
+			Number:      raffleTicketNumber(paymentHash),
+			PaymentHash: paymentHash,
+		})
+	}
+	return tickets
+}
+
+func rafflePrizeWinners(raffle *Raffle, paymentHashes []string) []RafflePrizeWinners {
+	var prizeWinners []RafflePrizeWinners
+	for _, prize := range raffle.Prizes {
+		var tickets []RaffleTicket
+		for i := uint8(0); i < prize.Quantity; i++ {
+			paymentHash := paymentHashes[0]
+			paymentHashes = paymentHashes[1:]
+			tickets = append(tickets, RaffleTicket{
+				Number:      raffleTicketNumber(paymentHash),
+				PaymentHash: paymentHash[0:5] + "…" + paymentHash[59:],
+			})
+		}
+		prizeWinners = append(prizeWinners, RafflePrizeWinners{
+			Prize:   prize.Name,
+			Tickets: tickets,
+		})
+	}
+	return prizeWinners
 }
 
 func sortRaffles(raffles []*Raffle) []*Raffle {

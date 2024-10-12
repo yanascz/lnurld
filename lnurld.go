@@ -140,6 +140,7 @@ func main() {
 	authorized.POST("/api/raffles", apiRaffleCreateHandler)
 	authorized.GET("/api/raffles/:id", apiRaffleReadHandler)
 	authorized.PUT("/api/raffles/:id", apiRaffleUpdateHandler)
+	authorized.POST("/api/raffles/:id/draw", apiRaffleDrawCommitHandler)
 	authorized.POST("/api/raffles/:id/withdraw", apiRaffleWithdrawHandler)
 	authorized.POST("/api/raffles/:id/lock", apiRaffleLockHandler)
 
@@ -637,6 +638,7 @@ func authRaffleHandler(context *gin.Context) {
 
 	tickets := repository.getRaffleTickets(raffle)
 	drawAvailable := repository.isRaffleDrawAvailable(raffle)
+	drawFinished := repository.isRaffleDrawFinished(raffle)
 	withdrawalFinished := repository.isRaffleWithdrawalFinished(raffle)
 	locked := repository.isRaffleLocked(raffle)
 
@@ -661,10 +663,11 @@ func authRaffleHandler(context *gin.Context) {
 		"TotalSatsReceived":  totalSatsReceived,
 		"TotalFiatReceived":  ratesService.satsToFiat(raffle.FiatCurrency, totalSatsReceived),
 		"DrawAvailable":      drawAvailable,
-		"Withdrawable":       drawAvailable && !withdrawalFinished && !locked,
+		"DrawFinished":       drawFinished,
+		"Withdrawable":       drawFinished && !withdrawalFinished && !locked,
 		"WithdrawalFinished": withdrawalFinished,
 		"WithdrawalExpiry":   config.Withdrawal.RequestExpiry.Milliseconds(),
-		"Lockable":           drawAvailable && !withdrawalFinished && !locked && isAdministrator(context),
+		"Lockable":           drawFinished && !withdrawalFinished && !locked && isAdministrator(context),
 	})
 }
 
@@ -674,23 +677,24 @@ func authRaffleDrawHandler(context *gin.Context) {
 		return
 	}
 
+	if repository.isRaffleDrawFinished(raffle) {
+		context.HTML(http.StatusOK, "winners.gohtml", gin.H{
+			"Title":        raffle.Title,
+			"PrizeWinners": rafflePrizeWinners(raffle, repository.getRaffleWinners(raffle)),
+		})
+		return
+	}
+
 	raffleDraw := getRaffleDraw(context, raffle)
 	if raffleDraw == nil {
 		return
 	}
 
-	var drawnTickets []RaffleTicket
-	for _, paymentHash := range raffleDraw {
-		drawnTickets = append(drawnTickets, RaffleTicket{
-			Number:      raffleTicketNumber(paymentHash),
-			PaymentHash: paymentHash[0:5] + "…" + paymentHash[59:],
-		})
-	}
-
 	context.HTML(http.StatusOK, "draw.gohtml", gin.H{
+		"Id":           raffle.Id,
 		"Title":        raffle.Title,
 		"Prizes":       raffle.GetPrizes(),
-		"DrawnTickets": drawnTickets,
+		"DrawnTickets": raffleTickets(raffleDraw),
 	})
 }
 
@@ -875,12 +879,55 @@ func apiRaffleUpdateHandler(context *gin.Context) {
 	context.JSON(http.StatusOK, updatedRaffle)
 }
 
+func apiRaffleDrawCommitHandler(context *gin.Context) {
+	raffle := getAccessibleRaffle(context)
+	if raffle == nil {
+		return
+	}
+	if !repository.isRaffleDrawAvailable(raffle) || repository.isRaffleDrawFinished(raffle) {
+		abortWithBadRequestResponse(context, "not commitable")
+		return
+	}
+
+	var raffleDrawCommit RaffleDrawCommit
+	if err := context.BindJSON(&raffleDrawCommit); err != nil {
+		abortWithBadRequestResponse(context, err.Error())
+		return
+	}
+
+	raffleDraw := repository.getRaffleDraw(raffle)
+	skippedTickets := raffleDrawCommit.SkippedTickets
+	slices.DeleteFunc(raffleDraw, func(ticket string) bool {
+		if slices.Contains(skippedTickets, ticket) {
+			skippedTickets = skippedTickets[1:]
+			return true
+		}
+		return false
+	})
+
+	prizesCount := raffle.GetPrizesCount()
+	if len(raffleDraw) < prizesCount || len(skippedTickets) > 0 {
+		abortWithBadRequestResponse(context, "invalid commit request")
+		return
+	}
+
+	raffleWinners := raffleDraw[0:prizesCount]
+	slices.Reverse(raffleWinners)
+
+	if err := repository.createRaffleWinners(raffle, raffleWinners); err != nil {
+		abortWithInternalServerErrorResponse(context, fmt.Errorf("storing raffle winners: %w", err))
+		return
+	}
+
+	context.Status(http.StatusNoContent)
+}
+
 func apiRaffleWithdrawHandler(context *gin.Context) {
 	raffle := getAccessibleRaffle(context)
 	if raffle == nil {
 		return
 	}
-	if repository.isRaffleWithdrawalFinished(raffle) || repository.isRaffleLocked(raffle) {
+	if !repository.isRaffleDrawFinished(raffle) || repository.isRaffleWithdrawalFinished(raffle) || repository.isRaffleLocked(raffle) {
 		abortWithBadRequestResponse(context, "not withdrawable")
 		return
 	}
@@ -911,7 +958,7 @@ func apiRaffleLockHandler(context *gin.Context) {
 	if raffle == nil {
 		return
 	}
-	if !repository.isRaffleDrawAvailable(raffle) || repository.isRaffleWithdrawalFinished(raffle) {
+	if !repository.isRaffleDrawFinished(raffle) || repository.isRaffleWithdrawalFinished(raffle) {
 		abortWithBadRequestResponse(context, "not lockable")
 		return
 	}

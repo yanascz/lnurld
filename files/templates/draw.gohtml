@@ -22,18 +22,17 @@
         <svg viewBox="0 0 64 56" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
             <path d="M44.4445 0H19.5556C16.6111 0 14.2111 2.38438 14.3222 5.27188C14.3444 5.85156 14.3667 6.43125 14.4 7H2.66667C1.18889 7 0 8.17031 0 9.625C0 19.7531 3.72222 26.7969 8.72222 31.5766C13.6444 36.2906 19.6444 38.6641 24.0667 39.8672C26.6667 40.5781 28.4444 42.7109 28.4444 44.8547C28.4444 47.1406 26.5 48.4711 24.2333 49.3678L21.3333 50.3678C19.5 50.9711 17.7778 51.9318 17.7778 53.8678C17.7778 55.8037 18.0333 56 20 56H44C45.9667 56 46.2222 55.8037 46.2222 53.8678C46.2222 51.9318 44.5 50.9711 42.6667 50.3678L39.7667 49.3678C37.5 48.4711 35.5556 47.1406 35.5556 44.8547C35.5556 42.7109 37.3222 40.5672 39.9333 39.8672C44.3667 38.6641 50.3667 36.2906 55.2889 31.5766C60.2778 26.7969 64 19.7531 64 9.625C64 8.17031 62.8111 7 61.3333 7H49.6C49.6333 6.43125 49.6556 5.8625 49.6778 5.27188C49.7889 2.38438 47.3889 0 44.4445 0ZM5.43333 12.25H14.8111C15.8222 22.1047 18.0556 28.6891 20.5778 33.0969C17.8111 31.8937 14.9333 30.1984 12.4444 27.8141C8.88889 24.4125 6 19.5016 5.44444 12.25H5.43333ZM51.5667 27.8141C49.0778 30.1984 46.2 31.8937 43.4333 33.0969C45.9556 28.6891 48.1889 22.1047 49.2 12.25H58.5778C58.0111 19.5016 55.1222 24.4125 51.5778 27.8141H51.5667Z"/>
         </svg>
-        <div>
-            <h2 id="prize-name">✱ ✱ ✱ ✱ ✱ ✱</h2>
-            <p id="prize-ordinal">✱ ✱ ✱</p>
-        </div>
+        <h2 id="prize-name">✱ ✱ ✱ ✱ ✱ ✱</h2>
+        <p id="prize-ordinal">✱</p>
     </div>
     <div class="ticket">
         <h3 id="ticket-number">✱ ✱ ✱</h3>
         <p id="ticket-payment-hash">✱ ✱ ✱ ✱ ✱ ✱</p>
     </div>
     <div class="buttons">
-        <button id="next-prize" accesskey="p">Next prize</button>
-        <button id="next-ticket" accesskey="t">Next ticket</button>
+        <button id="start-draw" onclick="startDraw()" accesskey="d">Start draw</button>
+        <button id="confirm-ticket" onclick="confirmTicket()" accesskey="c" disabled hidden>Confirm ticket</button>
+        <button id="skip-ticket" onclick="skipTicket()" accesskey="s" disabled hidden>Skip ticket</button>
     </div>
 </main>
 
@@ -42,46 +41,62 @@
 <script>
     const prizes = {{.Prizes}}
     const drawnTickets = {{.DrawnTickets}}
+    const skippedTickets = []
 
     const prizeNameElement = element('prize-name')
     const prizeOrdinalElement = element('prize-ordinal')
     const ticketNumberElement = element('ticket-number')
     const ticketPaymentHashElement = element('ticket-payment-hash')
-    const nextPrizeButton = element('next-prize')
-    const nextTicketButton = element('next-ticket')
+    const startDrawButton = element('start-draw')
+    const confirmTicketButton = element('confirm-ticket')
+    const skipTicketButton = element('skip-ticket')
     const remainingTicketsElement = element('remaining-tickets')
 
-    nextPrizeButton.onclick = nextPrize
-    nextTicketButton.onclick = nextTicket
-    disableAndHide(nextTicketButton, true)
+    let currentTicket
+
     updateRemainingTickets()
 
-    function nextPrize() {
-        prizeNameElement.innerText = prizes.pop()
-        prizeOrdinalElement.innerHTML = prizeOrdinal(prizes.length + 1)
+    function startDraw() {
+        startDrawButton.remove()
+        nextPrize()
+    }
+
+    function confirmTicket() {
+        if (prizes.length > 0) {
+            nextPrize()
+        } else {
+            post('/api/raffles/{{.Id}}/draw', { skippedTickets })
+                .then(() => document.location.reload())
+        }
+    }
+
+    function skipTicket() {
+        skippedTickets.push(currentTicket.paymentHash)
         nextTicket()
     }
 
-    function prizeOrdinal(ordinal) {
-        return `${ordinal}<sup>${ordinalSuffix(ordinal)}</sup> prize`
-    }
-
-    function ordinalSuffix(value) {
-        return ['st', 'nd', 'rd'][((value + 90) % 100 - 10) % 10 - 1] || 'th'
+    function nextPrize() {
+        prizeNameElement.innerText = prizes.pop()
+        prizeOrdinalElement.innerHTML = prizes.length + 1
+        disableAndHide(confirmTicketButton, drawnTickets.length === 0)
+        nextTicket()
     }
 
     function nextTicket() {
-        const ticket = drawnTickets.shift()
-        ticketNumberElement.innerText = ticket.number
-        ticketPaymentHashElement.innerText = ticket.paymentHash
-        disableAndHide(nextPrizeButton, prizes.length === 0 || drawnTickets.length === 0)
-        disableAndHide(nextTicketButton, drawnTickets.length === 0)
+        currentTicket = drawnTickets.shift()
+        ticketNumberElement.innerText = currentTicket.number
+        ticketPaymentHashElement.innerText = ticketPaymentHash(currentTicket)
+        disableAndHide(skipTicketButton, prizes.length >= drawnTickets.length)
         updateRemainingTickets()
     }
 
-    function disableAndHide(element, disabledAndHidden) {
-        element.disabled = disabledAndHidden
-        element.hidden = disabledAndHidden
+    function ticketPaymentHash({ paymentHash }) {
+        return paymentHash.slice(0, 5) + '…' + paymentHash.slice(59)
+    }
+
+    function disableAndHide(button, disabledAndHidden) {
+        button.disabled = disabledAndHidden
+        button.hidden = disabledAndHidden
     }
 
     function updateRemainingTickets() {

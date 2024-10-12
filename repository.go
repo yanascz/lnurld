@@ -216,6 +216,19 @@ func (repository *Repository) getRaffleDraw(raffle *Raffle) []string {
 	return readValues(raffleDrawFileName(repository, raffle.Id))
 }
 
+func (repository *Repository) isRaffleDrawFinished(raffle *Raffle) bool {
+	_, err := os.Stat(raffleWinnersFileName(repository, raffle.Id))
+	return err == nil
+}
+
+func (repository *Repository) createRaffleWinners(raffle *Raffle, paymentHashes []string) error {
+	return writeValues(raffleWinnersFileName(repository, raffle.Id), paymentHashes)
+}
+
+func (repository *Repository) getRaffleWinners(raffle *Raffle) []string {
+	return readValues(raffleWinnersFileName(repository, raffle.Id))
+}
+
 func (repository *Repository) isRaffleWithdrawalFinished(raffle *Raffle) bool {
 	_, err := os.Stat(raffleWithdrawalFileName(repository, raffle.Id))
 	return err == nil
@@ -287,6 +300,10 @@ func raffleTicketsFileName(repository *Repository, raffleId string) string {
 
 func raffleDrawFileName(repository *Repository, raffleId string) string {
 	return raffleDirName(repository, raffleId) + "draw" + csvExtension
+}
+
+func raffleWinnersFileName(repository *Repository, raffleId string) string {
+	return raffleDirName(repository, raffleId) + "winners" + csvExtension
 }
 
 func raffleWithdrawalFileName(repository *Repository, raffleId string) string {
