@@ -15,17 +15,17 @@ a {
 
 div.buttons {
     display: flex;
+    margin: 24px auto 12px;
     flex-direction: column;
-    margin: 24px auto 0;
+    gap: 12px;
 }
 
 div.buttons button {
-    margin-bottom: 12px;
-    padding: 12px 24px;
-    border: none;
+    padding: 11px 23px;
+    border: 1px solid #f7931a;
     border-radius: 8px;
-    background-color: grey;
-    color: white;
+    background-color: inherit;
+    color: #f7931a;
     font-size: 20px;
     font-weight: bold;
     cursor: pointer;
@@ -33,6 +33,7 @@ div.buttons button {
 
 div.buttons button:first-child {
     background-color: #f7931a;
+    color: white;
 }
 
 div.buttons button:disabled {
@@ -182,11 +183,12 @@ main ul li button {
     height: 32px;
     margin: 12px 12px 0 0;
     padding: 0;
-    border: none;
+    border: 1px solid #f7931a;
     border-radius: 8px;
-    background-color: grey;
-    color: white;
+    background-color: inherit;
+    color: #f7931a;
     font-size: 20px;
+    font-weight: bold;
     line-height: 20px;
     cursor: pointer;
     transform: scaleX(-1);
@@ -449,7 +451,7 @@ dialog textarea {
 }
 
 dialog div.buttons {
-    margin: 16px auto 8px;
+    margin: 16px auto 20px;
     align-items: center;
 }
 

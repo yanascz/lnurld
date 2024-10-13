@@ -88,8 +88,8 @@ main div {
 
 main button {
     margin-bottom: 12px;
-    padding: 12px 24px;
-    border: none;
+    padding: 11px 23px;
+    border: 1px solid #f7931a;
     border-radius: 8px;
     background-color: #f7931a;
     color: white;
@@ -99,7 +99,8 @@ main button {
 }
 
 main button.secondary {
-    background-color: grey;
+    background-color: inherit;
+    color: #f7931a;
 }
 
 main button:disabled {

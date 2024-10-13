@@ -29,18 +29,18 @@
     </div>
     <div class="buttons">
         {{if not .DrawAvailable}}
-            <button onclick="location.href='/ln/raffle/{{.Id}}/qr-code?size=1280'">QR Code</button>
+            <button onclick="location.href='/ln/raffle/{{.Id}}/qr-code?size=1280'">Show QR code</button>
         {{end}}
         {{if not .DrawFinished}}
-            <button {{if ge .TicketsPaid .PrizesCount}}onclick="draw()"{{else}}disabled{{end}}>Draw</button>
+            <button {{if ge .TicketsPaid .PrizesCount}}onclick="drawRaffle()" {{else}}disabled{{end}}>Draw raffle</button>
         {{else}}
-            <button onclick="location.href='/auth/raffles/{{.Id}}/draw'">Winners</button>
+            <button onclick="location.href='/auth/raffles/{{.Id}}/draw'">Show winners</button>
         {{end}}
         {{if .Withdrawable}}
-            <button onclick="withdraw()">Withdraw</button>
+            <button onclick="withdrawSats()">Withdraw sats</button>
         {{end}}
         {{if .Lockable}}
-            <button onclick="lock()">Lock</button>
+            <button onclick="lockRaffle()">Lock raffle</button>
         {{end}}
     </div>
     {{if lt .TicketsPaid .PrizesCount}}
@@ -63,9 +63,9 @@
 <script>
     const withdrawalExpiry = {{.WithdrawalExpiry}}
 
-    function draw() {
+    function drawRaffle() {
         {{if not .DrawAvailable}}
-        if (!confirm('Stop ticket sale and start raffle draw?')) {
+        if (!confirm('Stop ticket sale and draw the raffle?')) {
             return false
         }
         {{end}}
@@ -75,7 +75,7 @@
     let k1
     let deadline
 
-    function withdraw() {
+    function withdrawSats() {
         post('/api/raffles/{{.Id}}/withdraw')
             .then(response => {
                 if (response.ok) {
@@ -111,7 +111,7 @@
             })
     }
 
-    function lock() {
+    function lockRaffle() {
         if (!confirm('Really lock the raffle?')) {
             return false
         }

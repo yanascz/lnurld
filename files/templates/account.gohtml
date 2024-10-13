@@ -28,10 +28,10 @@
         <p>{{number .CommentsCount "comment"}}</p>
     </div>
     <div class="buttons">
-        <button onclick="location.href='/ln/pay/{{.AccountKey}}/qr-code?size=1280'">QR Code</button>
-        <button onclick="location.href='/auth/accounts/{{.AccountKey}}/terminal'">Terminal</button>
+        <button onclick="location.href='/ln/pay/{{.AccountKey}}/qr-code?size=1280'">Show QR code</button>
+        <button onclick="location.href='/auth/accounts/{{.AccountKey}}/terminal'">Open terminal</button>
         {{if .Archivable}}
-            <button onclick="archive()">Archive</button>
+            <button onclick="archiveInvoices()">Archive invoices</button>
         {{end}}
     </div>
     {{if .Invoices}}
@@ -63,8 +63,8 @@
 </main>
 
 <script>
-    function archive() {
-        if (!confirm('Really archive the account?')) {
+    function archiveInvoices() {
+        if (!confirm('Really archive the invoices?')) {
             return false
         }
         post('/api/accounts/{{.AccountKey}}/archive')
