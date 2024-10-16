@@ -336,8 +336,13 @@ func lnRaffleTicketHandler(context *gin.Context) {
 		return
 	}
 
+	comment := ""
+	if raffle.Id == "VXj58rd" {
+		comment = "Ticket HoKUs"
+	}
+
 	descriptionHash := sha256.Sum256([]byte(lnurlMetadata.Encode()))
-	invoice := createInvoice(context, msats, "", descriptionHash[:])
+	invoice := createInvoice(context, msats, comment, descriptionHash[:])
 	if invoice == nil {
 		return
 	}
