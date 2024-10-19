@@ -7,9 +7,11 @@ import (
 	"time"
 )
 
+type EventId string
+
 type Event struct {
-	Id          string        `json:"-"`
-	Owner       string        `json:"owner"`
+	Id          EventId       `json:"-"`
+	Owner       UserKey       `json:"owner"`
 	IsMine      bool          `json:"-"`
 	Title       string        `json:"title" binding:"min=1,max=50"`
 	Start       time.Time     `json:"start"`
@@ -30,7 +32,7 @@ func (event *Event) isInPast() bool {
 
 var paragraphSeparator = regexp.MustCompile("(\\s*\n){2,}")
 
-func (event *Event) getDescriptionParagraphs() []string {
+func (event *Event) descriptionParagraphs() []string {
 	return paragraphSeparator.Split(event.Description, -1)
 }
 
@@ -61,7 +63,7 @@ func iCalendarEvent(event *Event, host string) string {
 		"VERSION:2.0\n" +
 		"PRODID:-//yanascz//NONSGML LNURL Daemon//EN\n" +
 		"BEGIN:VEVENT\n" +
-		"UID:event-" + event.Id + "@" + host + "\n" +
+		"UID:event-" + string(event.Id) + "@" + host + "\n" +
 		"DTSTAMP:" + iCalendarDateTime(time.Now()) + "\n" +
 		"SUMMARY:" + iCalendarText(event.Title) + "\n" +
 		"DTSTART:" + iCalendarDateTime(event.Start) + "\n" +

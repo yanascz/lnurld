@@ -1,14 +1,15 @@
 package main
 
 import (
-	"encoding/hex"
 	"github.com/mr-tron/base58"
 	"sort"
 )
 
+type RaffleId string
+
 type Raffle struct {
-	Id           string        `json:"-"`
-	Owner        string        `json:"owner"`
+	Id           RaffleId      `json:"-"`
+	Owner        UserKey       `json:"owner"`
 	IsMine       bool          `json:"-"`
 	Title        string        `json:"title" binding:"min=1,max=50"`
 	TicketPrice  uint32        `json:"ticketPrice" binding:"min=1,max=1000000"`
@@ -16,7 +17,15 @@ type Raffle struct {
 	Prizes       []RafflePrize `json:"prizes" binding:"min=1,max=21"`
 }
 
-func (raffle *Raffle) GetPrizes() []string {
+func (raffle *Raffle) PrizesCount() int {
+	var prizesCount int
+	for _, prize := range raffle.Prizes {
+		prizesCount += int(prize.Quantity)
+	}
+	return prizesCount
+}
+
+func (raffle *Raffle) prizes() []string {
 	var prizes []string
 	for _, prize := range raffle.Prizes {
 		for i := uint8(0); i < prize.Quantity; i++ {
@@ -26,66 +35,68 @@ func (raffle *Raffle) GetPrizes() []string {
 	return prizes
 }
 
-func (raffle *Raffle) GetPrizesCount() int {
-	var prizesCount int
-	for _, prize := range raffle.Prizes {
-		prizesCount += int(prize.Quantity)
-	}
-	return prizesCount
-}
-
 type RafflePrize struct {
 	Name     string `json:"name" binding:"min=1,max=50"`
 	Quantity uint8  `json:"quantity" binding:"min=1,max=10"`
 }
 
-type RaffleTicket struct {
-	Number      string `json:"number"`
-	PaymentHash string `json:"paymentHash"`
+type RaffleTicket string
+
+func toRaffleTicket(value string) RaffleTicket {
+	return RaffleTicket(value)
+}
+
+func (ticket RaffleTicket) number() string {
+	return base58.Encode(PaymentHash(ticket).bytes())[0:5]
+}
+
+func (ticket RaffleTicket) paymentHash() PaymentHash {
+	return PaymentHash(ticket)
+}
+
+type RaffleDrawTicket struct {
+	Id          RaffleTicket `json:"id"`
+	Number      string       `json:"number"`
+	PaymentHash string       `json:"paymentHash"`
 }
 
 type RaffleDrawCommit struct {
-	SkippedTickets []string `json:"skippedTickets"`
+	SkippedTickets []RaffleTicket `json:"skippedTickets"`
 }
 
 type RafflePrizeWinners struct {
 	Prize   string
-	Tickets []RaffleTicket
+	Tickets []RaffleDrawTicket
 }
 
-func raffleTicketNumber(paymentHash string) string {
-	if bytes, err := hex.DecodeString(paymentHash); err == nil {
-		return base58.Encode(bytes)[0:5]
+func raffleDrawTicket(ticket RaffleTicket) RaffleDrawTicket {
+	paymentHash := string(ticket.paymentHash())
+	return RaffleDrawTicket{
+		Id:          ticket,
+		Number:      ticket.number(),
+		PaymentHash: paymentHash[0:5] + "…" + paymentHash[59:],
 	}
-	return ""
 }
 
-func raffleTickets(paymentHashes []string) []RaffleTicket {
-	var tickets []RaffleTicket
-	for _, paymentHash := range paymentHashes {
-		tickets = append(tickets, RaffleTicket{
-			Number:      raffleTicketNumber(paymentHash),
-			PaymentHash: paymentHash,
-		})
+func raffleDrawTickets(tickets []RaffleTicket) []RaffleDrawTicket {
+	var drawTickets []RaffleDrawTicket
+	for _, ticket := range tickets {
+		drawTickets = append(drawTickets, raffleDrawTicket(ticket))
 	}
-	return tickets
+	return drawTickets
 }
 
-func rafflePrizeWinners(raffle *Raffle, paymentHashes []string) []RafflePrizeWinners {
+func rafflePrizeWinners(raffle *Raffle, tickets []RaffleTicket) []RafflePrizeWinners {
 	var prizeWinners []RafflePrizeWinners
 	for _, prize := range raffle.Prizes {
-		var tickets []RaffleTicket
+		var drawTickets []RaffleDrawTicket
 		for i := uint8(0); i < prize.Quantity; i++ {
-			paymentHash := paymentHashes[0]
-			paymentHashes = paymentHashes[1:]
-			tickets = append(tickets, RaffleTicket{
-				Number:      raffleTicketNumber(paymentHash),
-				PaymentHash: paymentHash[0:5] + "…" + paymentHash[59:],
-			})
+			drawTickets = append(drawTickets, raffleDrawTicket(tickets[0]))
+			tickets = tickets[1:]
 		}
 		prizeWinners = append(prizeWinners, RafflePrizeWinners{
 			Prize:   prize.Name,
-			Tickets: tickets,
+			Tickets: drawTickets,
 		})
 	}
 	return prizeWinners

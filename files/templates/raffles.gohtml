@@ -24,7 +24,7 @@
             <p><strong>{{.Title}}</strong></p>
             <p class="subdued">
                 <span>{{number .TicketPrice "sat"}} / ticket</span> •
-                <span>{{number .GetPrizesCount "prize"}}</span>
+                <span>{{number .PrizesCount "prize"}}</span>
             </p>
             {{if not .IsMine}}
                 <small>by <strong>{{.Owner}}</strong></small>

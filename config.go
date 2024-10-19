@@ -17,16 +17,24 @@ type Config struct {
 	DataDir        string `yaml:"data-dir"`
 	Lnd            LndConfig
 	Nostr          NostrConfig
-	Credentials    gin.Accounts
-	Administrators []string
-	AccessControl  map[string][]string `yaml:"access-control"`
-	Thumbnails     map[string]string   `yaml:"thumbnails"`
-	Accounts       map[string]Account
+	Credentials    map[UserKey]string
+	Administrators []UserKey
+	AccessControl  map[UserKey][]AccountKey `yaml:"access-control"`
+	Thumbnails     map[UserKey]string       `yaml:"thumbnails"`
+	Accounts       map[AccountKey]Account
 	Authentication AuthenticationConfig
 	Withdrawal     WithdrawalConfig
 }
 
-func (config *Config) getCookieKey() []byte {
+func (config *Config) ginAccounts() gin.Accounts {
+	ginAccounts := gin.Accounts{}
+	for user, password := range config.Credentials {
+		ginAccounts[string(user)] = password
+	}
+	return ginAccounts
+}
+
+func (config *Config) cookieKey() []byte {
 	cookieKeyFileName := config.DataDir + ".cookie"
 	cookieKey, err := os.ReadFile(cookieKeyFileName)
 	if err == nil {
@@ -43,6 +51,10 @@ func (config *Config) getCookieKey() []byte {
 
 	return cookieKey
 }
+
+type UserKey string
+
+type AccountKey string
 
 type Account struct {
 	Currency       Currency `yaml:"currency"`
@@ -170,6 +182,6 @@ func validateAccounts(config *Config) {
 	}
 }
 
-func logInvalidAccountValue(accountKey string, property string, value any) {
+func logInvalidAccountValue(accountKey AccountKey, property string, value any) {
 	log.Fatal("Invalid config value accounts.", accountKey, ".", property, ": ", value)
 }

@@ -30,7 +30,7 @@ type LnUrlData struct {
 }
 
 type LnAuthIdentity struct {
-	Identity string `json:"identity"`
+	Identity Identity `json:"identity"`
 }
 
 type AccountSummary struct {
@@ -46,13 +46,13 @@ type AccountInvoice struct {
 }
 
 type InvoiceRequest struct {
-	AccountKey string `json:"accountKey"`
-	Amount     string `json:"amount"`
+	AccountKey AccountKey `json:"accountKey"`
+	Amount     string     `json:"amount"`
 }
 
 type InvoiceResponse struct {
-	PaymentHash string `json:"paymentHash"`
-	QrCode      string `json:"qrCode"`
+	PaymentHash PaymentHash `json:"paymentHash"`
+	QrCode      string      `json:"qrCode"`
 }
 
 type InvoiceStatus struct {
@@ -101,7 +101,7 @@ func main() {
 	_ = lnurld.SetTrustedProxies(nil)
 	loadTemplates(lnurld, "files/templates/*.gohtml")
 
-	sessionStore := cookie.NewStore(config.getCookieKey())
+	sessionStore := cookie.NewStore(config.cookieKey())
 	lnurld.Use(sessions.Sessions("lnSession", sessionStore))
 	lnurld.NoRoute(abortWithNotFoundResponse)
 
@@ -121,7 +121,7 @@ func main() {
 	lnurld.POST("/events/:id/sign-up", eventSignUpHandler)
 	lnurld.GET("/static/*filepath", lnStaticFileHandler)
 
-	authorized := lnurld.Group("/", gin.BasicAuth(config.Credentials))
+	authorized := lnurld.Group("/", gin.BasicAuth(config.ginAccounts()))
 	authorized.Use(setCacheControlHeader)
 	authorized.GET("/auth", authHomeHandler)
 	authorized.GET("/auth/accounts", authAccountsHandler)
@@ -176,7 +176,7 @@ func lnAuthIdentityHandler(context *gin.Context) {
 	}
 
 	session := sessions.Default(context)
-	session.Set("identity", identity)
+	session.Set("identity", string(identity))
 	if err := session.Save(); err != nil {
 		abortWithInternalServerErrorResponse(context, fmt.Errorf("storing session: %w", err))
 		return
@@ -194,7 +194,7 @@ func lnPayHandler(context *gin.Context) {
 	scheme, host := getSchemeAndHost(context)
 	lnurlMetadata := lnurl.Metadata{
 		Description:      account.Description,
-		LightningAddress: accountKey + "@" + host,
+		LightningAddress: string(accountKey) + "@" + host,
 		IsEmail:          account.IsAlsoEmail,
 	}
 
@@ -277,7 +277,7 @@ func lnPayHandler(context *gin.Context) {
 	})
 
 	if zapRequest != nil {
-		go awaitSettlement(zapRequest, invoice.getPaymentHash())
+		go awaitSettlement(zapRequest, invoice.paymentHash)
 	}
 }
 
@@ -287,7 +287,7 @@ func lnPayQrCodeHandler(context *gin.Context) {
 		return
 	}
 
-	generateQrCode(context, "/ln/pay/"+accountKey, getAccountThumbnailData(account))
+	generateQrCode(context, "/ln/pay/"+string(accountKey), getAccountThumbnailData(account))
 }
 
 func lnRaffleTicketHandler(context *gin.Context) {
@@ -341,14 +341,16 @@ func lnRaffleTicketHandler(context *gin.Context) {
 	if invoice == nil {
 		return
 	}
-	if err := repository.addRaffleTicket(raffle, invoice); err != nil {
+
+	ticket := RaffleTicket(invoice.paymentHash)
+	if err := repository.addRaffleTicket(raffle, ticket); err != nil {
 		abortWithInternalServerErrorResponse(context, fmt.Errorf("storing ticket: %w", err))
 		return
 	}
 
 	context.JSON(http.StatusOK, lnurl.LNURLPayValues{
 		PR:            invoice.paymentRequest,
-		SuccessAction: successMessage("Ticket " + raffleTicketNumber(invoice.getPaymentHash())),
+		SuccessAction: successMessage("Ticket " + ticket.number()),
 		Routes:        []string{},
 	})
 }
@@ -368,7 +370,7 @@ func lnRaffleQrCodeHandler(context *gin.Context) {
 		thumbnailData = thumbnail.bytes
 	}
 
-	generateQrCode(context, "/ln/raffle/"+raffle.Id, thumbnailData)
+	generateQrCode(context, "/ln/raffle/"+string(raffle.Id), thumbnailData)
 }
 
 func lnWithdrawConfirmHandler(context *gin.Context) {
@@ -435,12 +437,12 @@ func eventHandler(context *gin.Context) {
 		"Start":           event.Start,
 		"Location":        event.Location,
 		"Capacity":        event.Capacity,
-		"Description":     event.getDescriptionParagraphs(),
+		"Description":     event.descriptionParagraphs(),
 		"Attendees":       len(attendees),
 		"AttendeeOrdinal": slices.Index(attendees, identity) + 1,
 		"SignUpPossible":  event.Start.After(time.Now()),
 		"LnAuthExpiry":    config.Authentication.RequestExpiry.Milliseconds(),
-		"IdentityId":      toIdentityId(identity),
+		"Identity":        identity,
 	})
 }
 
@@ -451,7 +453,7 @@ func eventIcsHandler(context *gin.Context) {
 	}
 
 	_, host := getSchemeAndHost(context)
-	icsFileName := "event-" + event.Id + ".ics"
+	icsFileName := "event-" + string(event.Id) + ".ics"
 	icsData := iCalendarEvent(event, host)
 
 	context.Header("Content-Disposition", `attachment; filename="`+icsFileName+`"`)
@@ -500,7 +502,7 @@ func authAccountsHandler(context *gin.Context) {
 	authenticatedUser := getAuthenticatedUser(context)
 	userState := repository.getUserState(authenticatedUser)
 
-	accounts := map[string]AccountSummary{}
+	accounts := map[AccountKey]AccountSummary{}
 	for accountKey, account := range getAccessibleAccounts(context) {
 		currentInvoicesCount := repository.getAccountInvoicesCount(accountKey)
 		previousInvoicesCount := userState.AccountInvoicesCounts[accountKey]
@@ -644,8 +646,8 @@ func authRaffleHandler(context *gin.Context) {
 
 	var ticketsPaid int
 	var totalSatsReceived int64
-	for _, paymentHash := range tickets {
-		invoice, err := lndClient.getInvoice(paymentHash)
+	for _, ticket := range tickets {
+		invoice, err := lndClient.getInvoice(ticket.paymentHash())
 		if err == nil && invoice.isSettled() {
 			ticketsPaid++
 			totalSatsReceived += invoice.amount
@@ -657,7 +659,7 @@ func authRaffleHandler(context *gin.Context) {
 		"Title":              raffle.Title,
 		"TicketPrice":        raffle.TicketPrice,
 		"FiatCurrency":       raffle.FiatCurrency,
-		"PrizesCount":        raffle.GetPrizesCount(),
+		"PrizesCount":        raffle.PrizesCount(),
 		"TicketsIssued":      len(tickets),
 		"TicketsPaid":        ticketsPaid,
 		"TotalSatsReceived":  totalSatsReceived,
@@ -693,8 +695,8 @@ func authRaffleDrawHandler(context *gin.Context) {
 	context.HTML(http.StatusOK, "draw.gohtml", gin.H{
 		"Id":           raffle.Id,
 		"Title":        raffle.Title,
-		"Prizes":       raffle.GetPrizes(),
-		"DrawnTickets": raffleTickets(raffleDraw),
+		"Prizes":       raffle.prizes(),
+		"DrawnTickets": raffleDrawTickets(raffleDraw),
 	})
 }
 
@@ -755,13 +757,13 @@ func apiInvoicesHandler(context *gin.Context) {
 	}
 
 	context.JSON(http.StatusOK, InvoiceResponse{
-		PaymentHash: invoice.getPaymentHash(),
+		PaymentHash: invoice.paymentHash,
 		QrCode:      pngDataUrl(pngData),
 	})
 }
 
 func apiInvoiceStatusHandler(context *gin.Context) {
-	paymentHash := context.Param("paymentHash")
+	paymentHash := PaymentHash(context.Param("paymentHash"))
 	invoice, err := lndClient.getInvoice(paymentHash)
 	if err != nil {
 		abortWithNotFoundResponse(context)
@@ -897,7 +899,7 @@ func apiRaffleDrawCommitHandler(context *gin.Context) {
 
 	raffleDraw := repository.getRaffleDraw(raffle)
 	skippedTickets := raffleDrawCommit.SkippedTickets
-	slices.DeleteFunc(raffleDraw, func(ticket string) bool {
+	slices.DeleteFunc(raffleDraw, func(ticket RaffleTicket) bool {
 		if slices.Contains(skippedTickets, ticket) {
 			skippedTickets = skippedTickets[1:]
 			return true
@@ -905,7 +907,7 @@ func apiRaffleDrawCommitHandler(context *gin.Context) {
 		return false
 	})
 
-	prizesCount := raffle.GetPrizesCount()
+	prizesCount := raffle.PrizesCount()
 	if len(raffleDraw) < prizesCount || len(skippedTickets) > 0 {
 		abortWithBadRequestResponse(context, "invalid commit request")
 		return
@@ -933,8 +935,8 @@ func apiRaffleWithdrawHandler(context *gin.Context) {
 	}
 
 	var totalSatsReceived int64
-	for _, paymentHash := range repository.getRaffleDraw(raffle) {
-		if invoice, _ := lndClient.getInvoice(paymentHash); invoice != nil {
+	for _, ticket := range repository.getRaffleDraw(raffle) {
+		if invoice, _ := lndClient.getInvoice(ticket.paymentHash()); invoice != nil {
 			totalSatsReceived += invoice.amount
 		}
 	}
@@ -987,16 +989,16 @@ func getSchemeAndHost(context *gin.Context) (string, string) {
 	return scheme, host
 }
 
-func getIdentity(context *gin.Context) string {
+func getIdentity(context *gin.Context) Identity {
 	session := sessions.Default(context)
 	if identity := session.Get("identity"); identity != nil {
-		return identity.(string)
+		return Identity(identity.(string))
 	}
 	return ""
 }
 
-func getAccount(context *gin.Context) (string, *Account) {
-	accountKey := context.Param("name")
+func getAccount(context *gin.Context) (AccountKey, *Account) {
+	accountKey := AccountKey(context.Param("name"))
 	if account, accountExists := config.Accounts[accountKey]; accountExists {
 		return accountKey, &account
 	}
@@ -1005,7 +1007,7 @@ func getAccount(context *gin.Context) (string, *Account) {
 	return "", nil
 }
 
-func getAccessibleAccount(context *gin.Context) (string, *Account) {
+func getAccessibleAccount(context *gin.Context) (AccountKey, *Account) {
 	accountKey, account := getAccount(context)
 	if account == nil || isAccountAccessible(context, accountKey) {
 		return accountKey, account
@@ -1015,8 +1017,8 @@ func getAccessibleAccount(context *gin.Context) (string, *Account) {
 	return "", nil
 }
 
-func getAccessibleAccounts(context *gin.Context) map[string]Account {
-	accessibleAccounts := map[string]Account{}
+func getAccessibleAccounts(context *gin.Context) map[AccountKey]Account {
+	accessibleAccounts := map[AccountKey]Account{}
 	for accountKey, account := range config.Accounts {
 		if isAccountAccessible(context, accountKey) {
 			accessibleAccounts[accountKey] = account
@@ -1026,7 +1028,7 @@ func getAccessibleAccounts(context *gin.Context) map[string]Account {
 	return accessibleAccounts
 }
 
-func isAccountAccessible(context *gin.Context, accountKey string) bool {
+func isAccountAccessible(context *gin.Context, accountKey AccountKey) bool {
 	authenticatedUser := getAuthenticatedUser(context)
 	if slices.Contains(config.Administrators, authenticatedUser) {
 		return true
@@ -1055,7 +1057,7 @@ func getAccountThumbnailData(account *Account) []byte {
 }
 
 func getEvent(context *gin.Context) *Event {
-	eventId := context.Param("id")
+	eventId := EventId(context.Param("id"))
 	if event := repository.getEvent(eventId); event != nil {
 		return event
 	}
@@ -1075,7 +1077,7 @@ func getAccessibleEvent(context *gin.Context) *Event {
 }
 
 func getRaffle(context *gin.Context) *Raffle {
-	raffleId := context.Param("id")
+	raffleId := RaffleId(context.Param("id"))
 	if raffle := repository.getRaffle(raffleId); raffle != nil {
 		return raffle
 	}
@@ -1108,20 +1110,20 @@ func getRaffleThumbnail(raffle *Raffle) *Thumbnail {
 	return thumbnail
 }
 
-func getRaffleDraw(context *gin.Context, raffle *Raffle) []string {
+func getRaffleDraw(context *gin.Context, raffle *Raffle) []RaffleTicket {
 	raffleDraw := repository.getRaffleDraw(raffle)
 	if len(raffleDraw) > 0 {
 		return raffleDraw
 	}
 
-	for _, paymentHash := range repository.getRaffleTickets(raffle) {
-		invoice, _ := lndClient.getInvoice(paymentHash)
+	for _, ticket := range repository.getRaffleTickets(raffle) {
+		invoice, _ := lndClient.getInvoice(ticket.paymentHash())
 		if invoice != nil && invoice.isSettled() {
-			raffleDraw = append(raffleDraw, paymentHash)
+			raffleDraw = append(raffleDraw, ticket)
 		}
 	}
 
-	if len(raffleDraw) < raffle.GetPrizesCount() {
+	if len(raffleDraw) < raffle.PrizesCount() {
 		abortWithBadRequestResponse(context, "not enough tickets")
 		return nil
 	}
@@ -1138,7 +1140,7 @@ func getRaffleDraw(context *gin.Context, raffle *Raffle) []string {
 	return raffleDraw
 }
 
-func isUserAuthorized(context *gin.Context, owner string) bool {
+func isUserAuthorized(context *gin.Context, owner UserKey) bool {
 	authenticatedUser := getAuthenticatedUser(context)
 	return authenticatedUser == owner || slices.Contains(config.Administrators, authenticatedUser)
 }
@@ -1148,8 +1150,8 @@ func isAdministrator(context *gin.Context) bool {
 	return slices.Contains(config.Administrators, authenticatedUser)
 }
 
-func getAuthenticatedUser(context *gin.Context) string {
-	return context.GetString(gin.AuthUserKey)
+func getAuthenticatedUser(context *gin.Context) UserKey {
+	return UserKey(context.GetString(gin.AuthUserKey))
 }
 
 func createInvoice(context *gin.Context, msats int64, comment string, descriptionHash []byte) *Invoice {
@@ -1167,7 +1169,7 @@ func createInvoice(context *gin.Context, msats int64, comment string, descriptio
 	return invoice
 }
 
-func awaitSettlement(zapRequest *nostr.Event, paymentHash string) {
+func awaitSettlement(zapRequest *nostr.Event, paymentHash PaymentHash) {
 	for i := 0; i < invoiceExpiryInSeconds; i++ {
 		invoice, _ := lndClient.getInvoice(paymentHash)
 		if invoice != nil && invoice.isSettled() {

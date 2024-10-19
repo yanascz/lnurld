@@ -10,12 +10,25 @@ import (
 	"time"
 )
 
+type Identity string
+
+func toIdentity(value string) Identity {
+	return Identity(value)
+}
+
+func (identity Identity) PublicId() string {
+	if bytes, _ := hex.DecodeString(string(identity)); len(bytes) >= 7 {
+		return base58.Encode(bytes)[0:7]
+	}
+	return "unknown"
+}
+
 type AuthenticationConfig struct {
 	RequestExpiry time.Duration `yaml:"request-expiry"`
 }
 
 type AuthenticationService struct {
-	k1s *expirable.LRU[string, string]
+	k1s *expirable.LRU[string, Identity]
 }
 
 func newAuthenticationService(config AuthenticationConfig) *AuthenticationService {
@@ -25,7 +38,7 @@ func newAuthenticationService(config AuthenticationConfig) *AuthenticationServic
 	}
 
 	return &AuthenticationService{
-		k1s: expirable.NewLRU[string, string](1024, nil, requestExpiry),
+		k1s: expirable.NewLRU[string, Identity](1024, nil, requestExpiry),
 	}
 }
 
@@ -49,21 +62,14 @@ func (service *AuthenticationService) verify(k1 string, sig string, key string) 
 		return errors.New("invalid signature")
 	}
 
-	service.k1s.Add(k1, key)
+	service.k1s.Add(k1, Identity(key))
 
 	return nil
 }
 
-func (service *AuthenticationService) identity(k1 string) string {
+func (service *AuthenticationService) identity(k1 string) Identity {
 	if storedKey, k1Valid := service.k1s.Get(k1); k1Valid {
 		return storedKey
-	}
-	return ""
-}
-
-func toIdentityId(identity string) string {
-	if identityBytes, _ := hex.DecodeString(identity); len(identityBytes) >= 7 {
-		return base58.Encode(identityBytes)[0:7]
 	}
 	return ""
 }

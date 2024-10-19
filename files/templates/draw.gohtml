@@ -71,7 +71,7 @@
     }
 
     function skipTicket() {
-        skippedTickets.push(currentTicket.paymentHash)
+        skippedTickets.push(currentTicket.id)
         nextTicket()
     }
 
@@ -85,13 +85,9 @@
     function nextTicket() {
         currentTicket = drawnTickets.shift()
         ticketNumberElement.innerText = currentTicket.number
-        ticketPaymentHashElement.innerText = ticketPaymentHash(currentTicket)
+        ticketPaymentHashElement.innerText = currentTicket.paymentHash
         disableAndHide(skipTicketButton, prizes.length >= drawnTickets.length)
         updateRemainingTickets()
-    }
-
-    function ticketPaymentHash({ paymentHash }) {
-        return paymentHash.slice(0, 5) + '…' + paymentHash.slice(59)
     }
 
     function disableAndHide(button, disabledAndHidden) {
