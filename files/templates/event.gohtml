@@ -32,7 +32,7 @@
     <div>
         {{if and .SignUpPossible (not .AttendeeOrdinal)}}
             <button onclick="signUp(this)">Sign up with Lightning</button>
-        {{else if not .IdentityId}}
+        {{else if not .Identity}}
             <button onclick="logIn(this)">Log in with Lightning</button>
         {{end}}
         <button class="secondary" onclick="location.href='/events/{{.Id}}/ics'">Add to Calendar</button>
@@ -40,8 +40,8 @@
 </main>
 
 <footer>
-    {{if .IdentityId}}
-        {{if .AttendeeOrdinal}}Signed up{{else}}Logged in{{end}} as {{.IdentityId}}.
+    {{if .Identity}}
+        {{if .AttendeeOrdinal}}Signed up{{else}}Logged in{{end}} as {{.Identity.PublicId}}.
     {{else}}
         No personal data required.
     {{end}}

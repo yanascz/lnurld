@@ -29,7 +29,7 @@ type Thumbnail struct {
 }
 
 type UserState struct {
-	AccountInvoicesCounts map[string]int `json:"accountInvoicesCounts"`
+	AccountInvoicesCounts map[AccountKey]int `json:"accountInvoicesCounts"`
 }
 
 type Repository struct {
@@ -66,8 +66,8 @@ func (repository *Repository) getThumbnail(fileName string) (*Thumbnail, error) 
 	}, nil
 }
 
-func (repository *Repository) getUserState(user string) *UserState {
-	state := UserState{AccountInvoicesCounts: map[string]int{}}
+func (repository *Repository) getUserState(user UserKey) *UserState {
+	state := UserState{AccountInvoicesCounts: map[AccountKey]int{}}
 	if err := readObject(userStateFileName(repository, user), &state); err != nil {
 		if !os.IsNotExist(err) {
 			log.Println("error reading user state:", err)
@@ -77,28 +77,28 @@ func (repository *Repository) getUserState(user string) *UserState {
 	return &state
 }
 
-func (repository *Repository) updateUserState(user string, state *UserState) error {
+func (repository *Repository) updateUserState(user UserKey, state *UserState) error {
 	_ = createDir(userDirName(repository, user))
 	return writeObject(userStateFileName(repository, user), state)
 }
 
-func (repository *Repository) addAccountInvoice(accountKey string, invoice *Invoice) error {
+func (repository *Repository) addAccountInvoice(accountKey AccountKey, invoice *Invoice) error {
 	_ = createDir(accountDirName(repository, accountKey))
-	return appendValue(accountInvoicesFileName(repository, accountKey), invoice.getPaymentHash())
+	return appendValue(accountInvoicesFileName(repository, accountKey), invoice.paymentHash)
 }
 
-func (repository *Repository) getAccountInvoices(accountKey string) []string {
-	return readValues(accountInvoicesFileName(repository, accountKey))
+func (repository *Repository) getAccountInvoices(accountKey AccountKey) []PaymentHash {
+	return readValues(accountInvoicesFileName(repository, accountKey), toPaymentHash)
 }
 
-func (repository *Repository) getAccountInvoicesCount(accountKey string) int {
+func (repository *Repository) getAccountInvoicesCount(accountKey AccountKey) int {
 	if info, err := os.Stat(accountInvoicesFileName(repository, accountKey)); err == nil {
 		return int(info.Size() / 65) // payment hash + line feed
 	}
 	return 0
 }
 
-func (repository *Repository) archiveAccountInvoices(accountKey string) error {
+func (repository *Repository) archiveAccountInvoices(accountKey AccountKey) error {
 	fileName := accountInvoicesFileName(repository, accountKey)
 	archiveFileName := fileName + "." + time.Now().Format("20060102150405")
 
@@ -106,7 +106,7 @@ func (repository *Repository) archiveAccountInvoices(accountKey string) error {
 }
 
 func (repository *Repository) createEvent(event *Event) error {
-	eventId, err := randomId()
+	eventId, err := randomId[EventId]()
 	if err != nil {
 		return err
 	}
@@ -120,7 +120,7 @@ func (repository *Repository) createEvent(event *Event) error {
 	return writeObject(eventDataFileName(repository, eventId), event)
 }
 
-func (repository *Repository) getEvent(eventId string) *Event {
+func (repository *Repository) getEvent(eventId EventId) *Event {
 	var event Event
 	if err := readObject(eventDataFileName(repository, eventId), &event); err != nil {
 		log.Println("error reading event:", err)
@@ -134,7 +134,7 @@ func (repository *Repository) getEvent(eventId string) *Event {
 func (repository *Repository) getEvents() []*Event {
 	var events []*Event
 	for _, dirEntry := range readDirEntries(repository.dataDir + eventsDirName) {
-		if event := repository.getEvent(dirEntry.Name()); event != nil {
+		if event := repository.getEvent(EventId(dirEntry.Name())); event != nil {
 			events = append(events, event)
 		}
 	}
@@ -146,16 +146,16 @@ func (repository *Repository) updateEvent(event *Event) error {
 	return writeObject(eventDataFileName(repository, event.Id), event)
 }
 
-func (repository *Repository) addEventAttendee(event *Event, identity string) error {
+func (repository *Repository) addEventAttendee(event *Event, identity Identity) error {
 	return appendValue(eventAttendeesFileName(repository, event.Id), identity)
 }
 
-func (repository *Repository) getEventAttendees(event *Event) []string {
-	return readValues(eventAttendeesFileName(repository, event.Id))
+func (repository *Repository) getEventAttendees(event *Event) []Identity {
+	return readValues(eventAttendeesFileName(repository, event.Id), toIdentity)
 }
 
 func (repository *Repository) createRaffle(raffle *Raffle) error {
-	raffleId, err := randomId()
+	raffleId, err := randomId[RaffleId]()
 	if err != nil {
 		return err
 	}
@@ -169,7 +169,7 @@ func (repository *Repository) createRaffle(raffle *Raffle) error {
 	return writeObject(raffleDataFileName(repository, raffleId), raffle)
 }
 
-func (repository *Repository) getRaffle(raffleId string) *Raffle {
+func (repository *Repository) getRaffle(raffleId RaffleId) *Raffle {
 	var raffle Raffle
 	if err := readObject(raffleDataFileName(repository, raffleId), &raffle); err != nil {
 		log.Println("error reading raffle:", err)
@@ -183,7 +183,7 @@ func (repository *Repository) getRaffle(raffleId string) *Raffle {
 func (repository *Repository) getRaffles() []*Raffle {
 	var raffles []*Raffle
 	for _, dirEntry := range readDirEntries(repository.dataDir + rafflesDirName) {
-		if event := repository.getRaffle(dirEntry.Name()); event != nil {
+		if event := repository.getRaffle(RaffleId(dirEntry.Name())); event != nil {
 			raffles = append(raffles, event)
 		}
 	}
@@ -195,12 +195,12 @@ func (repository *Repository) updateRaffle(raffle *Raffle) error {
 	return writeObject(raffleDataFileName(repository, raffle.Id), raffle)
 }
 
-func (repository *Repository) addRaffleTicket(raffle *Raffle, invoice *Invoice) error {
-	return appendValue(raffleTicketsFileName(repository, raffle.Id), invoice.getPaymentHash())
+func (repository *Repository) addRaffleTicket(raffle *Raffle, ticket RaffleTicket) error {
+	return appendValue(raffleTicketsFileName(repository, raffle.Id), ticket)
 }
 
-func (repository *Repository) getRaffleTickets(raffle *Raffle) []string {
-	return readValues(raffleTicketsFileName(repository, raffle.Id))
+func (repository *Repository) getRaffleTickets(raffle *Raffle) []RaffleTicket {
+	return readValues(raffleTicketsFileName(repository, raffle.Id), toRaffleTicket)
 }
 
 func (repository *Repository) isRaffleDrawAvailable(raffle *Raffle) bool {
@@ -208,12 +208,12 @@ func (repository *Repository) isRaffleDrawAvailable(raffle *Raffle) bool {
 	return err == nil
 }
 
-func (repository *Repository) createRaffleDraw(raffle *Raffle, paymentHashes []string) error {
-	return writeValues(raffleDrawFileName(repository, raffle.Id), paymentHashes)
+func (repository *Repository) createRaffleDraw(raffle *Raffle, tickets []RaffleTicket) error {
+	return writeValues(raffleDrawFileName(repository, raffle.Id), tickets)
 }
 
-func (repository *Repository) getRaffleDraw(raffle *Raffle) []string {
-	return readValues(raffleDrawFileName(repository, raffle.Id))
+func (repository *Repository) getRaffleDraw(raffle *Raffle) []RaffleTicket {
+	return readValues(raffleDrawFileName(repository, raffle.Id), toRaffleTicket)
 }
 
 func (repository *Repository) isRaffleDrawFinished(raffle *Raffle) bool {
@@ -221,12 +221,12 @@ func (repository *Repository) isRaffleDrawFinished(raffle *Raffle) bool {
 	return err == nil
 }
 
-func (repository *Repository) createRaffleWinners(raffle *Raffle, paymentHashes []string) error {
-	return writeValues(raffleWinnersFileName(repository, raffle.Id), paymentHashes)
+func (repository *Repository) createRaffleWinners(raffle *Raffle, tickets []RaffleTicket) error {
+	return writeValues(raffleWinnersFileName(repository, raffle.Id), tickets)
 }
 
-func (repository *Repository) getRaffleWinners(raffle *Raffle) []string {
-	return readValues(raffleWinnersFileName(repository, raffle.Id))
+func (repository *Repository) getRaffleWinners(raffle *Raffle) []RaffleTicket {
+	return readValues(raffleWinnersFileName(repository, raffle.Id), toRaffleTicket)
 }
 
 func (repository *Repository) isRaffleWithdrawalFinished(raffle *Raffle) bool {
@@ -254,73 +254,73 @@ func (repository *Repository) lockRaffle(raffle *Raffle) error {
 	return nil
 }
 
-func (repository *Repository) createWithdrawal(request *WithdrawalRequest, paymentHash string) error {
-	return writeValues(request.fileName, []string{paymentHash})
+func (repository *Repository) createWithdrawal(request *WithdrawalRequest, paymentHash PaymentHash) error {
+	return writeValues(request.fileName, []PaymentHash{paymentHash})
 }
 
-func userDirName(repository *Repository, user string) string {
-	return repository.dataDir + usersDirName + user + pathSeparator
+func userDirName(repository *Repository, user UserKey) string {
+	return repository.dataDir + usersDirName + string(user) + pathSeparator
 }
 
-func userStateFileName(repository *Repository, user string) string {
+func userStateFileName(repository *Repository, user UserKey) string {
 	return userDirName(repository, user) + "state" + jsonExtension
 }
 
-func accountDirName(repository *Repository, accountKey string) string {
-	return repository.dataDir + accountsDirName + accountKey + pathSeparator
+func accountDirName(repository *Repository, accountKey AccountKey) string {
+	return repository.dataDir + accountsDirName + string(accountKey) + pathSeparator
 }
 
-func accountInvoicesFileName(repository *Repository, accountKey string) string {
+func accountInvoicesFileName(repository *Repository, accountKey AccountKey) string {
 	return accountDirName(repository, accountKey) + "invoices" + csvExtension
 }
 
-func eventDirName(repository *Repository, eventId string) string {
-	return repository.dataDir + eventsDirName + eventId + pathSeparator
+func eventDirName(repository *Repository, eventId EventId) string {
+	return repository.dataDir + eventsDirName + string(eventId) + pathSeparator
 }
 
-func eventDataFileName(repository *Repository, eventId string) string {
+func eventDataFileName(repository *Repository, eventId EventId) string {
 	return eventDirName(repository, eventId) + "data" + jsonExtension
 }
 
-func eventAttendeesFileName(repository *Repository, eventId string) string {
+func eventAttendeesFileName(repository *Repository, eventId EventId) string {
 	return eventDirName(repository, eventId) + "attendees" + csvExtension
 }
 
-func raffleDirName(repository *Repository, raffleId string) string {
-	return repository.dataDir + rafflesDirName + raffleId + pathSeparator
+func raffleDirName(repository *Repository, raffleId RaffleId) string {
+	return repository.dataDir + rafflesDirName + string(raffleId) + pathSeparator
 }
 
-func raffleDataFileName(repository *Repository, raffleId string) string {
+func raffleDataFileName(repository *Repository, raffleId RaffleId) string {
 	return raffleDirName(repository, raffleId) + "data" + jsonExtension
 }
 
-func raffleTicketsFileName(repository *Repository, raffleId string) string {
+func raffleTicketsFileName(repository *Repository, raffleId RaffleId) string {
 	return raffleDirName(repository, raffleId) + "tickets" + csvExtension
 }
 
-func raffleDrawFileName(repository *Repository, raffleId string) string {
+func raffleDrawFileName(repository *Repository, raffleId RaffleId) string {
 	return raffleDirName(repository, raffleId) + "draw" + csvExtension
 }
 
-func raffleWinnersFileName(repository *Repository, raffleId string) string {
+func raffleWinnersFileName(repository *Repository, raffleId RaffleId) string {
 	return raffleDirName(repository, raffleId) + "winners" + csvExtension
 }
 
-func raffleWithdrawalFileName(repository *Repository, raffleId string) string {
+func raffleWithdrawalFileName(repository *Repository, raffleId RaffleId) string {
 	return raffleDirName(repository, raffleId) + "withdrawal" + csvExtension
 }
 
-func raffleLockFileName(repository *Repository, raffleId string) string {
+func raffleLockFileName(repository *Repository, raffleId RaffleId) string {
 	return raffleDirName(repository, raffleId) + ".lock"
 }
 
-func randomId() (string, error) {
+func randomId[T EventId | RaffleId]() (T, error) {
 	random := make([]byte, 5)
 	if _, err := rand.Read(random); err != nil {
 		return "", err
 	}
 
-	return base58.Encode(random), nil
+	return T(base58.Encode(random)), nil
 }
 
 func createDir(name string) error {
@@ -365,21 +365,21 @@ func readDirEntries(dirName string) []os.DirEntry {
 	return dirEntries
 }
 
-func appendValue(fileName string, value string) error {
+func appendValue[T Identity | PaymentHash | RaffleTicket](fileName string, value T) error {
 	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
-	if _, err = file.WriteString(value + "\n"); err != nil {
+	if _, err = file.WriteString(string(value) + "\n"); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func writeValues(fileName string, values []string) error {
+func writeValues[T PaymentHash | RaffleTicket](fileName string, values []T) error {
 	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_EXCL|os.O_CREATE, 0644)
 	if err != nil {
 		return err
@@ -387,7 +387,7 @@ func writeValues(fileName string, values []string) error {
 	defer file.Close()
 
 	for _, value := range values {
-		if _, err = file.WriteString(value + "\n"); err != nil {
+		if _, err = file.WriteString(string(value) + "\n"); err != nil {
 			return err
 		}
 	}
@@ -395,19 +395,19 @@ func writeValues(fileName string, values []string) error {
 	return nil
 }
 
-func readValues(fileName string) []string {
+func readValues[T any](fileName string, parse func(string) T) []T {
 	file, err := os.OpenFile(fileName, os.O_RDONLY, 0)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			log.Println("error reading values:", err)
 		}
-		return []string{}
+		return []T{}
 	}
 	defer file.Close()
 
-	var values []string
+	var values []T
 	for scanner := bufio.NewScanner(file); scanner.Scan(); {
-		values = append(values, scanner.Text())
+		values = append(values, parse(scanner.Text()))
 	}
 
 	return values

@@ -23,16 +23,25 @@ type LndConfig struct {
 	CacheSize    uint16 `yaml:"cache-size"`
 }
 
+type PaymentHash string
+
+func toPaymentHash(value string) PaymentHash {
+	return PaymentHash(value)
+}
+
+func (paymentHash PaymentHash) bytes() []byte {
+	if bytes, err := hex.DecodeString(string(paymentHash)); err == nil {
+		return bytes
+	}
+	return nil
+}
+
 type Invoice struct {
-	paymentHash    []byte
+	paymentHash    PaymentHash
 	paymentRequest string
 	amount         int64
 	settleDate     time.Time
 	memo           string
-}
-
-func (invoice *Invoice) getPaymentHash() string {
-	return hex.EncodeToString(invoice.paymentHash)
 }
 
 func (invoice *Invoice) isSettled() bool {
@@ -42,7 +51,7 @@ func (invoice *Invoice) isSettled() bool {
 type LndClient struct {
 	lnClient lnrpc.LightningClient
 	ctx      context.Context
-	invoices *lru.Cache[string, Invoice]
+	invoices *lru.Cache[PaymentHash, Invoice]
 }
 
 func newLndClient(config LndConfig) *LndClient {
@@ -79,7 +88,7 @@ func newLndClient(config LndConfig) *LndClient {
 		log.Fatal(err)
 	}
 
-	invoices, err := lru.New[string, Invoice](int(config.CacheSize))
+	invoices, err := lru.New[PaymentHash, Invoice](int(config.CacheSize))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -105,23 +114,18 @@ func (client *LndClient) createInvoice(msats int64, memo string, descriptionHash
 	}
 
 	return &Invoice{
-		paymentHash:    newLnInvoice.RHash,
+		paymentHash:    PaymentHash(hex.EncodeToString(newLnInvoice.RHash)),
 		paymentRequest: newLnInvoice.PaymentRequest,
 		amount:         msats / 1000,
 	}, nil
 }
 
-func (client *LndClient) getInvoice(paymentHash string) (*Invoice, error) {
+func (client *LndClient) getInvoice(paymentHash PaymentHash) (*Invoice, error) {
 	if invoice, invoiceCached := client.invoices.Get(paymentHash); invoiceCached {
 		return &invoice, nil
 	}
 
-	paymentHashBytes, err := hex.DecodeString(paymentHash)
-	if err != nil {
-		return nil, err
-	}
-
-	lnPaymentHash := lnrpc.PaymentHash{RHash: paymentHashBytes}
+	lnPaymentHash := lnrpc.PaymentHash{RHash: paymentHash.bytes()}
 	lnInvoice, err := client.lnClient.LookupInvoice(client.ctx, &lnPaymentHash)
 	if err != nil {
 		return nil, err
@@ -133,7 +137,7 @@ func (client *LndClient) getInvoice(paymentHash string) (*Invoice, error) {
 	}
 
 	invoice := Invoice{
-		paymentHash:    lnInvoice.RHash,
+		paymentHash:    paymentHash,
 		paymentRequest: lnInvoice.PaymentRequest,
 		amount:         lnInvoice.Value,
 		settleDate:     settleDate,
@@ -147,7 +151,7 @@ func (client *LndClient) getInvoice(paymentHash string) (*Invoice, error) {
 	return &invoice, nil
 }
 
-func (client *LndClient) decodePaymentRequest(paymentRequest string) (string, int64) {
+func (client *LndClient) decodePaymentRequest(paymentRequest string) (PaymentHash, int64) {
 	payReqString := lnrpc.PayReqString{PayReq: paymentRequest}
 	payReq, err := client.lnClient.DecodePayReq(client.ctx, &payReqString)
 	if err != nil {
@@ -155,7 +159,7 @@ func (client *LndClient) decodePaymentRequest(paymentRequest string) (string, in
 		return "", 0
 	}
 
-	return payReq.PaymentHash, payReq.NumSatoshis
+	return PaymentHash(payReq.PaymentHash), payReq.NumSatoshis
 }
 
 func (client *LndClient) sendPayment(paymentRequest string) error {
