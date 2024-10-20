@@ -29,6 +29,10 @@ func toPaymentHash(value string) PaymentHash {
 	return PaymentHash(value)
 }
 
+func (paymentHash PaymentHash) String() string {
+	return string(paymentHash)
+}
+
 func (paymentHash PaymentHash) bytes() []byte {
 	if bytes, err := hex.DecodeString(string(paymentHash)); err == nil {
 		return bytes

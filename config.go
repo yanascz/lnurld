@@ -84,7 +84,7 @@ func (account *Account) getMaxSendable() int64 {
 	return msats(account.MaxSendable)
 }
 
-func msats[T uint32 | int64](sats T) int64 {
+func msats[T int | uint32 | int64](sats T) int64 {
 	return int64(sats) * 1000
 }
 
@@ -182,6 +182,6 @@ func validateAccounts(config *Config) {
 	}
 }
 
-func logInvalidAccountValue(accountKey AccountKey, property string, value any) {
-	log.Fatal("Invalid config value accounts.", accountKey, ".", property, ": ", value)
+func logInvalidAccountValue(key AccountKey, property string, value any) {
+	log.Fatal("Invalid config value accounts.", key, ".", property, ": ", value)
 }
