@@ -62,33 +62,34 @@
     <h2>Raffle</h2>
     <button class="close" onclick="closeDialog()">×</button>
     <form method="dialog">
-        <p>
+        <div>
             <label for="title">Title</label>
-            <input id="title" type="text" maxlength="50" required/>
-        </p>
-        <p>
+            <input id="title" type="text" maxlength="50" required>
+        </div>
+        <div>
             <label for="ticket-price">Ticket Price (sats)</label>
-            <div>
-                <input id="ticket-price" type="number" min="1" max="1000000" oninput="updateFiatAmount()" required/>
+            <div class="row">
+                <input id="ticket-price" type="number" min="1" max="1000000" oninput="updateFiatAmount()" required>
                 <span>≈</span>
-                <input id="fiat-amount" type="number" min="1" max="1000000" readonly/>
+                <input id="fiat-amount" type="number" min="1" max="1000000" readonly>
             </div>
-        </p>
-        <p>
+        </div>
+        <div>
             <label for="fiat-currency">Fiat Currency</label>
             <select id="fiat-currency" oninput="updateFiatAmount()" required>
+                <option value="" disabled> </option>
                 {{range .FiatCurrencies}}
                     <option value="{{.}}">{{currencyCode .}}</option>
                 {{end}}
             </select>
-        </p>
-        <p>
-            <label for="prizes">
-                Prizes (the first one drawn last)
+        </div>
+        <div>
+            <div class="row">
+                <label for="prizes">Prizes (the first one drawn last)</label>
                 <button id="add-prize" onclick="addPrize(); return false">+</button>
-            </label>
-            <textarea id="prizes" rows="7" placeholder="1× the most valuable prize&#10;3× another valuable prize&#10;...&#10;5× the least valuable prize" required></textarea>
-        </p>
+            </div>
+            <textarea id="prizes" rows="7" placeholder="1× the most valuable prize&#10;3× another valuable prize&#10;…&#10;5× the least valuable prize" required></textarea>
+        </div>
         <div class="buttons">
             <button>Submit raffle</button>
         </div>
@@ -110,7 +111,7 @@
         titleElement.value = ''
         ticketPriceElement.value = ''
         fiatAmountElement.value = ''
-        fiatCurrencyElement.value = 'eur'
+        fiatCurrencyElement.value = ''
         prizesElement.value = ''
         dialogElement.onsubmit = () => submitRaffle(post, '/api/raffles')
         dialogElement.showModal()
