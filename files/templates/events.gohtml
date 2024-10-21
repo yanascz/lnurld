@@ -62,35 +62,35 @@
     <h2>Event</h2>
     <button class="close" onclick="closeDialog()">×</button>
     <form method="dialog">
-        <p>
-            <label for="title">Title</label>
-            <input id="title" type="text" maxlength="50" required/>
-        </p>
         <div>
-            <p>
-                <label for="startDate">Start</label>
-                <input id="startDate" type="date" required/>
-                <input id="startTime" type="time" required/>
-            </p>
-            <p>
-                <label for="endDate">End</label>
-                <input id="endDate" type="date" required/>
-                <input id="endTime" type="time" required/>
-            </p>
+            <label for="title">Title</label>
+            <input id="title" type="text" maxlength="50" required>
         </div>
-        <p>
+        <div class="row">
+            <div>
+                <label for="startDate">Start</label>
+                <input id="startDate" type="date" required>
+                <input id="startTime" type="time" required>
+            </div>
+            <div>
+                <label for="endDate">End</label>
+                <input id="endDate" type="date" required>
+                <input id="endTime" type="time" required>
+            </div>
+        </div>
+        <div>
             <label for="locationName">Location</label>
-            <input id="locationName" type="text" maxlength="50" placeholder="Bitcoin coffee" required/>
-            <input id="locationUrl" type="url" maxlength="100" placeholder="https://mapy.cz/s/gocovurafo" required/>
-        </p>
-        <p>
+            <input id="locationName" type="text" maxlength="50" placeholder="Bitcoin coffee" required>
+            <input id="locationUrl" type="url" maxlength="100" placeholder="https://mapy.cz/s/gocovurafo" required>
+        </div>
+        <div>
             <label for="capacity">Capacity</label>
-            <input id="capacity" type="number" min="1" max="1000" required/>
-        </p>
-        <p>
+            <input id="capacity" type="number" min="1" max="1000" required>
+        </div>
+        <div>
             <label for="description">Description</label>
             <textarea id="description" rows="5" maxlength="500" required></textarea>
-        </p>
+        </div>
         <div class="buttons">
             <button>Submit event</button>
         </div>

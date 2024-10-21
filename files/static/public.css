@@ -9,6 +9,10 @@ body {
     margin: auto;
 }
 
+a {
+    color: inherit;
+}
+
 main {
     display: flex;
     flex-direction: column;
@@ -107,12 +111,6 @@ main button:disabled {
     cursor: default;
 }
 
-footer {
-    margin-bottom: 32px;
-    text-align: center;
-    color: grey;
-}
-
 dialog {
     width: 90%;
     max-width: 320px;
@@ -153,12 +151,6 @@ dialog h2 {
     font-size: 24px;
 }
 
-dialog p {
-    margin-top: 8px;
-    font-size: 11px;
-    color: grey;
-}
-
 dialog a {
     outline: none;
 }
@@ -179,6 +171,14 @@ dialog button {
     cursor: pointer;
 }
 
-a {
-    color: inherit;
+dialog footer {
+    margin: 8px auto 0;
+    font-size: 11px;
+    text-align: left;
+}
+
+footer {
+    margin-bottom: 32px;
+    text-align: center;
+    color: grey;
 }

@@ -379,16 +379,19 @@ dialog h2.ln {
     margin-bottom: 12px;
 }
 
-dialog div {
-    display: flex;
-    gap: 0 4px;
-}
-
 dialog div.lnurl {
     position: relative;
 }
 
-dialog div#success {
+dialog div.lnurl a {
+    outline: none;
+}
+
+dialog div.lnurl img {
+    max-width: 100%;
+}
+
+dialog div.lnurl div#success {
     visibility: hidden;
     position: absolute;
     top: 10%;
@@ -406,11 +409,7 @@ dialog div#success {
     opacity: .97;
 }
 
-dialog div span {
-    align-self: center;
-}
-
-dialog p {
+dialog form div {
     display: flex;
     margin-top: 12px;
     flex-direction: column;
@@ -418,40 +417,44 @@ dialog p {
     font-size: 16px;
 }
 
-dialog a {
-    outline: none;
+dialog form div.row {
+    margin-top: 0;
+    flex-direction: row;
+    align-items: center;
+    gap: 0 4px;
 }
 
-dialog img {
-    max-width: 100%;
-}
-
-dialog label {
+dialog form div label {
     display: block;
     margin-bottom: 4px;
     color: grey;
 }
 
-dialog label button {
-    font-size: 16px;
-}
-
-dialog input {
+dialog form div input {
     display: flex;
     flex-grow: 1;
     font-size: 16px;
 }
 
-dialog select {
+dialog form div select {
     font-size: 16px;
 }
 
-dialog textarea {
+dialog form div textarea {
     font-size: 16px;
 }
 
-dialog div.buttons {
-    margin: 16px auto 20px;
+dialog form div button {
+    font-size: 16px;
+    margin-bottom: 4px;
+}
+
+dialog form div span {
+    align-self: center;
+}
+
+dialog form div.buttons {
+    margin: 16px auto;
     align-items: center;
 }
 
