@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="stylesheet" media="all" href="/static/auth.css">
-    <script src="/static/util.js"></script>
+    <script src="/static/utils.js"></script>
 
     <title>Events</title>
 
@@ -98,7 +98,7 @@
 </dialog>
 
 <script>
-    const dialogElement = element('dialog');
+    const dialogElement = element('dialog')
     const titleElement = element('title')
     const startDateElement = element('startDate')
     const startTimeElement = element('startTime')
@@ -124,12 +124,12 @@
     }
 
     function openEditDialog(eventId) {
-        const eventUri = `/api/events/${eventId}`;
+        const eventUri = `/api/events/${eventId}`
         fetch(eventUri)
             .then(response => response.json())
             .then(body => {
-                const start = new Date(body.start);
-                const end = new Date(body.end);
+                const start = new Date(body.start)
+                const end = new Date(body.end)
                 titleElement.value = body.title
                 startDateElement.value = toLocalDate(start)
                 startTimeElement.value = toLocalTime(start)
@@ -145,8 +145,8 @@
     }
 
     function submitEvent(submitFunction, uri) {
-        let start = toIsoDateTime(startDateElement.value, startTimeElement.value);
-        let end = toIsoDateTime(endDateElement.value, endTimeElement.value);
+        let start = toIsoDateTime(startDateElement.value, startTimeElement.value)
+        let end = toIsoDateTime(endDateElement.value, endTimeElement.value)
         if (end <= start) {
             alert('Event ends earlier than it starts!')
             return false
@@ -158,7 +158,7 @@
             location: toLocation(locationNameElement.value, locationUrlElement.value),
             capacity: Number(capacityElement.value),
             description: descriptionElement.value
-        }).then(() => document.location.reload())
+        }).then(reloadPage)
     }
 
     function closeDialog() {
@@ -166,15 +166,15 @@
     }
 
     function toLocalDate(date) {
-        const year = toComponent(date.getFullYear(), 4);
-        const month = toComponent(date.getMonth() + 1);
-        const day = toComponent(date.getDate());
+        const year = toComponent(date.getFullYear(), 4)
+        const month = toComponent(date.getMonth() + 1)
+        const day = toComponent(date.getDate())
         return `${year}-${month}-${day}`
     }
 
     function toLocalTime(date) {
-        const hours = toComponent(date.getHours());
-        const minutes = toComponent(date.getMinutes());
+        const hours = toComponent(date.getHours())
+        const minutes = toComponent(date.getMinutes())
         return `${hours}:${minutes}`
     }
 

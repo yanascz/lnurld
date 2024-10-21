@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="stylesheet" media="all" href="/static/auth.css">
-    <script src="/static/util.js"></script>
+    <script src="/static/utils.js"></script>
 
     <title>{{.Title}}</title>
 
@@ -34,7 +34,7 @@
         {{if not .DrawFinished}}
             <button {{if ge .TicketsPaid .PrizesCount}}onclick="drawRaffle()" {{else}}disabled{{end}}>Draw raffle</button>
         {{else}}
-            <button onclick="location.href='/auth/raffles/{{.Id}}/draw'">Show winners</button>
+            <button onclick="navigateTo('/auth/raffles/{{.Id}}/draw')">Show winners</button>
         {{end}}
         {{if .Withdrawable}}
             <button onclick="withdrawSats()">Withdraw sats</button>
@@ -69,7 +69,7 @@
             return false
         }
         {{end}}
-        location.href = '/auth/raffles/{{.Id}}/draw'
+        navigateTo('/auth/raffles/{{.Id}}/draw')
     }
 
     let k1
@@ -106,7 +106,7 @@
                     setTimeout(awaitSuccess, 1000)
                 } else {
                     element('success').style.visibility = 'visible'
-                    setTimeout(() => document.location.reload(), 3000)
+                    setTimeout(reloadPage, 3000)
                 }
             })
     }
@@ -116,7 +116,7 @@
             return false
         }
         post('/api/raffles/{{.Id}}/lock')
-            .then(() => document.location.reload())
+            .then(reloadPage)
     }
 </script>
 

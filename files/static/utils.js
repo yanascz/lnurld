@@ -2,6 +2,14 @@ function element(elementId) {
     return document.getElementById(elementId)
 }
 
+function reloadPage() {
+    document.location.reload()
+}
+
+function navigateTo(uri) {
+    location.href = uri
+}
+
 function post(uri, body = {}) {
     return fetch(uri, {
         method: 'POST',
