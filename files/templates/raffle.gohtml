@@ -29,7 +29,7 @@
     </div>
     <div class="buttons">
         {{if not .DrawAvailable}}
-            <button onclick="location.href='/ln/raffle/{{.Id}}/qr-code?size=1280'">Show QR code</button>
+            <button onclick="navigateTo('/ln/raffle/{{.Id}}/qr-code?size=1280')">Show QR code</button>
         {{end}}
         {{if not .DrawFinished}}
             <button {{if ge .TicketsPaid .PrizesCount}}onclick="drawRaffle()" {{else}}disabled{{end}}>Draw raffle</button>
@@ -50,13 +50,13 @@
 
 <dialog id="dialog">
     <h2 class="ln">Withdraw via Lightning</h2>
+    <form method="dialog">
+        <button class="close">×</button>
+    </form>
     <div class="lnurl">
         <a id="link" href=""><img id="qrcode" src="" alt="LNURL-withdraw"></a>
         <div id="success">✓</div>
     </div>
-    <form method="dialog">
-        <button class="close">×</button>
-    </form>
     <footer>Scan or tap the QR code to open it in your Lightning wallet. You can use any wallet that supports LNURL-withdraw.</footer>
 </dialog>
 

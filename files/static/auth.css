@@ -358,7 +358,7 @@ main.draw div.buttons {
 
 dialog {
     width: 90%;
-    max-width: 320px;
+    max-width: 328px;
     margin: auto;
     padding-bottom: 0;
     border: none;
@@ -389,6 +389,7 @@ dialog div.lnurl a {
 
 dialog div.lnurl img {
     max-width: 100%;
+    aspect-ratio: 1;
 }
 
 dialog div.lnurl div#success {
