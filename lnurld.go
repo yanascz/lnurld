@@ -750,7 +750,7 @@ func apiInvoicesHandler(context *gin.Context) {
 	}
 
 	thumbnailData := getAccountThumbnailData(&account)
-	pngData, err := encodeQrCode(strings.ToUpper(invoice.paymentRequest), thumbnailData, qrCodeSize, true)
+	pngData, err := encodeQrCode(strings.ToUpper(invoice.paymentRequest), thumbnailData, qrCodeSize)
 	if err != nil {
 		abortWithInternalServerErrorResponse(context, fmt.Errorf("encoding QR code: %w", err))
 		return
@@ -1188,7 +1188,7 @@ func generateLnUrl(context *gin.Context, k1 string, uri string) {
 		return
 	}
 
-	pngData, err := encodeQrCode(lnUrl, lightningPngData, qrCodeSize, true)
+	pngData, err := encodeQrCode(lnUrl, lightningPngData, qrCodeSize)
 	if err != nil {
 		abortWithInternalServerErrorResponse(context, fmt.Errorf("encoding QR code: %w", err))
 		return
@@ -1216,7 +1216,7 @@ func generateQrCode(context *gin.Context, uri string, thumbnailData []byte) {
 		return
 	}
 
-	pngData, err := encodeQrCode(lnUrl, thumbnailData, int(size), false)
+	pngData, err := encodeQrCode(lnUrl, thumbnailData, int(size))
 	if err != nil {
 		abortWithInternalServerErrorResponse(context, fmt.Errorf("encoding QR code: %w", err))
 		return

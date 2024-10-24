@@ -11,12 +11,12 @@ import (
 	"image/png"
 )
 
-func encodeQrCode(content string, thumbnailData []byte, size int, disableBorder bool) ([]byte, error) {
+func encodeQrCode(content string, thumbnailData []byte, size int) ([]byte, error) {
 	qrCode, err := qrcode.New("lightning:"+content, qrcode.Medium)
 	if err != nil {
 		return nil, err
 	}
-	qrCode.DisableBorder = disableBorder
+	qrCode.DisableBorder = true
 
 	thumbnailImage, _, err := image.Decode(bytes.NewReader(thumbnailData))
 	if err != nil {

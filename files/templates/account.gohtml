@@ -28,7 +28,7 @@
         <p>{{number .CommentsCount "comment"}}</p>
     </div>
     <div class="buttons">
-        <button onclick="navigateTo('/ln/pay/{{.AccountKey}}/qr-code?size=1280')">Show QR code</button>
+        <button onclick="showQrCode()">Show QR code</button>
         <button onclick="navigateTo('/auth/accounts/{{.AccountKey}}/terminal')">Open terminal</button>
         {{if .Archivable}}
             <button onclick="archiveInvoices()">Archive invoices</button>
@@ -62,7 +62,22 @@
     {{end}}
 </main>
 
+<dialog id="dialog">
+    <h2 class="ln">Payment QR code</h2>
+    <form method="dialog">
+        <button class="close">×</button>
+    </form>
+    <div class="lnurl">
+        <img src="/ln/pay/{{.AccountKey}}/qr-code?size=1280" alt="LNURL-pay">
+    </div>
+    <footer>Scan or tap the QR code to open it in your Lightning wallet. You can use any wallet that supports LNURL-pay.</footer>
+</dialog>
+
 <script>
+    function showQrCode() {
+        element('dialog').showModal()
+    }
+
     function archiveInvoices() {
         if (!confirm('Really archive the invoices?')) {
             return false

@@ -2,7 +2,8 @@
 
 LNURL Daemon is a minimalistic [Lightning Address](https://lightningaddress.com/) and LNURL self-hosted HTTP server.
 It is intended to run on your node and connect directly to your [LND](https://github.com/lightningnetwork/lnd).
-You may test it by sending some sats to ⚡lnurld@yanas.cz or by scanning the following QR code:\
+You may test it by sending some sats to ⚡lnurld@yanas.cz or by scanning the following QR code:
+
 ![LNURL-pay QR code](https://yanas.cz/ln/pay/lnurld/qr-code)
 
 ## Supported features

@@ -50,13 +50,13 @@
 {{if not .AttendeeOrdinal}}
     <dialog id="dialog">
         <h2>Log in with Lightning</h2>
+        <form method="dialog">
+            <button>×</button>
+        </form>
         <div class="lnurl">
             <a id="link" href=""><img id="qrcode" src="" alt="LNURL-auth"></a>
             <div id="success">✓</div>
         </div>
-        <form method="dialog">
-            <button>×</button>
-        </form>
         <footer>Scan or tap the QR code to open it in your Lightning wallet. You can use any wallet that supports LNURL-auth.</footer>
     </dialog>
 
