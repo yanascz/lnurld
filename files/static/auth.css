@@ -62,7 +62,7 @@ header.center {
 
 header h1 {
     display: flex;
-    font-size: 36px;
+    font-size: 32px;
 }
 
 header h1.account::before {

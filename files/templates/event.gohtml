@@ -29,7 +29,7 @@
     {{range .Description}}
         <p class="formatted">{{.}}</p>
     {{end}}
-    <div>
+    <div class="buttons">
         {{if and .SignUpPossible (not .AttendeeOrdinal)}}
             <button onclick="signUp(this)">Sign up with Lightning</button>
         {{else if not .Identity}}

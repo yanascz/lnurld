@@ -11,6 +11,7 @@ require (
 	github.com/mr-tron/base58 v1.2.0
 	github.com/nbd-wtf/go-nostr v0.34.10
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
+	github.com/stretchr/testify v1.9.0
 	golang.org/x/image v0.15.0
 	golang.org/x/text v0.14.0
 	google.golang.org/grpc v1.63.2
@@ -140,7 +141,6 @@ require (
 	github.com/soheilhy/cmux v0.1.5 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
-	github.com/stretchr/testify v1.9.0 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7 // indirect
 	github.com/tidwall/gjson v1.14.4 // indirect
 	github.com/tidwall/match v1.1.1 // indirect

@@ -12,7 +12,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/nbd-wtf/go-nostr"
 	"log"
-	"math/rand"
 	"net/http"
 	"os"
 	"path"
@@ -119,6 +118,7 @@ func main() {
 	lnurld.GET("/events/:id", eventHandler)
 	lnurld.GET("/events/:id/ics", eventIcsHandler)
 	lnurld.POST("/events/:id/sign-up", eventSignUpHandler)
+	lnurld.GET("/raffles/:id", raffleHandler)
 	lnurld.GET("/static/*filepath", lnStaticFileHandler)
 
 	authorized := lnurld.Group("/", gin.BasicAuth(config.ginAccounts()))
@@ -211,7 +211,7 @@ func lnPayHandler(context *gin.Context) {
 		}
 
 		context.JSON(http.StatusOK, LnUrlPayParams{
-			Callback:        scheme + "://" + host + context.Request.RequestURI,
+			Callback:        scheme + "://" + host + context.Request.URL.Path,
 			MinSendable:     account.getMinSendable(),
 			MaxSendable:     account.getMaxSendable(),
 			EncodedMetadata: lnurlMetadata.Encode(),
@@ -223,7 +223,7 @@ func lnPayHandler(context *gin.Context) {
 		return
 	}
 
-	msats, err := strconv.ParseInt(amount, 10, 64)
+	msats, err := parseAmount(amount)
 	if err != nil || msats < account.getMinSendable() || msats > account.getMaxSendable() {
 		abortWithBadRequestResponse(context, "invalid amount")
 		return
@@ -303,7 +303,7 @@ func lnRaffleTicketHandler(context *gin.Context) {
 	ticketPrice := msats(raffle.TicketPrice)
 
 	var lnurlMetadata lnurl.Metadata
-	lnurlMetadata.Description = raffle.Title
+	lnurlMetadata.Description = raffle.Title // TODO: Include quantity?
 	lnurlMetadata.Image.Bytes = tombolaPngData
 	lnurlMetadata.Image.Ext = "png"
 
@@ -312,21 +312,26 @@ func lnRaffleTicketHandler(context *gin.Context) {
 		lnurlMetadata.Image.Ext = thumbnail.ext
 	}
 
-	amount := context.Query(amountParam)
-	if amount == "" {
+	amountString := context.Query(amountParam)
+	if amountString == "" {
+		_, quantity := getRequestedQuantity(context)
+		if quantity < 0 {
+			return
+		}
+
 		scheme, host := getSchemeAndHost(context)
 		context.JSON(http.StatusOK, lnurl.LNURLPayParams{
-			Callback:        scheme + "://" + host + context.Request.RequestURI,
-			MinSendable:     ticketPrice,
-			MaxSendable:     ticketPrice,
+			Callback:        scheme + "://" + host + context.Request.URL.Path,
+			MinSendable:     quantity * ticketPrice,
+			MaxSendable:     quantity * ticketPrice,
 			EncodedMetadata: lnurlMetadata.Encode(),
 			Tag:             payRequestTag,
 		})
 		return
 	}
 
-	msats, err := strconv.ParseInt(amount, 10, 64)
-	if err != nil || msats != ticketPrice {
+	amount, err := parseAmount(amountString)
+	if err != nil || !isValidRaffleAmount(amount, ticketPrice) {
 		abortWithBadRequestResponse(context, "invalid amount")
 		return
 	}
@@ -337,20 +342,20 @@ func lnRaffleTicketHandler(context *gin.Context) {
 	}
 
 	descriptionHash := sha256.Sum256([]byte(lnurlMetadata.Encode()))
-	invoice := createInvoice(context, msats, "", descriptionHash[:])
+	invoice := createInvoice(context, amount, "", descriptionHash[:])
 	if invoice == nil {
 		return
 	}
 
-	ticket := RaffleTicket(invoice.paymentHash)
-	if err := repository.addRaffleTicket(raffle, ticket); err != nil {
+	tickets := RaffleTickets{invoice.paymentHash, int(amount / ticketPrice)}
+	if err := repository.addRaffleTickets(raffle, tickets); err != nil {
 		abortWithInternalServerErrorResponse(context, fmt.Errorf("storing ticket: %w", err))
 		return
 	}
 
 	context.JSON(http.StatusOK, lnurl.LNURLPayValues{
 		PR:            invoice.paymentRequest,
-		SuccessAction: successMessage("Ticket " + ticket.number()),
+		SuccessAction: successMessage(raffle.Title + ": " + tickets.numbers()),
 		Routes:        []string{},
 	})
 }
@@ -365,12 +370,17 @@ func lnRaffleQrCodeHandler(context *gin.Context) {
 		return
 	}
 
+	quantityString, quantity := getRequestedQuantity(context)
+	if quantity < 0 {
+		return
+	}
+
 	thumbnailData := tombolaPngData
 	if thumbnail := getRaffleThumbnail(raffle); thumbnail != nil {
 		thumbnailData = thumbnail.bytes
 	}
 
-	generateQrCode(context, "/ln/raffle/"+string(raffle.Id), thumbnailData)
+	generateQrCode(context, "/ln/raffle/"+string(raffle.Id)+"?quantity="+quantityString, thumbnailData)
 }
 
 func lnWithdrawConfirmHandler(context *gin.Context) {
@@ -485,6 +495,18 @@ func eventSignUpHandler(context *gin.Context) {
 	}
 
 	context.Status(http.StatusNoContent)
+}
+
+func raffleHandler(context *gin.Context) {
+	raffle := getRaffle(context)
+	if raffle == nil {
+		return
+	}
+
+	context.HTML(http.StatusOK, "raffle-public.gohtml", gin.H{
+		"Id":    raffle.Id,
+		"Title": raffle.Title,
+	})
 }
 
 func lnStaticFileHandler(context *gin.Context) {
@@ -638,18 +660,19 @@ func authRaffleHandler(context *gin.Context) {
 		return
 	}
 
-	tickets := repository.getRaffleTickets(raffle)
 	drawAvailable := repository.isRaffleDrawAvailable(raffle)
 	drawFinished := repository.isRaffleDrawFinished(raffle)
 	withdrawalFinished := repository.isRaffleWithdrawalFinished(raffle)
 	locked := repository.isRaffleLocked(raffle)
 
+	var ticketsIssued int
 	var ticketsPaid int
 	var totalSatsReceived int64
-	for _, ticket := range tickets {
-		invoice, err := lndClient.getInvoice(ticket.paymentHash())
+	for _, tickets := range repository.getRaffleTickets(raffle) {
+		ticketsIssued += tickets.quantity
+		invoice, err := lndClient.getInvoice(tickets.paymentHash)
 		if err == nil && invoice.isSettled() {
-			ticketsPaid++
+			ticketsPaid += tickets.quantity
 			totalSatsReceived += invoice.amount
 		}
 	}
@@ -660,7 +683,7 @@ func authRaffleHandler(context *gin.Context) {
 		"TicketPrice":        raffle.TicketPrice,
 		"FiatCurrency":       raffle.FiatCurrency,
 		"PrizesCount":        raffle.PrizesCount(),
-		"TicketsIssued":      len(tickets),
+		"TicketsIssued":      ticketsIssued,
 		"TicketsPaid":        ticketsPaid,
 		"TotalSatsReceived":  totalSatsReceived,
 		"TotalFiatReceived":  ratesService.satsToFiat(raffle.FiatCurrency, totalSatsReceived),
@@ -900,7 +923,7 @@ func apiRaffleDrawCommitHandler(context *gin.Context) {
 	raffleDraw := repository.getRaffleDraw(raffle)
 	skippedTickets := raffleDrawCommit.SkippedTickets
 	slices.DeleteFunc(raffleDraw, func(ticket RaffleTicket) bool {
-		if slices.Contains(skippedTickets, ticket) {
+		if slices.Contains(skippedTickets, ticket.String()) {
 			skippedTickets = skippedTickets[1:]
 			return true
 		}
@@ -936,7 +959,7 @@ func apiRaffleWithdrawHandler(context *gin.Context) {
 
 	var totalSatsReceived int64
 	for _, ticket := range repository.getRaffleDraw(raffle) {
-		if invoice, _ := lndClient.getInvoice(ticket.paymentHash()); invoice != nil {
+		if invoice, _ := lndClient.getInvoice(ticket.paymentHash); invoice != nil {
 			totalSatsReceived += invoice.amount
 		}
 	}
@@ -1116,10 +1139,12 @@ func getRaffleDraw(context *gin.Context, raffle *Raffle) []RaffleTicket {
 		return raffleDraw
 	}
 
-	for _, ticket := range repository.getRaffleTickets(raffle) {
-		invoice, _ := lndClient.getInvoice(ticket.paymentHash())
+	for _, tickets := range repository.getRaffleTickets(raffle) {
+		invoice, _ := lndClient.getInvoice(tickets.paymentHash)
 		if invoice != nil && invoice.isSettled() {
-			raffleDraw = append(raffleDraw, ticket)
+			for i := 0; i < tickets.quantity; i++ {
+				raffleDraw = append(raffleDraw, RaffleTicket{tickets.paymentHash, i})
+			}
 		}
 	}
 
@@ -1128,16 +1153,24 @@ func getRaffleDraw(context *gin.Context, raffle *Raffle) []RaffleTicket {
 		return nil
 	}
 
-	rand.Shuffle(len(raffleDraw), func(i, j int) {
-		raffleDraw[i], raffleDraw[j] = raffleDraw[j], raffleDraw[i]
-	})
-
+	shuffleRaffleDraw(raffleDraw)
 	if err := repository.createRaffleDraw(raffle, raffleDraw); err != nil {
 		abortWithInternalServerErrorResponse(context, fmt.Errorf("storing raffle draw: %w", err))
 		return nil
 	}
 
 	return raffleDraw
+}
+
+func getRequestedQuantity(context *gin.Context) (string, int64) {
+	quantityString := context.DefaultQuery("quantity", "1")
+	quantity, err := strconv.ParseInt(quantityString, 10, 32)
+	if err == nil && quantity >= minQuantity && quantity <= maxQuantity {
+		return quantityString, quantity
+	}
+
+	abortWithBadRequestResponse(context, "invalid quantity")
+	return quantityString, -1
 }
 
 func isUserAuthorized(context *gin.Context, owner UserKey) bool {
@@ -1222,6 +1255,7 @@ func generateQrCode(context *gin.Context, uri string, thumbnailData []byte) {
 		return
 	}
 
+	context.Header("Cache-Control", "private, max-age=86400, immutable")
 	context.Data(http.StatusOK, "image/png", pngData)
 }
 
@@ -1244,4 +1278,8 @@ func abortWithBadRequestResponse(context *gin.Context, reason string) {
 func abortWithInternalServerErrorResponse(context *gin.Context, err error) {
 	context.AbortWithStatusJSON(http.StatusInternalServerError, lnurl.ErrorResponse("internal server error"))
 	context.Error(err)
+}
+
+func parseAmount(amount string) (int64, error) {
+	return strconv.ParseInt(amount, 10, 64)
 }

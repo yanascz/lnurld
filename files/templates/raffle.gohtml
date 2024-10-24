@@ -29,7 +29,7 @@
     </div>
     <div class="buttons">
         {{if not .DrawAvailable}}
-            <button onclick="navigateTo('/ln/raffle/{{.Id}}/qr-code?size=1280')">Show QR code</button>
+            <button onclick="navigateTo('/raffles/{{.Id}}')">Show QR code</button>
         {{end}}
         {{if not .DrawFinished}}
             <button {{if ge .TicketsPaid .PrizesCount}}onclick="drawRaffle()" {{else}}disabled{{end}}>Draw raffle</button>

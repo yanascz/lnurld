@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{{.Title}}">
+
+    <link rel="stylesheet" media="all" href="/static/public.css">
+    <script src="/static/utils.js"></script>
+
+    <title>{{.Title}}</title>
+
+</head>
+<body>
+
+<main class="raffle">
+    <h1 class="raffle">{{.Title}}</h1>
+    <div class="lnurl">
+        <img id="raffle-qr-code" src="" alt="LNURL-pay">
+        <div class="controls">
+            <button id="decrease-quantity" onclick="updateQuantity(-1)">–</button>
+            <div id="quantity">1</div>
+            <button id="increase-quantity" onclick="updateQuantity(1)">+</button>
+        </div>
+    </div>
+    <small>Scan or tap the QR code to open it in your Lightning wallet. You can use any wallet that supports LNURL-pay.</small>
+</main>
+
+<script>
+    let quantity = 1
+
+    function updateQuantity(delta = 0) {
+        quantity += delta
+        element('raffle-qr-code').src = `/ln/raffle/{{.Id}}/qr-code?quantity=${quantity}&size=1280`
+        element('quantity').innerHTML = `<strong>${quantity}</strong> ticket${quantity !== 1 ? 's' : ''}`
+        element('decrease-quantity').disabled = quantity === 1
+        element('increase-quantity').disabled = quantity === 10
+    }
+
+    updateQuantity()
+</script>
+
+</body>
+</html>

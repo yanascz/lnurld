@@ -16,6 +16,10 @@ func toIdentity(value string) Identity {
 	return Identity(value)
 }
 
+func (identity Identity) String() string {
+	return string(identity)
+}
+
 func (identity Identity) PublicId() string {
 	if bytes, _ := hex.DecodeString(string(identity)); len(bytes) >= 7 {
 		return base58.Encode(bytes)[0:7]
