@@ -9,9 +9,11 @@ const (
 	sigParam           = "sig"
 	keyParam           = "key"
 	amountParam        = "amount"
-	nostrParam         = "nostr"
 	commentParam       = "comment"
+	nostrParam         = "nostr"
 	prParam            = "pr"
+	quantityParam      = "quantity"
+	sizeParam          = "size"
 )
 
 type LnUrlPayParams struct {

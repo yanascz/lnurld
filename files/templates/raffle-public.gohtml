@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{{.Title}}">
+    <meta property="og:description" content="Lightning raffle with {{number .PrizesCount "prize"}}">
+
+    <link rel="stylesheet" media="all" href="/static/public.css">
+    <script src="/static/utils.js"></script>
+
+    <title>{{.Title}}</title>
+
+</head>
+<body>
+
+<h1 class="raffle">{{.Title}}</h1>
+
+<main>
+    {{if .QrCodes}}
+        <div id="qr-codes" class="lnurl">
+            {{range $i, $qrCode := .QrCodes}}
+                <a href="lightning:{{$qrCode.LnUrl}}"{{if gt $i 0}} hidden="hidden"{{end}}>
+                    <img id="raffle-qr-code" src="{{$qrCode.Uri}}" alt="LNURL-pay">
+                </a>
+            {{end}}
+        </div>
+        <div class="controls">
+            <button id="minus" onclick="changeQrCode(-1)">–</button>
+            <div id="quantity"></div>
+            <button id="plus" onclick="changeQrCode(+1)">+</button>
+        </div>
+    {{else}}
+        <p>Raffle already drawn.</p>
+    {{end}}
+</main>
+
+{{if .QrCodes}}
+    <footer class="lnurl">
+        Scan or tap the QR code to open it in your Lightning wallet. You can use any wallet that supports LNURL-pay.
+    </footer>
+{{end}}
+
+<script>
+    const quantityElement = element('quantity')
+    const minusButton = element('minus')
+    const plusButton = element('plus')
+
+    let qrCodeIndex = 0
+
+    updateQuantity()
+
+    function changeQrCode(delta) {
+        const qrCodeElements = element('qr-codes').children
+        qrCodeElements[qrCodeIndex].hidden = true
+        qrCodeElements[qrCodeIndex + delta].hidden = false
+        qrCodeIndex += delta
+        updateQuantity()
+    }
+
+    function updateQuantity() {
+        const quantity = qrCodeIndex + 1
+        quantityElement.innerHTML = `<strong>${quantity}</strong> ticket${quantity !== 1 ? 's' : ''}`
+        minusButton.disabled = quantity === 1
+        plusButton.disabled = quantity === 10
+    }
+</script>
+
+</body>
+</html>

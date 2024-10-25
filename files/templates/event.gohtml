@@ -16,8 +16,9 @@
 </head>
 <body>
 
-<main class="event">
-    <h1>{{.Title}}</h1>
+<h1>{{.Title}}</h1>
+
+<main>
     <ul>
         <li class="datetime">{{datetime .Start}}</li>
         <li class="location">{{with .Location}}<a href="{{.Url}}">{{.Name}}</a>{{end}}</li>
@@ -29,7 +30,7 @@
     {{range .Description}}
         <p class="formatted">{{.}}</p>
     {{end}}
-    <div>
+    <div class="buttons">
         {{if and .SignUpPossible (not .AttendeeOrdinal)}}
             <button onclick="signUp(this)">Sign up with Lightning</button>
         {{else if not .Identity}}

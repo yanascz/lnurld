@@ -195,12 +195,12 @@ func (repository *Repository) updateRaffle(raffle *Raffle) error {
 	return writeObject(raffleDataFileName(repository, raffle.Id), raffle)
 }
 
-func (repository *Repository) addRaffleTicket(raffle *Raffle, ticket RaffleTicket) error {
-	return appendValue(raffleTicketsFileName(repository, raffle.Id), ticket)
+func (repository *Repository) addRaffleTickets(raffle *Raffle, tickets RaffleTickets) error {
+	return appendValue(raffleTicketsFileName(repository, raffle.Id), tickets)
 }
 
-func (repository *Repository) getRaffleTickets(raffle *Raffle) []RaffleTicket {
-	return readValues(raffleTicketsFileName(repository, raffle.Id), toRaffleTicket)
+func (repository *Repository) getRaffleTickets(raffle *Raffle) []RaffleTickets {
+	return readValues(raffleTicketsFileName(repository, raffle.Id), parseRaffleTickets)
 }
 
 func (repository *Repository) isRaffleDrawAvailable(raffle *Raffle) bool {
@@ -213,7 +213,7 @@ func (repository *Repository) createRaffleDraw(raffle *Raffle, tickets []RaffleT
 }
 
 func (repository *Repository) getRaffleDraw(raffle *Raffle) []RaffleTicket {
-	return readValues(raffleDrawFileName(repository, raffle.Id), toRaffleTicket)
+	return readValues(raffleDrawFileName(repository, raffle.Id), parseRaffleTicket)
 }
 
 func (repository *Repository) isRaffleDrawFinished(raffle *Raffle) bool {
@@ -226,7 +226,7 @@ func (repository *Repository) createRaffleWinners(raffle *Raffle, tickets []Raff
 }
 
 func (repository *Repository) getRaffleWinners(raffle *Raffle) []RaffleTicket {
-	return readValues(raffleWinnersFileName(repository, raffle.Id), toRaffleTicket)
+	return readValues(raffleWinnersFileName(repository, raffle.Id), parseRaffleTicket)
 }
 
 func (repository *Repository) isRaffleWithdrawalFinished(raffle *Raffle) bool {
@@ -365,21 +365,21 @@ func readDirEntries(dirName string) []os.DirEntry {
 	return dirEntries
 }
 
-func appendValue[T Identity | PaymentHash | RaffleTicket](fileName string, value T) error {
+func appendValue[T fmt.Stringer](fileName string, value T) error {
 	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
-	if _, err = file.WriteString(string(value) + "\n"); err != nil {
+	if _, err = file.WriteString(value.String() + "\n"); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func writeValues[T PaymentHash | RaffleTicket](fileName string, values []T) error {
+func writeValues[T fmt.Stringer](fileName string, values []T) error {
 	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_EXCL|os.O_CREATE, 0644)
 	if err != nil {
 		return err
@@ -387,7 +387,7 @@ func writeValues[T PaymentHash | RaffleTicket](fileName string, values []T) erro
 	defer file.Close()
 
 	for _, value := range values {
-		if _, err = file.WriteString(string(value) + "\n"); err != nil {
+		if _, err = file.WriteString(value.String() + "\n"); err != nil {
 			return err
 		}
 	}

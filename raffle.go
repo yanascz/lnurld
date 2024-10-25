@@ -2,7 +2,15 @@ package main
 
 import (
 	"github.com/mr-tron/base58"
+	"math/rand"
 	"sort"
+	"strconv"
+	"strings"
+)
+
+const (
+	minQuantity = 1
+	maxQuantity = 10
 )
 
 type RaffleId string
@@ -12,15 +20,27 @@ type Raffle struct {
 	Owner        UserKey       `json:"owner"`
 	IsMine       bool          `json:"-"`
 	Title        string        `json:"title" binding:"min=1,max=50"`
-	TicketPrice  uint32        `json:"ticketPrice" binding:"min=1,max=1000000"`
+	TicketPrice  int           `json:"ticketPrice" binding:"min=1,max=1000000"`
 	FiatCurrency Currency      `json:"fiatCurrency" binding:"required"`
 	Prizes       []RafflePrize `json:"prizes" binding:"min=1,max=21"`
+}
+
+func (raffle *Raffle) description(quantity int) string {
+	return strconv.Itoa(quantity) + "× " + raffle.Title
+}
+
+func (raffle *Raffle) sendable(quantity int) int64 {
+	return msats(quantity * raffle.TicketPrice)
+}
+
+func (raffle *Raffle) successMessage(tickets RaffleTickets) string {
+	return raffle.Title + "\n" + tickets.numbers()
 }
 
 func (raffle *Raffle) PrizesCount() int {
 	var prizesCount int
 	for _, prize := range raffle.Prizes {
-		prizesCount += int(prize.Quantity)
+		prizesCount += prize.Quantity
 	}
 	return prizesCount
 }
@@ -28,7 +48,7 @@ func (raffle *Raffle) PrizesCount() int {
 func (raffle *Raffle) prizes() []string {
 	var prizes []string
 	for _, prize := range raffle.Prizes {
-		for i := uint8(0); i < prize.Quantity; i++ {
+		for i := 0; i < prize.Quantity; i++ {
 			prizes = append(prizes, prize.Name)
 		}
 	}
@@ -37,31 +57,75 @@ func (raffle *Raffle) prizes() []string {
 
 type RafflePrize struct {
 	Name     string `json:"name" binding:"min=1,max=50"`
-	Quantity uint8  `json:"quantity" binding:"min=1,max=10"`
+	Quantity int    `json:"quantity" binding:"min=1,max=10"`
 }
 
-type RaffleTicket string
+type RaffleQrCode struct {
+	LnUrl string
+	Uri   string
+}
 
-func toRaffleTicket(value string) RaffleTicket {
-	return RaffleTicket(value)
+type RaffleTickets struct {
+	paymentHash PaymentHash
+	quantity    int
+}
+
+func parseRaffleTickets(value string) RaffleTickets {
+	paymentHash, quantity, _ := strings.Cut(value, ",")
+	return RaffleTickets{PaymentHash(paymentHash), max(1, parseInt(quantity))}
+}
+
+func (tickets RaffleTickets) String() string {
+	return string(tickets.paymentHash) + "," + strconv.Itoa(tickets.quantity)
+}
+
+func (tickets RaffleTickets) numbers() string {
+	var numbers []string
+	symbols := raffleTicketSymbols(tickets.paymentHash)
+	for i := 0; i < tickets.quantity; i++ {
+		numbers = append(numbers, raffleTicketNumber(symbols, i))
+	}
+	sort.Slice(numbers, func(i, j int) bool {
+		return strings.ToLower(numbers[i]) < strings.ToLower(numbers[j])
+	})
+	return "• " + strings.Join(numbers, "\n• ")
+}
+
+type RaffleTicket struct {
+	paymentHash PaymentHash
+	index       int
+}
+
+func parseRaffleTicket(value string) RaffleTicket {
+	paymentHash, index, _ := strings.Cut(value, ":")
+	return RaffleTicket{PaymentHash(paymentHash), parseInt(index)}
+}
+
+func (ticket RaffleTicket) String() string {
+	return string(ticket.paymentHash) + ":" + strconv.Itoa(ticket.index)
 }
 
 func (ticket RaffleTicket) number() string {
-	return base58.Encode(PaymentHash(ticket).bytes())[0:5]
+	symbols := raffleTicketSymbols(ticket.paymentHash)
+	return raffleTicketNumber(symbols, ticket.index)
 }
 
-func (ticket RaffleTicket) paymentHash() PaymentHash {
-	return PaymentHash(ticket)
+func raffleTicketSymbols(paymentHash PaymentHash) string {
+	return base58.Encode(paymentHash.bytes())
+}
+
+func raffleTicketNumber(symbols string, index int) string {
+	return symbols[4*index : 4*index+5]
 }
 
 type RaffleDrawTicket struct {
-	Id          RaffleTicket `json:"id"`
-	Number      string       `json:"number"`
-	PaymentHash string       `json:"paymentHash"`
+	Id          string `json:"id"`
+	Number      string `json:"number"`
+	PaymentHash string `json:"paymentHash"`
 }
 
 type RaffleDrawCommit struct {
-	SkippedTickets []RaffleTicket `json:"skippedTickets"`
+	SkippedTickets []string `json:"skippedTickets"`
 }
 
 type RafflePrizeWinners struct {
@@ -69,10 +133,16 @@ type RafflePrizeWinners struct {
 	Tickets []RaffleDrawTicket
 }
 
+func shuffleRaffleDraw(raffleDraw []RaffleTicket) {
+	rand.Shuffle(len(raffleDraw), func(i, j int) {
+		raffleDraw[i], raffleDraw[j] = raffleDraw[j], raffleDraw[i]
+	})
+}
+
 func raffleDrawTicket(ticket RaffleTicket) RaffleDrawTicket {
-	paymentHash := string(ticket.paymentHash())
+	paymentHash := string(ticket.paymentHash)
 	return RaffleDrawTicket{
-		Id:          ticket,
+		Id:          ticket.String(),
 		Number:      ticket.number(),
 		PaymentHash: paymentHash[0:5] + "…" + paymentHash[59:],
 	}
@@ -90,7 +160,7 @@ func rafflePrizeWinners(raffle *Raffle, tickets []RaffleTicket) []RafflePrizeWin
 	var prizeWinners []RafflePrizeWinners
 	for _, prize := range raffle.Prizes {
 		var drawTickets []RaffleDrawTicket
-		for i := uint8(0); i < prize.Quantity; i++ {
+		for i := 0; i < prize.Quantity; i++ {
 			drawTickets = append(drawTickets, raffleDrawTicket(tickets[0]))
 			tickets = tickets[1:]
 		}
@@ -111,4 +181,11 @@ func sortRaffles(raffles []*Raffle) []*Raffle {
 		return raffleI.IsMine
 	})
 	return raffles
+}
+
+func parseInt(value string) int {
+	if n, err := strconv.ParseInt(value, 10, 32); err == nil {
+		return int(n)
+	}
+	return 0
 }

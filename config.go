@@ -84,7 +84,7 @@ func (account *Account) getMaxSendable() int64 {
 	return msats(account.MaxSendable)
 }
 
-func msats[T uint32 | int64](sats T) int64 {
+func msats[T int | uint32 | int64](sats T) int64 {
 	return int64(sats) * 1000
 }
 

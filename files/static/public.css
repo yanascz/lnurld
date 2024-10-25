@@ -5,36 +5,47 @@
 }
 
 body {
-    max-width: 420px;
+    max-width: 392px;
     margin: auto;
+    background: #eee;
+}
+
+img {
+    max-width: 100%;
+    aspect-ratio: 1;
 }
 
 a {
     color: inherit;
 }
 
+h1 {
+    display: flex;
+    margin: 24px 32px 16px;
+    font-size: 32px;
+}
+
+h1.raffle::before {
+    margin: 0 8px 0 -8px;
+    content: '⚡';
+}
+
 main {
     display: flex;
+    margin: 0 16px;
+    padding: 12px 16px;
     flex-direction: column;
-    align-items: flex-start;
-    margin: 0 24px 24px;
-}
-
-main.event {
-    margin-bottom: 0;
-}
-
-main h1 {
-    margin-top: 24px;
-    font-size: 32px;
+    align-items: stretch;
+    border-radius: 12px;
+    background: white;
 }
 
 main ul {
     display: flex;
+    margin: 8px 0 4px;
+    padding: 0;
     flex-direction: column;
     gap: 12px;
-    margin: 20px 0 8px;
-    padding: 0;
     font-size: 24px;
     font-weight: bold;
 }
@@ -59,8 +70,8 @@ main li.attendees::before {
 }
 
 main li.attendees span {
-    font-weight: normal;
     color: grey;
+    font-weight: normal;
 }
 
 main li.attendees span::before {
@@ -74,7 +85,7 @@ main li span {
 }
 
 main p {
-    margin-top: 16px;
+    margin: 0;
     font-size: 18px;
     line-height: 28px;
 }
@@ -84,18 +95,36 @@ main p.formatted {
     white-space: pre-line;
 }
 
-main div {
+main div.lnurl {
+    margin-top: 4px;
+    line-height: 0;
+}
+
+main div.controls {
     display: flex;
+    margin: 16px 0 4px;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 20px;
+    font-variant-numeric: tabular-nums;
+}
+
+main div.controls button {
+    padding: 7px 15px 11px;
+}
+
+main div.buttons {
+    display: flex;
+    margin: 20px 0 4px;
     flex-direction: column;
-    margin: 28px auto 0;
+    gap: 16px;
 }
 
 main button {
-    margin-bottom: 12px;
     padding: 11px 23px;
     border: 1px solid #f7931a;
     border-radius: 8px;
-    background-color: #f7931a;
+    background: #f7931a;
     color: white;
     font-size: 20px;
     font-weight: bold;
@@ -103,17 +132,18 @@ main button {
 }
 
 main button.secondary {
-    background-color: inherit;
+    background: inherit;
     color: #f7931a;
 }
 
 main button:disabled {
     cursor: default;
+    opacity: .5;
 }
 
 dialog {
     width: 90%;
-    max-width: 320px;
+    max-width: 328px;
     margin: auto;
     border: none;
     border-radius: 8px;
@@ -121,7 +151,7 @@ dialog {
 
 dialog::backdrop {
     background: black;
-    opacity: .5;
+    opacity: .7;
 }
 
 dialog div.lnurl {
@@ -139,10 +169,10 @@ dialog div#success {
     justify-content: center;
     align-items: center;
     border-radius: 50%;
-    background-color: green;
+    background: green;
+    color: white;
     font-size: 200px;
     font-weight: bold;
-    color: white;
     opacity: .97;
 }
 
@@ -155,17 +185,13 @@ dialog a {
     outline: none;
 }
 
-dialog img {
-    max-width: 100%;
-}
-
 dialog button {
     position: absolute;
     top: 0;
     right: 0;
     padding: 8px 14px;
     border: none;
-    background-color: white;
+    background: white;
     color: black;
     font-size: 32px;
     cursor: pointer;
@@ -178,7 +204,13 @@ dialog footer {
 }
 
 footer {
-    margin-bottom: 32px;
-    text-align: center;
+    margin: 16px 32px 24px;
     color: grey;
+    font-size: 16px;
+    text-align: center;
+}
+
+footer.lnurl {
+    font-size: 11px;
+    text-align: left;
 }

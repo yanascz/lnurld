@@ -50,7 +50,6 @@ header {
     display: flex;
     max-width: 360px;
     margin: 0 auto;
-    padding: 0 8px;
     justify-content: space-between;
     align-items: center;
 }
@@ -62,25 +61,27 @@ header.center {
 
 header h1 {
     display: flex;
-    font-size: 36px;
+    margin: 0 16px;
+    font-size: 32px;
 }
 
 header h1.account::before {
-    margin-right: 12px;
+    margin: 0 12px 0 -2px;
     content: '⛺';
 }
 
 header h1.event::before {
-    margin-right: 12px;
+    margin: 0 12px 0 -4px;
     content: '🗓';
 }
 
 header h1.raffle::before {
-    margin-right: 8px;
+    margin: 0 8px 0 -8px;
     content: '⚡';
 }
 
 header button {
+    margin-right: 12px;
     padding: 4px 12px 8px;
     border: none;
     border-radius: 8px;
@@ -129,7 +130,7 @@ main ul li:not(:last-child) {
 main ul li a {
     display: flex;
     flex-grow: 1;
-    padding: 12px 16px 12px;
+    padding: 12px 16px;
     align-items: center;
     gap: 8px;
     text-decoration: none;
@@ -226,7 +227,7 @@ main div.statistics {
 }
 
 main.dashboard {
-    margin-top: 24px;
+    margin-top: 16px;
 }
 
 main.dashboard ul {
@@ -246,7 +247,7 @@ main.dashboard ul li.raffles a::before {
 }
 
 main.accounts {
-    margin-top: 24px;
+    margin-top: 16px;
 }
 
 main.account {
@@ -367,7 +368,7 @@ dialog {
 
 dialog::backdrop {
     background: black;
-    opacity: .5;
+    opacity: .7;
 }
 
 dialog h2 {
