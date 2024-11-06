@@ -59,7 +59,9 @@ type InvoiceStatus struct {
 }
 
 const (
-	qrCodeSize = 1280
+	sessionIdentityKey = "identity"
+	sessionUserKey     = "user"
+	qrCodeSize         = 1280
 )
 
 var (
@@ -100,29 +102,31 @@ func main() {
 	_ = lnurld.SetTrustedProxies(nil)
 	loadTemplates(lnurld, "files/templates/*.gohtml")
 
-	sessionStore := cookie.NewStore(config.cookieKey())
-	lnurld.Use(sessions.Sessions("lnSession", sessionStore))
 	lnurld.NoRoute(abortWithNotFoundResponse)
 
-	lnurld.GET("/", indexHandler)
-	lnurld.POST("/ln/auth", lnAuthInitHandler)
-	lnurld.GET("/ln/auth", lnAuthVerifyHandler)
-	lnurld.GET("/ln/auth/:k1", lnAuthIdentityHandler)
-	lnurld.GET("/.well-known/lnurlp/:name", lnPayHandler)
-	lnurld.GET("/ln/pay/:name", lnPayHandler)
-	lnurld.GET("/ln/pay/:name/qr-code", lnPayQrCodeHandler)
-	lnurld.GET("/ln/raffle/:id", lnRaffleTicketHandler)
-	lnurld.GET("/ln/raffle/:id/qr-code", lnRaffleQrCodeHandler)
-	lnurld.GET("/ln/withdraw", lnWithdrawConfirmHandler)
-	lnurld.GET("/ln/withdraw/:k1", lnWithdrawRequestHandler)
-	lnurld.GET("/events/:id", eventHandler)
-	lnurld.GET("/events/:id/ics", eventIcsHandler)
-	lnurld.POST("/events/:id/sign-up", eventSignUpHandler)
-	lnurld.GET("/raffles/:id", raffleHandler)
-	lnurld.GET("/static/*filepath", lnStaticFileHandler)
+	public := lnurld.Group("/", sessionHandler("lnSession", 42))
+	public.GET("/", indexHandler)
+	public.POST("/ln/auth", lnAuthInitHandler)
+	public.GET("/ln/auth", lnAuthVerifyHandler)
+	public.GET("/ln/auth/:k1", lnAuthIdentityHandler)
+	public.GET("/.well-known/lnurlp/:name", lnPayHandler)
+	public.GET("/ln/pay/:name", lnPayHandler)
+	public.GET("/ln/pay/:name/qr-code", lnPayQrCodeHandler)
+	public.GET("/ln/raffle/:id", lnRaffleTicketHandler)
+	public.GET("/ln/raffle/:id/qr-code", lnRaffleQrCodeHandler)
+	public.GET("/ln/withdraw", lnWithdrawConfirmHandler)
+	public.GET("/ln/withdraw/:k1", lnWithdrawRequestHandler)
+	public.GET("/events/:id", eventHandler)
+	public.GET("/events/:id/ics", eventIcsHandler)
+	public.POST("/events/:id/sign-up", eventSignUpHandler)
+	public.GET("/raffles/:id", raffleHandler)
+	public.GET("/static/*filepath", lnStaticFileHandler)
 
-	authorized := lnurld.Group("/", gin.BasicAuth(config.ginAccounts()))
-	authorized.Use(setCacheControlHeader)
+	authentication := lnurld.Group("/", sessionHandler("session", 7), noCacheHandler)
+	authentication.GET("/login", loginFormHandler)
+	authentication.POST("/login", loginSubmitHandler)
+
+	authorized := authentication.Group("/", authAuthorizationHandler)
 	authorized.GET("/auth", authHomeHandler)
 	authorized.GET("/auth/accounts", authAccountsHandler)
 	authorized.GET("/auth/accounts/:name", authAccountHandler)
@@ -145,6 +149,23 @@ func main() {
 	authorized.POST("/api/raffles/:id/lock", apiRaffleLockHandler)
 
 	log.Fatal(lnurld.Run(config.Listen))
+}
+
+func sessionHandler(name string, maxAgeDays int) gin.HandlerFunc {
+	sessionStore := cookie.NewStore(config.cookieKeyPair()...)
+	sessionStore.Options(sessions.Options{
+		Path:     "/",
+		MaxAge:   maxAgeDays * 86400,
+		Secure:   gin.Mode() == gin.ReleaseMode,
+		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+	})
+
+	return sessions.Sessions(name, sessionStore)
+}
+
+func noCacheHandler(context *gin.Context) {
+	context.Header("Cache-Control", "no-store, must-revalidate")
 }
 
 func indexHandler(context *gin.Context) {
@@ -176,7 +197,7 @@ func lnAuthIdentityHandler(context *gin.Context) {
 	}
 
 	session := sessions.Default(context)
-	session.Set("identity", string(identity))
+	session.Set(sessionIdentityKey, string(identity))
 	if err := session.Save(); err != nil {
 		abortWithInternalServerErrorResponse(context, fmt.Errorf("storing session: %w", err))
 		return
@@ -527,6 +548,49 @@ func raffleHandler(context *gin.Context) {
 func lnStaticFileHandler(context *gin.Context) {
 	filePath := path.Join("files/static", context.Param("filepath"))
 	context.FileFromFS(filePath, http.FS(staticFs))
+}
+
+func loginFormHandler(context *gin.Context) {
+	authenticatedUser := getAuthenticatedUser(context)
+	if authenticatedUser != "" {
+		context.Redirect(http.StatusFound, "/auth")
+		return
+	}
+
+	context.HTML(http.StatusOK, "login.gohtml", gin.H{})
+}
+
+func loginSubmitHandler(context *gin.Context) {
+	username := UserKey(context.PostForm("username"))
+	password := context.PostForm("password")
+
+	storedPassword, usernameExists := config.Credentials[username]
+	if !usernameExists || password != storedPassword {
+		context.HTML(http.StatusOK, "login.gohtml", gin.H{
+			"InvalidCredentials": true,
+		})
+		return
+	}
+
+	if err := setAuthenticatedUser(context, username); err != nil {
+		abortWithInternalServerErrorResponse(context, fmt.Errorf("creating session: %w", err))
+		return
+	}
+
+	context.Redirect(http.StatusFound, "/auth")
+}
+
+func authAuthorizationHandler(context *gin.Context) {
+	authenticatedUser := getAuthenticatedUser(context)
+	if authenticatedUser == "" {
+		context.Redirect(http.StatusFound, "/login")
+		return
+	}
+
+	if err := setAuthenticatedUser(context, authenticatedUser); err != nil {
+		abortWithInternalServerErrorResponse(context, fmt.Errorf("renewing session: %w", err))
+		return
+	}
 }
 
 func authHomeHandler(context *gin.Context) {
@@ -1038,7 +1102,7 @@ func getSchemeAndHost(context *gin.Context) (string, string) {
 
 func getIdentity(context *gin.Context) Identity {
 	session := sessions.Default(context)
-	if identity := session.Get("identity"); identity != nil {
+	if identity := session.Get(sessionIdentityKey); identity != nil {
 		return Identity(identity.(string))
 	}
 	return ""
@@ -1208,7 +1272,17 @@ func isAdministrator(context *gin.Context) bool {
 }
 
 func getAuthenticatedUser(context *gin.Context) UserKey {
-	return UserKey(context.GetString(gin.AuthUserKey))
+	session := sessions.Default(context)
+	if user := session.Get(sessionUserKey); user != nil {
+		return UserKey(user.(string))
+	}
+	return ""
+}
+
+func setAuthenticatedUser(context *gin.Context, user UserKey) error {
+	session := sessions.Default(context)
+	session.Set(sessionUserKey, string(user))
+	return session.Save()
 }
 
 func createInvoice(context *gin.Context, msats int64, comment string, descriptionHash []byte) *Invoice {
@@ -1280,10 +1354,6 @@ func generateQrCode(context *gin.Context, uri string, thumbnailData []byte) {
 	}
 
 	context.Data(http.StatusOK, "image/png", pngData)
-}
-
-func setCacheControlHeader(context *gin.Context) {
-	context.Header("Cache-Control", "no-store, must-revalidate")
 }
 
 func abortWithNotFoundResponse(context *gin.Context) {

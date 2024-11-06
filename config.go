@@ -2,7 +2,7 @@ package main
 
 import (
 	"crypto/rand"
-	"github.com/gin-gonic/gin"
+	"crypto/sha256"
 	"gopkg.in/yaml.v3"
 	"log"
 	"os"
@@ -26,30 +26,21 @@ type Config struct {
 	Withdrawal     WithdrawalConfig
 }
 
-func (config *Config) ginAccounts() gin.Accounts {
-	ginAccounts := gin.Accounts{}
-	for user, password := range config.Credentials {
-		ginAccounts[string(user)] = password
-	}
-	return ginAccounts
-}
-
-func (config *Config) cookieKey() []byte {
+func (config *Config) cookieKeyPair() [][]byte {
 	cookieKeyFileName := config.DataDir + ".cookie"
 	cookieKey, err := os.ReadFile(cookieKeyFileName)
-	if err == nil {
-		return cookieKey
+	if err != nil {
+		cookieKey = make([]byte, 32)
+		if _, err := rand.Read(cookieKey); err != nil {
+			log.Fatal(err)
+		}
+		if err := os.WriteFile(cookieKeyFileName, cookieKey, 0400); err != nil {
+			log.Fatal(err)
+		}
 	}
 
-	cookieKey = make([]byte, 32)
-	if _, err := rand.Read(cookieKey); err != nil {
-		log.Fatal(err)
-	}
-	if err := os.WriteFile(cookieKeyFileName, cookieKey, 0400); err != nil {
-		log.Fatal(err)
-	}
-
-	return cookieKey
+	encryptionKey := sha256.Sum256(cookieKey)
+	return [][]byte{cookieKey, encryptionKey[:]}
 }
 
 type UserKey string

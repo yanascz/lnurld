@@ -141,6 +141,44 @@ main button:disabled {
     opacity: .5;
 }
 
+main form {
+    display: flex;
+    margin: 2px 0 4px;
+    flex-direction: column;
+    gap: 12px;
+    font-size: 18px;
+}
+
+main form header {
+    display: flex;
+    margin-top: 2px;
+    color: #c00;
+}
+
+main form header::before {
+    margin-right: 4px;
+    content: '🚫';
+}
+
+main form div {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+main form div label {
+    margin-bottom: 4px;
+    color: grey;
+}
+
+main form div input {
+    font-size: 18px;
+}
+
+main form button {
+    margin-top: 4px;
+}
+
 dialog {
     width: 90%;
     max-width: 328px;

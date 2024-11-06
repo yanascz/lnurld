@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" media="all" href="/static/public.css">
+
+    <title>LNURL Daemon Login</title>
+
+</head>
+<body>
+
+<h1>LNURL Daemon Login</h1>
+
+<main>
+    <form action="/login" method="post">
+        {{if .InvalidCredentials}}
+            <header>︎Invalid username or password.</header>
+        {{end}}
+        <div>
+            <label for="username">Username</label>
+            <input id="username" type="text" name="username" required>
+        </div>
+        <div>
+            <label for="password">Password</label>
+            <input id="password" type="password" name="password" required>
+        </div>
+        <button>Log in</button>
+    </form>
+</main>
+
+</body>
+</html>
