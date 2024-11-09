@@ -60,7 +60,7 @@ type InvoiceStatus struct {
 
 const (
 	sessionIdentityKey = "identity"
-	sessionUserKey     = "user"
+	sessionTokenKey    = "token"
 	qrCodeSize         = 1280
 )
 
@@ -94,7 +94,7 @@ func main() {
 	repository = newRepository(config.ThumbnailDir, config.DataDir)
 	lndClient = newLndClient(config.Lnd)
 	nostrService = newNostrService(config.DataDir, config.Nostr)
-	authenticationService = newAuthenticationService(config.Authentication)
+	authenticationService = newAuthenticationService(config.Credentials, config.Authentication)
 	withdrawalService = newWithdrawalService(config.Withdrawal)
 	ratesService = newRatesService(30 * time.Second)
 
@@ -152,7 +152,7 @@ func main() {
 }
 
 func sessionHandler(name string, maxAgeDays int) gin.HandlerFunc {
-	sessionStore := cookie.NewStore(config.cookieKeyPair()...)
+	sessionStore := cookie.NewStore(config.cookieKey())
 	sessionStore.Options(sessions.Options{
 		Path:     "/",
 		MaxAge:   maxAgeDays * 86400,
@@ -173,14 +173,14 @@ func indexHandler(context *gin.Context) {
 }
 
 func lnAuthInitHandler(context *gin.Context) {
-	k1 := authenticationService.init()
+	k1 := authenticationService.generateChallenge()
 
 	generateLnUrl(context, k1, "/ln/auth?tag=login&k1="+k1)
 }
 
 func lnAuthVerifyHandler(context *gin.Context) {
 	k1, sig, key := context.Query(k1Param), context.Query(sigParam), context.Query(keyParam)
-	if err := authenticationService.verify(k1, sig, key); err != nil {
+	if err := authenticationService.verifyChallenge(k1, sig, key); err != nil {
 		context.Error(fmt.Errorf("authentication failed: %w", err))
 		abortWithBadRequestResponse(context, "invalid request")
 		return
@@ -190,7 +190,7 @@ func lnAuthVerifyHandler(context *gin.Context) {
 }
 
 func lnAuthIdentityHandler(context *gin.Context) {
-	identity := authenticationService.identity(context.Param("k1"))
+	identity := authenticationService.getIdentity(context.Param("k1"))
 	if identity == "" {
 		abortWithNotFoundResponse(context)
 		return
@@ -551,8 +551,7 @@ func lnStaticFileHandler(context *gin.Context) {
 }
 
 func loginFormHandler(context *gin.Context) {
-	authenticatedUser := getAuthenticatedUser(context)
-	if authenticatedUser != "" {
+	if getAuthenticatedUser(context) != "" {
 		context.Redirect(http.StatusFound, "/auth")
 		return
 	}
@@ -564,8 +563,7 @@ func loginSubmitHandler(context *gin.Context) {
 	username := UserKey(context.PostForm("username"))
 	password := context.PostForm("password")
 
-	storedPassword, usernameExists := config.Credentials[username]
-	if !usernameExists || password != storedPassword {
+	if !authenticationService.verifyCredentials(username, password) {
 		context.HTML(http.StatusOK, "login.gohtml", gin.H{
 			"InvalidCredentials": true,
 		})
@@ -584,6 +582,7 @@ func authAuthorizationHandler(context *gin.Context) {
 	authenticatedUser := getAuthenticatedUser(context)
 	if authenticatedUser == "" {
 		context.Redirect(http.StatusFound, "/login")
+		context.Abort()
 		return
 	}
 
@@ -1273,15 +1272,15 @@ func isAdministrator(context *gin.Context) bool {
 
 func getAuthenticatedUser(context *gin.Context) UserKey {
 	session := sessions.Default(context)
-	if user := session.Get(sessionUserKey); user != nil {
-		return UserKey(user.(string))
+	if token := session.Get(sessionTokenKey); token != nil {
+		return authenticationService.getUser(token.(string))
 	}
 	return ""
 }
 
 func setAuthenticatedUser(context *gin.Context, user UserKey) error {
 	session := sessions.Default(context)
-	session.Set(sessionUserKey, string(user))
+	session.Set(sessionTokenKey, authenticationService.getToken(user))
 	return session.Save()
 }
 

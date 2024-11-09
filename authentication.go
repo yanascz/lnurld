@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"github.com/fiatjaf/go-lnurl"
@@ -32,30 +34,59 @@ type AuthenticationConfig struct {
 }
 
 type AuthenticationService struct {
-	k1s *expirable.LRU[string, Identity]
+	credentials map[UserKey]string
+	tokens      map[string]UserKey
+	k1s         *expirable.LRU[string, Identity]
 }
 
-func newAuthenticationService(config AuthenticationConfig) *AuthenticationService {
+func newAuthenticationService(credentials map[UserKey]string, config AuthenticationConfig) *AuthenticationService {
+	if len(credentials) == 0 {
+		log.Fatal("Authentication credentials missing")
+	}
+
 	requestExpiry := config.RequestExpiry
 	if requestExpiry < 1*time.Minute || requestExpiry > 10*time.Minute {
 		log.Fatal("Authentication request expiry out of range: ", requestExpiry)
 	}
 
+	tokens := map[string]UserKey{}
+	for user, password := range credentials {
+		tokens[accessToken(user, password)] = user
+	}
+
 	return &AuthenticationService{
-		k1s: expirable.NewLRU[string, Identity](1024, nil, requestExpiry),
+		credentials: credentials,
+		tokens:      tokens,
+		k1s:         expirable.NewLRU[string, Identity](1024, nil, requestExpiry),
 	}
 }
 
-func (service *AuthenticationService) init() string {
+func (service *AuthenticationService) verifyCredentials(user UserKey, password string) bool {
+	userPassword, userExists := service.credentials[user]
+	return userExists && password == userPassword
+}
+
+func (service *AuthenticationService) getUser(token string) UserKey {
+	return service.tokens[token]
+}
+
+func (service *AuthenticationService) getToken(user UserKey) string {
+	if password, userExists := service.credentials[user]; userExists {
+		return accessToken(user, password)
+	}
+	return ""
+}
+
+func (service *AuthenticationService) generateChallenge() string {
 	k1 := lnurl.RandomK1()
 	service.k1s.Add(k1, "")
 
 	return k1
 }
 
-func (service *AuthenticationService) verify(k1 string, sig string, key string) error {
-	storedKey, k1Valid := service.k1s.Get(k1)
-	if !k1Valid || storedKey != "" {
+func (service *AuthenticationService) verifyChallenge(k1 string, sig string, key string) error {
+	identity, k1Valid := service.k1s.Get(k1)
+	if !k1Valid || identity != "" {
 		return errors.New("invalid k1")
 	}
 
@@ -71,9 +102,14 @@ func (service *AuthenticationService) verify(k1 string, sig string, key string) 
 	return nil
 }
 
-func (service *AuthenticationService) identity(k1 string) Identity {
-	if storedKey, k1Valid := service.k1s.Get(k1); k1Valid {
-		return storedKey
+func (service *AuthenticationService) getIdentity(k1 string) Identity {
+	if identity, k1Valid := service.k1s.Get(k1); k1Valid {
+		return identity
 	}
 	return ""
+}
+
+func accessToken(user UserKey, password string) string {
+	hash := sha256.Sum256([]byte(string(user) + ":" + password))
+	return base64.StdEncoding.EncodeToString(hash[:])
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"crypto/rand"
-	"crypto/sha256"
 	"gopkg.in/yaml.v3"
 	"log"
 	"os"
@@ -26,21 +25,22 @@ type Config struct {
 	Withdrawal     WithdrawalConfig
 }
 
-func (config *Config) cookieKeyPair() [][]byte {
+func (config *Config) cookieKey() []byte {
 	cookieKeyFileName := config.DataDir + ".cookie"
 	cookieKey, err := os.ReadFile(cookieKeyFileName)
-	if err != nil {
-		cookieKey = make([]byte, 32)
-		if _, err := rand.Read(cookieKey); err != nil {
-			log.Fatal(err)
-		}
-		if err := os.WriteFile(cookieKeyFileName, cookieKey, 0400); err != nil {
-			log.Fatal(err)
-		}
+	if err == nil {
+		return cookieKey
 	}
 
-	encryptionKey := sha256.Sum256(cookieKey)
-	return [][]byte{cookieKey, encryptionKey[:]}
+	cookieKey = make([]byte, 32)
+	if _, err := rand.Read(cookieKey); err != nil {
+		log.Fatal(err)
+	}
+	if err := os.WriteFile(cookieKeyFileName, cookieKey, 0400); err != nil {
+		log.Fatal(err)
+	}
+
+	return cookieKey
 }
 
 type UserKey string
