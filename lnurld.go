@@ -1036,8 +1036,9 @@ func apiRaffleWithdrawHandler(context *gin.Context) {
 	}
 
 	var totalSatsReceived int64
-	for _, ticket := range repository.getRaffleDraw(raffle) {
-		if invoice, _ := lndClient.getInvoice(ticket.paymentHash); invoice != nil {
+	for _, tickets := range repository.getRaffleTickets(raffle) {
+		invoice, _ := lndClient.getInvoice(tickets.paymentHash)
+		if invoice != nil && invoice.isSettled() {
 			totalSatsReceived += invoice.amount
 		}
 	}
