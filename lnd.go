@@ -124,15 +124,16 @@ func (client *LndClient) createInvoice(msats int64, memo string, descriptionHash
 	}, nil
 }
 
-func (client *LndClient) getInvoice(paymentHash PaymentHash) (*Invoice, error) {
+func (client *LndClient) getInvoice(paymentHash PaymentHash) *Invoice {
 	if invoice, invoiceCached := client.invoices.Get(paymentHash); invoiceCached {
-		return &invoice, nil
+		return &invoice
 	}
 
 	lnPaymentHash := lnrpc.PaymentHash{RHash: paymentHash.bytes()}
 	lnInvoice, err := client.lnClient.LookupInvoice(client.ctx, &lnPaymentHash)
 	if err != nil {
-		return nil, err
+		log.Println("error looking up invoice:", err)
+		return nil
 	}
 
 	var settleDate time.Time
@@ -152,7 +153,7 @@ func (client *LndClient) getInvoice(paymentHash PaymentHash) (*Invoice, error) {
 		client.invoices.Add(paymentHash, invoice)
 	}
 
-	return &invoice, nil
+	return &invoice
 }
 
 func (client *LndClient) decodePaymentRequest(paymentRequest string) (PaymentHash, int64) {

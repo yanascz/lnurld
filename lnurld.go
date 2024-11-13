@@ -635,8 +635,8 @@ func authAccountHandler(context *gin.Context) {
 	var commentsCount int
 	var accountInvoices []AccountInvoice
 	for i, paymentHash := range invoices {
-		invoice, err := lndClient.getInvoice(paymentHash)
-		if err == nil && invoice.isSettled() {
+		invoice := lndClient.getInvoice(paymentHash)
+		if invoice != nil && invoice.isSettled() {
 			invoicesSettled++
 			totalSatsReceived += invoice.amount
 			if invoice.memo != "" {
@@ -748,8 +748,8 @@ func authRaffleHandler(context *gin.Context) {
 	var totalSatsReceived int64
 	for _, tickets := range repository.getRaffleTickets(raffle) {
 		ticketsIssued += tickets.quantity
-		invoice, err := lndClient.getInvoice(tickets.paymentHash)
-		if err == nil && invoice.isSettled() {
+		invoice := lndClient.getInvoice(tickets.paymentHash)
+		if invoice != nil && invoice.isSettled() {
 			ticketsPaid += tickets.quantity
 			totalSatsReceived += invoice.amount
 		}
@@ -865,8 +865,8 @@ func apiInvoicesHandler(context *gin.Context) {
 
 func apiInvoiceStatusHandler(context *gin.Context) {
 	paymentHash := PaymentHash(context.Param("paymentHash"))
-	invoice, err := lndClient.getInvoice(paymentHash)
-	if err != nil {
+	invoice := lndClient.getInvoice(paymentHash)
+	if invoice == nil {
 		abortWithNotFoundResponse(context)
 		return
 	}
@@ -1037,7 +1037,7 @@ func apiRaffleWithdrawHandler(context *gin.Context) {
 
 	var totalSatsReceived int64
 	for _, tickets := range repository.getRaffleTickets(raffle) {
-		invoice, _ := lndClient.getInvoice(tickets.paymentHash)
+		invoice := lndClient.getInvoice(tickets.paymentHash)
 		if invoice != nil && invoice.isSettled() {
 			totalSatsReceived += invoice.amount
 		}
@@ -1228,7 +1228,7 @@ func getRaffleDraw(context *gin.Context, raffle *Raffle) []RaffleTicket {
 	}
 
 	for _, tickets := range repository.getRaffleTickets(raffle) {
-		invoice, _ := lndClient.getInvoice(tickets.paymentHash)
+		invoice := lndClient.getInvoice(tickets.paymentHash)
 		if invoice != nil && invoice.isSettled() {
 			for i := 0; i < tickets.quantity; i++ {
 				raffleDraw = append(raffleDraw, RaffleTicket{tickets.paymentHash, i})
@@ -1302,7 +1302,7 @@ func createInvoice(context *gin.Context, msats int64, comment string, descriptio
 
 func awaitSettlement(zapRequest *nostr.Event, paymentHash PaymentHash) {
 	for i := 0; i < invoiceExpiryInSeconds; i++ {
-		invoice, _ := lndClient.getInvoice(paymentHash)
+		invoice := lndClient.getInvoice(paymentHash)
 		if invoice != nil && invoice.isSettled() {
 			go nostrService.publishZapReceipt(zapRequest, invoice)
 			return
