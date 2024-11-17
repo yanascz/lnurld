@@ -69,8 +69,8 @@ var (
 	staticFs embed.FS
 	//go:embed files/lightning.png
 	lightningPngData []byte
-	//go:embed files/tombola.png
-	tombolaPngData []byte
+	//go:embed files/raffle.png
+	rafflePngData []byte
 
 	config                *Config
 	repository            *Repository
@@ -328,7 +328,7 @@ func lnRaffleTicketHandler(context *gin.Context) {
 
 	var lnurlMetadata lnurl.Metadata
 	lnurlMetadata.Description = raffle.description(quantity)
-	lnurlMetadata.Image.Bytes = tombolaPngData
+	lnurlMetadata.Image.Bytes = rafflePngData
 	lnurlMetadata.Image.Ext = "png"
 
 	if thumbnail := getRaffleThumbnail(raffle); thumbnail != nil {
@@ -395,7 +395,7 @@ func lnRaffleQrCodeHandler(context *gin.Context) {
 		return
 	}
 
-	thumbnailData := tombolaPngData
+	thumbnailData := rafflePngData
 	if thumbnail := getRaffleThumbnail(raffle); thumbnail != nil {
 		thumbnailData = thumbnail.bytes
 	}
