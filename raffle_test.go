@@ -68,3 +68,8 @@ func TestRaffleTicket(t *testing.T) {
 		})
 	}
 }
+
+func TestSortRaffles(t *testing.T) {
+	raffles := []*Raffle{{Title: "Raffle #1"}, {Title: "Raffle #11"}, {Title: "Raffle #2"}}
+	assert.Equal(t, []*Raffle{{Title: "Raffle #1"}, {Title: "Raffle #2"}, {Title: "Raffle #11"}}, sortRaffles(raffles))
+}

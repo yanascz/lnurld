@@ -2,6 +2,8 @@ package main
 
 import (
 	"github.com/mr-tron/base58"
+	"golang.org/x/text/collate"
+	"golang.org/x/text/language"
 	"math/rand"
 	"sort"
 	"strconv"
@@ -172,11 +174,13 @@ func rafflePrizeWinners(raffle *Raffle, tickets []RaffleTicket) []RafflePrizeWin
 	return prizeWinners
 }
 
+var collator = collate.New(language.Czech, collate.Numeric)
+
 func sortRaffles(raffles []*Raffle) []*Raffle {
 	sort.Slice(raffles, func(i, j int) bool {
 		raffleI, raffleJ := raffles[i], raffles[j]
 		if raffleI.IsMine == raffleJ.IsMine {
-			return raffleI.Title < raffleJ.Title
+			return collator.CompareString(raffleI.Title, raffleJ.Title) < 0
 		}
 		return raffleI.IsMine
 	})
