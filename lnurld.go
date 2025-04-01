@@ -405,7 +405,7 @@ func lnRaffleQrCodeHandler(context *gin.Context) {
 
 func lnWithdrawConfirmHandler(context *gin.Context) {
 	k1 := context.Query(k1Param)
-	withdrawalRequest := withdrawalService.get(k1)
+	withdrawalRequest := withdrawalService.getRequest(k1)
 	if withdrawalRequest == nil {
 		abortWithNotFoundResponse(context)
 		return
@@ -422,18 +422,18 @@ func lnWithdrawConfirmHandler(context *gin.Context) {
 		abortWithNotFoundResponse(context)
 		return
 	}
-	if err := lndClient.sendPayment(pr); err != nil {
+	if err := lndClient.sendPayment(pr, withdrawalRequest.feeLimit); err != nil {
 		abortWithInternalServerErrorResponse(context, err)
 		return
 	}
-	withdrawalService.remove(k1)
+	withdrawalService.removeRequest(k1)
 
 	context.JSON(http.StatusOK, lnurl.OkResponse())
 }
 
 func lnWithdrawRequestHandler(context *gin.Context) {
 	k1 := context.Param("k1")
-	withdrawalRequest := withdrawalService.get(k1)
+	withdrawalRequest := withdrawalService.getRequest(k1)
 	if withdrawalRequest == nil {
 		abortWithNotFoundResponse(context)
 		return
@@ -1043,7 +1043,7 @@ func apiRaffleWithdrawHandler(context *gin.Context) {
 		}
 	}
 
-	k1 := withdrawalService.init(
+	k1 := withdrawalService.createRequest(
 		repository.getRaffleWithdrawalFileName(raffle),
 		totalSatsReceived,
 		raffle.Title,

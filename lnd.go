@@ -167,8 +167,11 @@ func (client *LndClient) decodePaymentRequest(paymentRequest string) (PaymentHas
 	return PaymentHash(payReq.PaymentHash), payReq.NumSatoshis
 }
 
-func (client *LndClient) sendPayment(paymentRequest string) error {
-	sendRequest := lnrpc.SendRequest{PaymentRequest: paymentRequest}
+func (client *LndClient) sendPayment(paymentRequest string, feeLimit int64) error {
+	sendRequest := lnrpc.SendRequest{
+		PaymentRequest: paymentRequest,
+		FeeLimit:       &lnrpc.FeeLimit{Limit: &lnrpc.FeeLimit_Fixed{Fixed: feeLimit}},
+	}
 	_, err := client.lnClient.SendPaymentSync(client.ctx, &sendRequest)
 
 	return err
