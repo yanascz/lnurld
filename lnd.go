@@ -41,6 +41,7 @@ func (paymentHash PaymentHash) bytes() []byte {
 }
 
 type Invoice struct {
+	preimage       string
 	paymentHash    PaymentHash
 	paymentRequest string
 	amount         int64
@@ -118,6 +119,7 @@ func (client *LndClient) createInvoice(msats int64, memo string, descriptionHash
 	}
 
 	return &Invoice{
+		preimage:       hex.EncodeToString(lnInvoice.RPreimage),
 		paymentHash:    PaymentHash(hex.EncodeToString(newLnInvoice.RHash)),
 		paymentRequest: newLnInvoice.PaymentRequest,
 		amount:         msats / 1000,
@@ -142,6 +144,7 @@ func (client *LndClient) getInvoice(paymentHash PaymentHash) *Invoice {
 	}
 
 	invoice := Invoice{
+		preimage:       hex.EncodeToString(lnInvoice.RPreimage),
 		paymentHash:    paymentHash,
 		paymentRequest: lnInvoice.PaymentRequest,
 		amount:         lnInvoice.Value,

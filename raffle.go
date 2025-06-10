@@ -121,9 +121,9 @@ func raffleTicketNumber(symbols string, index int) string {
 }
 
 type RaffleDrawTicket struct {
-	Id          string `json:"id"`
-	Number      string `json:"number"`
-	PaymentHash string `json:"paymentHash"`
+	Id       string `json:"id"`
+	Number   string `json:"number"`
+	Preimage string `json:"preimage"`
 }
 
 type RaffleDrawCommit struct {
@@ -135,43 +135,59 @@ type RafflePrizeWinners struct {
 	Tickets []RaffleDrawTicket
 }
 
+type RaffleService struct {
+	repository *Repository
+	lndClient  *LndClient
+}
+
+func newRaffleService(repository *Repository, lndClient *LndClient) *RaffleService {
+	return &RaffleService{repository: repository, lndClient: lndClient}
+}
+
+func (service *RaffleService) getDrawnTickets(raffleDraw []RaffleTicket) []RaffleDrawTicket {
+	var drawnTickets []RaffleDrawTicket
+	for _, ticket := range raffleDraw {
+		drawnTickets = append(drawnTickets, service.raffleDrawTicket(ticket))
+	}
+
+	return drawnTickets
+}
+
+func (service *RaffleService) getPrizeWinners(raffle *Raffle) []RafflePrizeWinners {
+	if !service.repository.isRaffleDrawFinished(raffle) {
+		return nil
+	}
+
+	var prizeWinners []RafflePrizeWinners
+	raffleWinners := service.repository.getRaffleWinners(raffle)
+	for _, prize := range raffle.Prizes {
+		var tickets []RaffleDrawTicket
+		for i := 0; i < prize.Quantity; i++ {
+			tickets = append(tickets, service.raffleDrawTicket(raffleWinners[0]))
+			raffleWinners = raffleWinners[1:]
+		}
+		prizeWinners = append(prizeWinners, RafflePrizeWinners{
+			Prize:   prize.Name,
+			Tickets: tickets,
+		})
+	}
+
+	return prizeWinners
+}
+
+func (service *RaffleService) raffleDrawTicket(ticket RaffleTicket) RaffleDrawTicket {
+	invoice := service.lndClient.getInvoice(ticket.paymentHash)
+	return RaffleDrawTicket{
+		Id:       ticket.String(),
+		Number:   ticket.number(),
+		Preimage: invoice.preimage[0:5] + "…" + invoice.preimage[59:],
+	}
+}
+
 func shuffleRaffleDraw(raffleDraw []RaffleTicket) {
 	rand.Shuffle(len(raffleDraw), func(i, j int) {
 		raffleDraw[i], raffleDraw[j] = raffleDraw[j], raffleDraw[i]
 	})
-}
-
-func raffleDrawTicket(ticket RaffleTicket) RaffleDrawTicket {
-	paymentHash := string(ticket.paymentHash)
-	return RaffleDrawTicket{
-		Id:          ticket.String(),
-		Number:      ticket.number(),
-		PaymentHash: paymentHash[0:5] + "…" + paymentHash[59:],
-	}
-}
-
-func raffleDrawTickets(tickets []RaffleTicket) []RaffleDrawTicket {
-	var drawTickets []RaffleDrawTicket
-	for _, ticket := range tickets {
-		drawTickets = append(drawTickets, raffleDrawTicket(ticket))
-	}
-	return drawTickets
-}
-
-func rafflePrizeWinners(raffle *Raffle, tickets []RaffleTicket) []RafflePrizeWinners {
-	var prizeWinners []RafflePrizeWinners
-	for _, prize := range raffle.Prizes {
-		var drawTickets []RaffleDrawTicket
-		for i := 0; i < prize.Quantity; i++ {
-			drawTickets = append(drawTickets, raffleDrawTicket(tickets[0]))
-			tickets = tickets[1:]
-		}
-		prizeWinners = append(prizeWinners, RafflePrizeWinners{
-			Prize:   prize.Name,
-			Tickets: drawTickets,
-		})
-	}
-	return prizeWinners
 }
 
 var collator = collate.New(language.Czech, collate.Numeric)

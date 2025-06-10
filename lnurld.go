@@ -77,6 +77,7 @@ var (
 	lndClient             *LndClient
 	authenticationService *AuthenticationService
 	withdrawalService     *WithdrawalService
+	raffleService         *RaffleService
 	nostrService          *NostrService
 	ratesService          *RatesService
 )
@@ -93,9 +94,10 @@ func main() {
 	config = loadConfig(configFileName)
 	repository = newRepository(config.ThumbnailDir, config.DataDir)
 	lndClient = newLndClient(config.Lnd)
-	nostrService = newNostrService(config.DataDir, config.Nostr)
 	authenticationService = newAuthenticationService(config.Credentials, config.Authentication)
 	withdrawalService = newWithdrawalService(config.Withdrawal)
+	raffleService = newRaffleService(repository, lndClient)
+	nostrService = newNostrService(config.DataDir, config.Nostr)
 	ratesService = newRatesService(30 * time.Second)
 
 	lnurld := gin.Default()
@@ -780,10 +782,10 @@ func authRaffleDrawHandler(context *gin.Context) {
 		return
 	}
 
-	if repository.isRaffleDrawFinished(raffle) {
+	if prizeWinners := raffleService.getPrizeWinners(raffle); prizeWinners != nil {
 		context.HTML(http.StatusOK, "winners.gohtml", gin.H{
 			"Title":        raffle.Title,
-			"PrizeWinners": rafflePrizeWinners(raffle, repository.getRaffleWinners(raffle)),
+			"PrizeWinners": prizeWinners,
 		})
 		return
 	}
@@ -797,7 +799,7 @@ func authRaffleDrawHandler(context *gin.Context) {
 		"Id":           raffle.Id,
 		"Title":        raffle.Title,
 		"Prizes":       raffle.prizes(),
-		"DrawnTickets": raffleDrawTickets(raffleDraw),
+		"DrawnTickets": raffleService.getDrawnTickets(raffleDraw),
 	})
 }
 

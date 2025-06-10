@@ -27,7 +27,7 @@
     </div>
     <div class="ticket">
         <h3 id="ticket-number">✱ ✱ ✱</h3>
-        <p id="ticket-payment-hash">✱ ✱ ✱ ✱ ✱ ✱</p>
+        <p id="ticket-preimage">✱ ✱ ✱ ✱ ✱ ✱</p>
     </div>
     <div class="buttons">
         <button id="start-draw" onclick="startDraw()" accesskey="d">Start draw</button>
@@ -46,7 +46,7 @@
     const prizeNameElement = element('prize-name')
     const prizeOrdinalElement = element('prize-ordinal')
     const ticketNumberElement = element('ticket-number')
-    const ticketPaymentHashElement = element('ticket-payment-hash')
+    const ticketPreimageElement = element('ticket-preimage')
     const startDrawButton = element('start-draw')
     const confirmTicketButton = element('confirm-ticket')
     const skipTicketButton = element('skip-ticket')
@@ -85,7 +85,7 @@
     function nextTicket() {
         currentTicket = drawnTickets.shift()
         ticketNumberElement.innerText = currentTicket.number
-        ticketPaymentHashElement.innerText = currentTicket.paymentHash
+        ticketPreimageElement.innerText = currentTicket.preimage
         disableAndHide(skipTicketButton, prizes.length >= drawnTickets.length)
         updateRemainingTickets()
     }
