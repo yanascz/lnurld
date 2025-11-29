@@ -184,7 +184,7 @@ func (service *RaffleService) raffleDrawTicket(ticket RaffleTicket) RaffleDrawTi
 	}
 }
 
-func shuffleRaffleDraw(raffleDraw []RaffleTicket) {
+func shuffleRaffleTickets(raffleDraw []RaffleTicket) {
 	rand.Shuffle(len(raffleDraw), func(i, j int) {
 		raffleDraw[i], raffleDraw[j] = raffleDraw[j], raffleDraw[i]
 	})
