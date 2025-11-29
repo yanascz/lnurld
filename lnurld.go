@@ -1243,7 +1243,9 @@ func getRaffleDraw(context *gin.Context, raffle *Raffle) []RaffleTicket {
 		return nil
 	}
 
-	shuffleRaffleDraw(raffleDraw)
+	shuffleRaffleTickets(raffleDraw) // separates tickets related to one invoice
+	shuffleRaffleTickets(raffleDraw) // prepares the final draw
+
 	if err := repository.createRaffleDraw(raffle, raffleDraw); err != nil {
 		abortWithInternalServerErrorResponse(context, fmt.Errorf("storing raffle draw: %w", err))
 		return nil
