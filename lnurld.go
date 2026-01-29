@@ -6,11 +6,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/fiatjaf/go-lnurl"
-	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/cookie"
-	"github.com/gin-gonic/gin"
-	"github.com/nbd-wtf/go-nostr"
 	"log"
 	"net/http"
 	"os"
@@ -20,6 +15,12 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/fiatjaf/go-lnurl"
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/cookie"
+	"github.com/gin-gonic/gin"
+	"github.com/nbd-wtf/go-nostr"
 )
 
 type LnUrlData struct {
@@ -817,6 +818,23 @@ func apiAccountArchiveHandler(context *gin.Context) {
 	if err != nil {
 		abortWithInternalServerErrorResponse(context, fmt.Errorf("archiving storage file: %w", err))
 		return
+	}
+
+	usersWithAccountAccess := config.Administrators
+	for user, allowedAccounts := range config.AccessControl {
+		if slices.Contains(allowedAccounts, accountKey) {
+			usersWithAccountAccess = append(usersWithAccountAccess, user)
+		}
+	}
+
+	for _, user := range usersWithAccountAccess {
+		userState := repository.getUserState(user)
+		if userState.AccountInvoicesCounts[accountKey] > 0 {
+			userState.AccountInvoicesCounts[accountKey] = 0
+			if err := repository.updateUserState(user, userState); err != nil {
+				log.Println("error updating user state:", err)
+			}
+		}
 	}
 
 	context.Status(http.StatusNoContent)
