@@ -27,23 +27,22 @@
                 </a>
             {{end}}
         </div>
-        <div class="controls">
-            <button id="minus" onclick="changeQrCode(-1)">–</button>
-            <div id="quantity"></div>
-            <button id="plus" onclick="changeQrCode(+1)">+</button>
+        <div class="buttons">
+            <div class="controls">
+                <button id="minus" onclick="changeQrCode(-1)">–</button>
+                <div id="quantity"></div>
+                <button id="plus" onclick="changeQrCode(+1)">+</button>
+            </div>
+            <button class="secondary" onclick="openLightningWallet()">Open in Lightning wallet</button>
+            <button class="secondary" onclick="copyToClipboard(this)">Copy to clipboard</button>
         </div>
     {{else}}
         <p>Raffle already drawn.</p>
     {{end}}
 </main>
 
-{{if .QrCodes}}
-    <footer class="lnurl">
-        Scan or tap the QR code to open it in your Lightning wallet. You can use any wallet that supports LNURL-pay.
-    </footer>
-{{end}}
-
 <script>
+    const qrCodeElements = element('qr-codes').children
     const quantityElement = element('quantity')
     const minusButton = element('minus')
     const plusButton = element('plus')
@@ -53,7 +52,6 @@
     updateQuantity()
 
     function changeQrCode(delta) {
-        const qrCodeElements = element('qr-codes').children
         qrCodeElements[qrCodeIndex].hidden = true
         qrCodeElements[qrCodeIndex + delta].hidden = false
         qrCodeIndex += delta
@@ -65,6 +63,14 @@
         quantityElement.innerHTML = `<strong>${quantity}</strong> ticket${quantity !== 1 ? 's' : ''}`
         minusButton.disabled = quantity === 1
         plusButton.disabled = quantity === 10
+    }
+
+    function openLightningWallet() {
+        navigateTo(qrCodeElements[qrCodeIndex].href)
+    }
+
+    function copyToClipboard(button) {
+        writeTextToClipboard(qrCodeElements[qrCodeIndex].href, button)
     }
 </script>
 

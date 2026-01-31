@@ -30,6 +30,33 @@ h1.raffle::before {
     content: '⚡';
 }
 
+div.buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+button {
+    padding: 11px 23px;
+    border: 1px solid #f7931a;
+    border-radius: 8px;
+    background: #f7931a;
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button.secondary {
+    background: inherit;
+    color: #f7931a;
+}
+
+button:disabled {
+    cursor: default;
+    opacity: .5;
+}
+
 main {
     display: flex;
     margin: 0 16px;
@@ -90,8 +117,14 @@ main p {
     line-height: 28px;
 }
 
-main p.formatted {
-    margin-top: 12px;
+main div.description {
+    display: flex;
+    margin: 12px 0 4px;
+    flex-direction: column;
+    gap: 12px;
+}
+
+main div.description p {
     white-space: pre-line;
 }
 
@@ -100,9 +133,12 @@ main div.lnurl {
     line-height: 0;
 }
 
+main div.buttons {
+    margin: 16px 0 4px;
+}
+
 main div.controls {
     display: flex;
-    margin: 16px 0 4px;
     justify-content: space-between;
     align-items: center;
     font-size: 20px;
@@ -111,34 +147,6 @@ main div.controls {
 
 main div.controls button {
     padding: 7px 15px 11px;
-}
-
-main div.buttons {
-    display: flex;
-    margin: 20px 0 4px;
-    flex-direction: column;
-    gap: 16px;
-}
-
-main button {
-    padding: 11px 23px;
-    border: 1px solid #f7931a;
-    border-radius: 8px;
-    background: #f7931a;
-    color: white;
-    font-size: 20px;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-main button.secondary {
-    background: inherit;
-    color: #f7931a;
-}
-
-main button:disabled {
-    cursor: default;
-    opacity: .5;
 }
 
 main form {
@@ -184,7 +192,7 @@ dialog {
     max-width: 328px;
     margin: auto;
     border: none;
-    border-radius: 8px;
+    border-radius: 12px;
 }
 
 dialog::backdrop {
@@ -194,6 +202,10 @@ dialog::backdrop {
 
 dialog div.lnurl {
     position: relative;
+}
+
+dialog div.buttons {
+    margin-top: 12px;
 }
 
 dialog div#success {
@@ -223,7 +235,7 @@ dialog a {
     outline: none;
 }
 
-dialog button {
+dialog form button {
     position: absolute;
     top: 0;
     right: 0;

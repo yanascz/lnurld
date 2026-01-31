@@ -31,11 +31,6 @@ div.buttons button {
     cursor: pointer;
 }
 
-div.buttons button:first-child {
-    background-color: #f7931a;
-    color: white;
-}
-
 div.buttons button:disabled {
     opacity: .5;
     cursor: default;
@@ -226,6 +221,11 @@ main div.statistics {
     font-size: 24px;
 }
 
+main div.buttons button:first-child {
+    background-color: #f7931a;
+    color: white;
+}
+
 main.dashboard {
     margin-top: 16px;
 }
@@ -363,7 +363,7 @@ dialog {
     margin: auto;
     padding-bottom: 0;
     border: none;
-    border-radius: 8px;
+    border-radius: 12px;
 }
 
 dialog::backdrop {
@@ -409,6 +409,10 @@ dialog div.lnurl div#success {
     font-weight: bold;
     color: white;
     opacity: .97;
+}
+
+dialog div.buttons {
+    margin: 12px 0 16px;
 }
 
 dialog form div {
@@ -458,6 +462,11 @@ dialog form div span {
 dialog form div.buttons {
     margin: 16px auto;
     align-items: center;
+}
+
+dialog form div.buttons button:first-child {
+    background-color: #f7931a;
+    color: white;
 }
 
 dialog button.close {

@@ -57,11 +57,15 @@
         <a id="link" href=""><img id="qrcode" src="" alt="LNURL-withdraw"></a>
         <div id="success">✓</div>
     </div>
-    <footer>Scan or tap the QR code to open it in your Lightning wallet. You can use any wallet that supports LNURL-withdraw.</footer>
+    <div class="buttons">
+        <button onclick="openLightningWallet()">Open in Lightning wallet</button>
+        <button onclick="copyToClipboard(this)">Copy to clipboard</button>
+    </div>
 </dialog>
 
 <script>
     const withdrawalExpiry = {{.WithdrawalExpiry}}
+    const linkElement = element('link')
 
     function drawRaffle() {
         {{if not .DrawAvailable}}
@@ -117,6 +121,14 @@
         }
         post('/api/raffles/{{.Id}}/lock')
             .then(reloadPage)
+    }
+
+    function openLightningWallet() {
+        navigateTo(linkElement.href)
+    }
+
+    function copyToClipboard(button) {
+        writeTextToClipboard(linkElement.href, button)
     }
 </script>
 

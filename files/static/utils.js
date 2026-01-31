@@ -10,6 +10,12 @@ function navigateTo(uri) {
     location.href = uri
 }
 
+function writeTextToClipboard(text, button) {
+    navigator.clipboard.writeText(text)
+    setTimeout(() => button.innerText = 'Copy to clipboard', 2000)
+    button.innerText = '✓ Copied to clipboard'
+}
+
 function post(uri, body = {}) {
     return fetch(uri, {
         method: 'POST',

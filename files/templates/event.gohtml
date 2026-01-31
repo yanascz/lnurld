@@ -27,9 +27,11 @@
             {{if .AttendeeOrdinal}}<span>#{{.AttendeeOrdinal}}</span>{{end}}
         </li>
     </ul>
-    {{range .Description}}
-        <p class="formatted">{{.}}</p>
-    {{end}}
+    <div class="description">
+        {{range .Description}}
+            <p>{{.}}</p>
+        {{end}}
+    </div>
     <div class="buttons">
         {{if and .SignUpPossible (not .AttendeeOrdinal)}}
             <button onclick="signUp(this)">Sign up with Lightning</button>
@@ -58,11 +60,15 @@
             <a id="link" href=""><img id="qrcode" src="" alt="LNURL-auth"></a>
             <div id="success">✓</div>
         </div>
-        <footer>Scan or tap the QR code to open it in your Lightning wallet. You can use any wallet that supports LNURL-auth.</footer>
+        <div class="buttons">
+            <button class="secondary" onclick="openLightningWallet()">Open in Lightning wallet</button>
+            <button class="secondary" onclick="copyToClipboard(this)">Copy to clipboard</button>
+        </div>
     </dialog>
 
     <script>
         const lnAuthExpiry = {{.LnAuthExpiry}}
+        const linkElement = element('link')
 
         function signUp(signUpButton) {
             if (signUpButton) {
@@ -105,7 +111,7 @@
                 .then(body => {
                     k1 = body.k1
                     deadline = Date.now() + lnAuthExpiry
-                    element('link').href = `lightning:${body.lnUrl}`
+                    linkElement.href = `lightning:${body.lnUrl}`
                     element('qrcode').src = `data:${body.qrCode}`
                     element('dialog').showModal()
                     awaitSuccess()
@@ -124,6 +130,14 @@
                         setTimeout(awaitSuccess, 1000)
                     }
                 })
+        }
+
+        function openLightningWallet() {
+            navigateTo(linkElement.href)
+        }
+
+        function copyToClipboard(button) {
+            writeTextToClipboard(linkElement.href, button)
         }
     </script>
 {{end}}
