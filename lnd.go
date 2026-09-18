@@ -172,8 +172,9 @@ func (client *LndClient) decodePaymentRequest(paymentRequest string) (PaymentHas
 
 func (client *LndClient) sendPayment(paymentRequest string, feeLimit int64) error {
 	sendRequest := lnrpc.SendRequest{
-		PaymentRequest: paymentRequest,
-		FeeLimit:       &lnrpc.FeeLimit{Limit: &lnrpc.FeeLimit_Fixed{Fixed: feeLimit}},
+		PaymentRequest:   paymentRequest,
+		FeeLimit:         &lnrpc.FeeLimit{Limit: &lnrpc.FeeLimit_Fixed{Fixed: feeLimit}},
+		AllowSelfPayment: true,
 	}
 	_, err := client.lnClient.SendPaymentSync(client.ctx, &sendRequest)
 
