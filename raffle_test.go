@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/stretchr/testify/assert"
+	"slices"
 	"strconv"
 	"testing"
 )
@@ -72,4 +73,60 @@ func TestRaffleTicket(t *testing.T) {
 func TestSortRaffles(t *testing.T) {
 	raffles := []*Raffle{{Title: "Raffle #1"}, {Title: "Raffle #11"}, {Title: "Raffle #2"}}
 	assert.Equal(t, []*Raffle{{Title: "Raffle #1"}, {Title: "Raffle #2"}, {Title: "Raffle #11"}}, sortRaffles(raffles))
+}
+
+func TestRemoveSkippedTickets(t *testing.T) {
+	paymentHash := PaymentHash("d643d24061a5410f96693978711071819a9700d38b006285246c8e227e32fd4d")
+	raffleDraw := []RaffleTicket{
+		{paymentHash, 0}, {paymentHash, 1}, {paymentHash, 2}, {paymentHash, 3}, {paymentHash, 4},
+	}
+
+	for _, c := range []struct {
+		testName        string
+		skippedTickets  []string
+		expectedTickets []RaffleTicket
+		expectedFound   bool
+	}{
+		{
+			"nothing_skipped", nil,
+			[]RaffleTicket{{paymentHash, 0}, {paymentHash, 1}, {paymentHash, 2}, {paymentHash, 3}, {paymentHash, 4}},
+			true,
+		},
+		{
+			"first_skipped", []string{string(paymentHash) + ":0"},
+			[]RaffleTicket{{paymentHash, 1}, {paymentHash, 2}, {paymentHash, 3}, {paymentHash, 4}},
+			true,
+		},
+		{
+			"several_skipped", []string{string(paymentHash) + ":1", string(paymentHash) + ":3"},
+			[]RaffleTicket{{paymentHash, 0}, {paymentHash, 2}, {paymentHash, 4}},
+			true,
+		},
+		{
+			"all_skipped", []string{
+				string(paymentHash) + ":0", string(paymentHash) + ":1", string(paymentHash) + ":2",
+				string(paymentHash) + ":3", string(paymentHash) + ":4",
+			},
+			[]RaffleTicket{},
+			true,
+		},
+		{
+			"unknown_skipped", []string{string(paymentHash) + ":9"},
+			[]RaffleTicket{{paymentHash, 0}, {paymentHash, 1}, {paymentHash, 2}, {paymentHash, 3}, {paymentHash, 4}},
+			false,
+		},
+	} {
+		t.Run(c.testName, func(t *testing.T) {
+			tickets, found := removeSkippedTickets(slices.Clone(raffleDraw), c.skippedTickets)
+			assert.Equal(t, c.expectedTickets, tickets)
+			assert.Equal(t, c.expectedFound, found)
+		})
+	}
+}
+
+func TestShortenPreimage(t *testing.T) {
+	preimage := "8c8d4bc4a33d52b52dcbcbd4b6da95e2b9dd34f12a54de3bb6faf03f4f3dc1a7"
+	assert.Equal(t, "8c8d4…dc1a7", shortenPreimage(preimage))
+	assert.Equal(t, "", shortenPreimage(""))
+	assert.Equal(t, "abc", shortenPreimage("abc"))
 }

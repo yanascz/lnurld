@@ -5,6 +5,7 @@ import (
 	"golang.org/x/text/collate"
 	"golang.org/x/text/language"
 	"math/rand"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -162,7 +163,7 @@ func (service *RaffleService) getPrizeWinners(raffle *Raffle) []RafflePrizeWinne
 	raffleWinners := service.repository.getRaffleWinners(raffle)
 	for _, prize := range raffle.Prizes {
 		var tickets []RaffleDrawTicket
-		for i := 0; i < prize.Quantity; i++ {
+		for i := 0; i < prize.Quantity && len(raffleWinners) > 0; i++ {
 			tickets = append(tickets, service.raffleDrawTicket(raffleWinners[0]))
 			raffleWinners = raffleWinners[1:]
 		}
@@ -176,12 +177,37 @@ func (service *RaffleService) getPrizeWinners(raffle *Raffle) []RafflePrizeWinne
 }
 
 func (service *RaffleService) raffleDrawTicket(ticket RaffleTicket) RaffleDrawTicket {
-	invoice := service.lndClient.getInvoice(ticket.paymentHash)
+	var preimage string
+	if invoice := service.lndClient.getInvoice(ticket.paymentHash); invoice != nil {
+		preimage = shortenPreimage(invoice.preimage)
+	}
+
 	return RaffleDrawTicket{
 		Id:       ticket.String(),
 		Number:   ticket.number(),
-		Preimage: invoice.preimage[0:5] + "…" + invoice.preimage[59:],
+		Preimage: preimage,
 	}
+}
+
+func shortenPreimage(preimage string) string {
+	if len(preimage) < 64 {
+		return preimage
+	}
+	return preimage[0:5] + "…" + preimage[59:]
+}
+
+// removeSkippedTickets drops the skipped tickets from the draw, reporting
+// whether every one of them was actually found.
+func removeSkippedTickets(raffleDraw []RaffleTicket, skippedTickets []string) ([]RaffleTicket, bool) {
+	remainingTickets := slices.DeleteFunc(raffleDraw, func(ticket RaffleTicket) bool {
+		if slices.Contains(skippedTickets, ticket.String()) {
+			skippedTickets = skippedTickets[1:]
+			return true
+		}
+		return false
+	})
+
+	return remainingTickets, len(skippedTickets) == 0
 }
 
 func shuffleRaffleTickets(raffleDraw []RaffleTicket) {
