@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 const (
@@ -190,9 +191,17 @@ func shuffleRaffleTickets(raffleDraw []RaffleTicket) {
 	})
 }
 
-var collator = collate.New(language.Czech, collate.Numeric)
+// collate.Collator keeps mutable state in its iterators, so it must not be
+// used by more than one goroutine at a time.
+var (
+	collator      = collate.New(language.Czech, collate.Numeric)
+	collatorMutex sync.Mutex
+)
 
 func sortRaffles(raffles []*Raffle) []*Raffle {
+	collatorMutex.Lock()
+	defer collatorMutex.Unlock()
+
 	sort.Slice(raffles, func(i, j int) bool {
 		raffleI, raffleJ := raffles[i], raffles[j]
 		if raffleI.IsMine == raffleJ.IsMine {

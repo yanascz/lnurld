@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/stretchr/testify/assert"
 	"strconv"
+	"sync"
 	"testing"
 )
 
@@ -72,4 +73,25 @@ func TestRaffleTicket(t *testing.T) {
 func TestSortRaffles(t *testing.T) {
 	raffles := []*Raffle{{Title: "Raffle #1"}, {Title: "Raffle #11"}, {Title: "Raffle #2"}}
 	assert.Equal(t, []*Raffle{{Title: "Raffle #1"}, {Title: "Raffle #2"}, {Title: "Raffle #11"}}, sortRaffles(raffles))
+}
+
+// The collator behind sortRaffles is shared, while raffles are sorted
+// concurrently by request handlers.
+func TestSortRafflesConcurrently(t *testing.T) {
+	var waitGroup sync.WaitGroup
+	for i := 0; i < 8; i++ {
+		waitGroup.Add(1)
+		go func() {
+			defer waitGroup.Done()
+			for j := 0; j < 200; j++ {
+				sortRaffles([]*Raffle{
+					{Title: "Žluťoučký kůň"},
+					{Title: "Ampérmetr"},
+					{Title: "Čokoláda"},
+					{Title: "Šiška"},
+				})
+			}
+		}()
+	}
+	waitGroup.Wait()
 }

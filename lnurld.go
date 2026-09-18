@@ -820,7 +820,7 @@ func apiAccountArchiveHandler(context *gin.Context) {
 		return
 	}
 
-	usersWithAccountAccess := config.Administrators
+	usersWithAccountAccess := slices.Clone(config.Administrators)
 	for user, allowedAccounts := range config.AccessControl {
 		if slices.Contains(allowedAccounts, accountKey) {
 			usersWithAccountAccess = append(usersWithAccountAccess, user)

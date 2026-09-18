@@ -7,6 +7,7 @@ import (
 	"math"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -33,6 +34,7 @@ func currencyCode(currency Currency) string {
 
 type RatesService struct {
 	currencies string
+	mutex      sync.RWMutex
 	rates      map[Currency]float64
 }
 
@@ -83,11 +85,29 @@ func (service *RatesService) fetchRates() error {
 		return err
 	}
 
-	service.rates = ratesResponse.Bitcoin
+	service.setRates(ratesResponse.Bitcoin)
+
 	return nil
 }
 
+func (service *RatesService) setRates(rates map[Currency]float64) {
+	service.mutex.Lock()
+	defer service.mutex.Unlock()
+
+	service.rates = rates
+}
+
+func (service *RatesService) exchangeRate(currency Currency) float64 {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+
+	return service.rates[currency]
+}
+
 func (service *RatesService) getExchangeRates() map[Currency]float64 {
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+
 	exchangeRates := map[Currency]float64{}
 	for currency, exchangeRate := range service.rates {
 		exchangeRates[currency] = exchangeRate / satsPerBitcoin
@@ -97,14 +117,14 @@ func (service *RatesService) getExchangeRates() map[Currency]float64 {
 }
 
 func (service *RatesService) fiatToSats(currency Currency, amount float64) uint32 {
-	exchangeRate := service.rates[currency]
+	exchangeRate := service.exchangeRate(currency)
 	sats := math.Round(satsPerBitcoin / exchangeRate * amount)
 
 	return uint32(sats)
 }
 
 func (service *RatesService) satsToFiat(currency Currency, sats int64) float64 {
-	exchangeRate := service.rates[currency]
+	exchangeRate := service.exchangeRate(currency)
 	amount := float64(sats) * exchangeRate / satsPerBitcoin
 
 	return amount
