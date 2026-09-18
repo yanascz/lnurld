@@ -1,13 +1,14 @@
 package main
 
 import (
-	"github.com/mr-tron/base58"
-	"golang.org/x/text/collate"
-	"golang.org/x/text/language"
 	"math/rand"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/mr-tron/base58"
+	"golang.org/x/text/collate"
+	"golang.org/x/text/language"
 )
 
 const (
@@ -190,9 +191,8 @@ func shuffleRaffleTickets(raffleDraw []RaffleTicket) {
 	})
 }
 
-var collator = collate.New(language.Czech, collate.Numeric)
-
 func sortRaffles(raffles []*Raffle) []*Raffle {
+	collator := collate.New(language.Czech, collate.Numeric)
 	sort.Slice(raffles, func(i, j int) bool {
 		raffleI, raffleJ := raffles[i], raffles[j]
 		if raffleI.IsMine == raffleJ.IsMine {

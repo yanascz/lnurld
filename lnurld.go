@@ -99,7 +99,7 @@ func main() {
 	withdrawalService = newWithdrawalService(config.Withdrawal)
 	raffleService = newRaffleService(repository, lndClient)
 	nostrService = newNostrService(config.DataDir, config.Nostr)
-	ratesService = newRatesService(30 * time.Second)
+	ratesService = newRatesService(newCoinGeckoClient(), 30*time.Second)
 
 	lnurld := gin.Default()
 	_ = lnurld.SetTrustedProxies(nil)
@@ -820,7 +820,7 @@ func apiAccountArchiveHandler(context *gin.Context) {
 		return
 	}
 
-	usersWithAccountAccess := config.Administrators
+	usersWithAccountAccess := slices.Clone(config.Administrators)
 	for user, allowedAccounts := range config.AccessControl {
 		if slices.Contains(allowedAccounts, accountKey) {
 			usersWithAccountAccess = append(usersWithAccountAccess, user)

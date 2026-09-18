@@ -1,9 +1,11 @@
 package main
 
 import (
-	"github.com/stretchr/testify/assert"
 	"strconv"
+	"sync"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRaffle(t *testing.T) {
@@ -70,6 +72,27 @@ func TestRaffleTicket(t *testing.T) {
 }
 
 func TestSortRaffles(t *testing.T) {
-	raffles := []*Raffle{{Title: "Raffle #1"}, {Title: "Raffle #11"}, {Title: "Raffle #2"}}
-	assert.Equal(t, []*Raffle{{Title: "Raffle #1"}, {Title: "Raffle #2"}, {Title: "Raffle #11"}}, sortRaffles(raffles))
+	t.Run("ordering", func(t *testing.T) {
+		raffles := []*Raffle{{Title: "Raffle #1"}, {Title: "Raffle #11"}, {Title: "Raffle #2"}}
+		assert.Equal(t, []*Raffle{{Title: "Raffle #1"}, {Title: "Raffle #2"}, {Title: "Raffle #11"}}, sortRaffles(raffles))
+	})
+
+	t.Run("concurrency", func(t *testing.T) {
+		var waitGroup sync.WaitGroup
+		for i := 0; i < 8; i++ {
+			waitGroup.Add(1)
+			go func() {
+				defer waitGroup.Done()
+				for j := 0; j < 200; j++ {
+					sortRaffles([]*Raffle{
+						{Title: "Žluťoučký kůň"},
+						{Title: "Ampérmetr"},
+						{Title: "Čokoláda"},
+						{Title: "Šiška"},
+					})
+				}
+			}()
+		}
+		waitGroup.Wait()
+	})
 }
