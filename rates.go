@@ -12,6 +12,8 @@ import (
 
 const satsPerBitcoin = 100_000_000
 
+var ratesClient = &http.Client{Timeout: 10 * time.Second}
+
 type Currency string
 
 const (
@@ -68,7 +70,7 @@ func (service *RatesService) fetchRates() error {
 	}
 
 	request.Header.Set("User-Agent", "lnurld/1.0")
-	response, err := http.DefaultClient.Do(request)
+	response, err := ratesClient.Do(request)
 	if err != nil {
 		return err
 	}
@@ -98,6 +100,9 @@ func (service *RatesService) getExchangeRates() map[Currency]float64 {
 
 func (service *RatesService) fiatToSats(currency Currency, amount float64) uint32 {
 	exchangeRate := service.rates[currency]
+	if exchangeRate <= 0 {
+		return 0 // no rate known; converting the resulting infinity is implementation-defined
+	}
 	sats := math.Round(satsPerBitcoin / exchangeRate * amount)
 
 	return uint32(sats)

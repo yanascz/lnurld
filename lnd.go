@@ -119,7 +119,6 @@ func (client *LndClient) createInvoice(msats int64, memo string, descriptionHash
 	}
 
 	return &Invoice{
-		preimage:       hex.EncodeToString(lnInvoice.RPreimage),
 		paymentHash:    PaymentHash(hex.EncodeToString(newLnInvoice.RHash)),
 		paymentRequest: newLnInvoice.PaymentRequest,
 		amount:         msats / 1000,

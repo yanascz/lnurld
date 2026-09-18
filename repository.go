@@ -21,6 +21,7 @@ const (
 	rafflesDirName  = "raffles" + pathSeparator
 	jsonExtension   = ".json"
 	csvExtension    = ".csv"
+	tempExtension   = ".tmp"
 )
 
 type Thumbnail struct {
@@ -333,13 +334,14 @@ func writeObject(fileName string, object any) error {
 		return err
 	}
 
-	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
+	// written to a temporary file first, so that an interrupted write cannot
+	// leave a truncated file behind
+	tempFileName := fileName + tempExtension
+	if err := os.WriteFile(tempFileName, append(jsonData, '\n'), 0644); err != nil {
 		return err
 	}
-	defer file.Close()
-
-	if _, err = file.Write(append(jsonData, '\n')); err != nil {
+	if err := os.Rename(tempFileName, fileName); err != nil {
+		_ = os.Remove(tempFileName)
 		return err
 	}
 
