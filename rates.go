@@ -129,6 +129,10 @@ func (service *RatesService) getExchangeRate(currency Currency) float64 {
 
 func (service *RatesService) fiatToSats(currency Currency, amount float64) uint32 {
 	exchangeRate := service.getExchangeRate(currency)
+	if exchangeRate == 0 {
+		return 0
+	}
+
 	sats := math.Round(satsPerBitcoin / exchangeRate * amount)
 
 	return uint32(sats)
