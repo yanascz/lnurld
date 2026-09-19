@@ -37,6 +37,7 @@ type RatesClient interface {
 }
 
 type CoinGeckoClient struct {
+	httpClient *http.Client
 	currencies string
 }
 
@@ -46,7 +47,10 @@ func newCoinGeckoClient() *CoinGeckoClient {
 		currencies.WriteString("," + string(currency))
 	}
 
-	return &CoinGeckoClient{currencies: currencies.String()[1:]}
+	return &CoinGeckoClient{
+		httpClient: &http.Client{Timeout: 10 * time.Second},
+		currencies: currencies.String()[1:],
+	}
 }
 
 func (client *CoinGeckoClient) fetchRates() (map[Currency]float64, error) {
@@ -57,7 +61,7 @@ func (client *CoinGeckoClient) fetchRates() (map[Currency]float64, error) {
 	}
 
 	request.Header.Set("User-Agent", "lnurld/1.0")
-	response, err := http.DefaultClient.Do(request)
+	response, err := client.httpClient.Do(request)
 	if err != nil {
 		return nil, err
 	}
