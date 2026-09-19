@@ -3,15 +3,16 @@ package main
 import (
 	"context"
 	"encoding/hex"
+	"log"
+	"os"
+	"time"
+
 	"github.com/hashicorp/golang-lru/v2"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lightningnetwork/lnd/macaroons"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"gopkg.in/macaroon.v2"
-	"log"
-	"os"
-	"time"
 )
 
 const invoiceExpiryInSeconds = 300
@@ -119,7 +120,6 @@ func (client *LndClient) createInvoice(msats int64, memo string, descriptionHash
 	}
 
 	return &Invoice{
-		preimage:       hex.EncodeToString(lnInvoice.RPreimage),
 		paymentHash:    PaymentHash(hex.EncodeToString(newLnInvoice.RHash)),
 		paymentRequest: newLnInvoice.PaymentRequest,
 		amount:         msats / 1000,
