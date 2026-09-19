@@ -1020,7 +1020,7 @@ func apiRaffleDrawCommitHandler(context *gin.Context) {
 
 	raffleDraw := repository.getRaffleDraw(raffle)
 	skippedTickets := raffleDrawCommit.SkippedTickets
-	slices.DeleteFunc(raffleDraw, func(ticket RaffleTicket) bool {
+	remainingTickets := slices.DeleteFunc(raffleDraw, func(ticket RaffleTicket) bool {
 		if slices.Contains(skippedTickets, ticket.String()) {
 			skippedTickets = skippedTickets[1:]
 			return true
@@ -1029,12 +1029,12 @@ func apiRaffleDrawCommitHandler(context *gin.Context) {
 	})
 
 	prizesCount := raffle.PrizesCount()
-	if len(raffleDraw) < prizesCount || len(skippedTickets) > 0 {
+	if len(remainingTickets) < prizesCount || len(skippedTickets) > 0 {
 		abortWithBadRequestResponse(context, "invalid commit request")
 		return
 	}
 
-	raffleWinners := raffleDraw[0:prizesCount]
+	raffleWinners := remainingTickets[0:prizesCount]
 	slices.Reverse(raffleWinners)
 
 	if err := repository.createRaffleWinners(raffle, raffleWinners); err != nil {
