@@ -5,12 +5,14 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"github.com/mr-tron/base58"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/mr-tron/base58"
 )
 
 const (
@@ -328,21 +330,33 @@ func createDir(name string) error {
 }
 
 func writeObject(fileName string, object any) error {
-	jsonData, err := json.Marshal(object)
+	tempFile, err := os.CreateTemp(filepath.Dir(fileName), ".tmp*")
 	if err != nil {
 		return err
 	}
 
-	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
+	var success bool
+	defer func() {
+		if !success {
+			_ = tempFile.Close()
+			_ = os.Remove(tempFile.Name())
+		}
+	}()
+
+	if err := json.NewEncoder(tempFile).Encode(object); err != nil {
 		return err
 	}
-	defer file.Close()
-
-	if _, err = file.Write(append(jsonData, '\n')); err != nil {
+	if err := tempFile.Chmod(0644); err != nil {
+		return err
+	}
+	if err := tempFile.Close(); err != nil {
+		return err
+	}
+	if err := os.Rename(tempFile.Name(), fileName); err != nil {
 		return err
 	}
 
+	success = true
 	return nil
 }
 
