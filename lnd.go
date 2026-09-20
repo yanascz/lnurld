@@ -54,13 +54,20 @@ func (invoice *Invoice) isSettled() bool {
 	return !invoice.settleDate.IsZero()
 }
 
-type LndClient struct {
+type LndClient interface {
+	createInvoice(msats int64, memo string, descriptionHash []byte) (*Invoice, error)
+	getInvoice(paymentHash PaymentHash) *Invoice
+	decodePaymentRequest(paymentRequest string) (PaymentHash, int64)
+	sendPayment(paymentRequest string, feeLimit int64) error
+}
+
+type LndRpcClient struct {
 	lnClient lnrpc.LightningClient
 	ctx      context.Context
 	invoices *lru.Cache[PaymentHash, Invoice]
 }
 
-func newLndClient(config LndConfig) *LndClient {
+func newLndClient(config LndConfig) LndClient {
 	if config.CertFile == "" {
 		log.Fatal("LND certificate file missing")
 	}
@@ -99,14 +106,14 @@ func newLndClient(config LndConfig) *LndClient {
 		log.Fatal(err)
 	}
 
-	return &LndClient{
+	return &LndRpcClient{
 		lnClient: lnrpc.NewLightningClient(connection),
 		ctx:      context.Background(),
 		invoices: invoices,
 	}
 }
 
-func (client *LndClient) createInvoice(msats int64, memo string, descriptionHash []byte) (*Invoice, error) {
+func (client *LndRpcClient) createInvoice(msats int64, memo string, descriptionHash []byte) (*Invoice, error) {
 	lnInvoice := lnrpc.Invoice{
 		Memo:            memo,
 		DescriptionHash: descriptionHash,
@@ -126,7 +133,7 @@ func (client *LndClient) createInvoice(msats int64, memo string, descriptionHash
 	}, nil
 }
 
-func (client *LndClient) getInvoice(paymentHash PaymentHash) *Invoice {
+func (client *LndRpcClient) getInvoice(paymentHash PaymentHash) *Invoice {
 	if invoice, invoiceCached := client.invoices.Get(paymentHash); invoiceCached {
 		return &invoice
 	}
@@ -159,7 +166,7 @@ func (client *LndClient) getInvoice(paymentHash PaymentHash) *Invoice {
 	return &invoice
 }
 
-func (client *LndClient) decodePaymentRequest(paymentRequest string) (PaymentHash, int64) {
+func (client *LndRpcClient) decodePaymentRequest(paymentRequest string) (PaymentHash, int64) {
 	payReqString := lnrpc.PayReqString{PayReq: paymentRequest}
 	payReq, err := client.lnClient.DecodePayReq(client.ctx, &payReqString)
 	if err != nil {
@@ -170,7 +177,7 @@ func (client *LndClient) decodePaymentRequest(paymentRequest string) (PaymentHas
 	return PaymentHash(payReq.PaymentHash), payReq.NumSatoshis
 }
 
-func (client *LndClient) sendPayment(paymentRequest string, feeLimit int64) error {
+func (client *LndRpcClient) sendPayment(paymentRequest string, feeLimit int64) error {
 	sendRequest := lnrpc.SendRequest{
 		PaymentRequest:   paymentRequest,
 		FeeLimit:         &lnrpc.FeeLimit{Limit: &lnrpc.FeeLimit_Fixed{Fixed: feeLimit}},

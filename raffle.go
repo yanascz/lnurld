@@ -2,6 +2,7 @@ package main
 
 import (
 	"math/rand"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -66,6 +67,12 @@ type RafflePrize struct {
 type RaffleQrCode struct {
 	LnUrl string
 	Uri   string
+}
+
+type RaffleStats struct {
+	ticketsIssued     int
+	ticketsPaid       int
+	totalSatsReceived int64
 }
 
 type RaffleTickets struct {
@@ -136,22 +143,111 @@ type RafflePrizeWinners struct {
 	Tickets []RaffleDrawTicket
 }
 
-type RaffleService struct {
-	repository *Repository
-	lndClient  *LndClient
+type RaffleRepository interface {
+	getRaffleTickets(raffle *Raffle) []RaffleTickets
+	isRaffleDrawAvailable(raffle *Raffle) bool
+	createRaffleDraw(raffle *Raffle, tickets []RaffleTicket) error
+	getRaffleDraw(raffle *Raffle) []RaffleTicket
+	isRaffleDrawFinished(raffle *Raffle) bool
+	createRaffleWinners(raffle *Raffle, tickets []RaffleTicket) error
+	getRaffleWinners(raffle *Raffle) []RaffleTicket
 }
 
-func newRaffleService(repository *Repository, lndClient *LndClient) *RaffleService {
+type RaffleService struct {
+	repository RaffleRepository
+	lndClient  LndClient
+}
+
+func newRaffleService(repository RaffleRepository, lndClient LndClient) *RaffleService {
 	return &RaffleService{repository: repository, lndClient: lndClient}
 }
 
-func (service *RaffleService) getDrawnTickets(raffleDraw []RaffleTicket) []RaffleDrawTicket {
+func (service *RaffleService) getRaffleStats(raffle *Raffle) RaffleStats {
+	var ticketsIssued int
+	var ticketsPaid int
+	var totalSatsReceived int64
+	for _, tickets := range service.repository.getRaffleTickets(raffle) {
+		ticketsIssued += tickets.quantity
+		invoice := service.lndClient.getInvoice(tickets.paymentHash)
+		if invoice != nil && invoice.isSettled() {
+			ticketsPaid += tickets.quantity
+			totalSatsReceived += invoice.amount
+		}
+	}
+
+	return RaffleStats{ticketsIssued, ticketsPaid, totalSatsReceived}
+}
+
+func (service *RaffleService) getRaffleDraw(raffle *Raffle) ([]RaffleTicket, error) {
+	raffleDraw := service.repository.getRaffleDraw(raffle)
+	if len(raffleDraw) > 0 {
+		return raffleDraw, nil
+	}
+
+	for _, tickets := range service.repository.getRaffleTickets(raffle) {
+		invoice := service.lndClient.getInvoice(tickets.paymentHash)
+		if invoice != nil && invoice.isSettled() {
+			for i := 0; i < tickets.quantity; i++ {
+				raffleDraw = append(raffleDraw, RaffleTicket{tickets.paymentHash, i})
+			}
+		}
+	}
+
+	if len(raffleDraw) < raffle.PrizesCount() {
+		return nil, &ClientError{message: "not enough tickets"}
+	}
+
+	shuffleRaffleTickets(raffleDraw) // separates tickets related to one invoice
+	shuffleRaffleTickets(raffleDraw) // prepares the final draw
+
+	if err := service.repository.createRaffleDraw(raffle, raffleDraw); err != nil {
+		return nil, &ServerError{message: "storing raffle draw", cause: err}
+	}
+
+	return raffleDraw, nil
+}
+
+func (service *RaffleService) getDrawnTickets(raffle *Raffle) ([]RaffleDrawTicket, error) {
+	raffleDraw, err := service.getRaffleDraw(raffle)
+	if err != nil {
+		return nil, err
+	}
+
 	var drawnTickets []RaffleDrawTicket
 	for _, ticket := range raffleDraw {
 		drawnTickets = append(drawnTickets, service.raffleDrawTicket(ticket))
 	}
 
-	return drawnTickets
+	return drawnTickets, nil
+}
+
+func (service *RaffleService) commitRaffleDraw(raffle *Raffle, skippedTickets []string) error {
+	if !service.repository.isRaffleDrawAvailable(raffle) || service.repository.isRaffleDrawFinished(raffle) {
+		return &ClientError{message: "not committable"}
+	}
+
+	raffleDraw := service.repository.getRaffleDraw(raffle)
+	remainingTickets := slices.DeleteFunc(raffleDraw, func(ticket RaffleTicket) bool {
+		if slices.Contains(skippedTickets, ticket.String()) {
+			skippedTickets = skippedTickets[1:]
+			return true
+		}
+		return false
+	})
+
+	prizesCount := raffle.PrizesCount()
+	if len(remainingTickets) < prizesCount || len(skippedTickets) > 0 {
+		return &ClientError{message: "invalid commit request"}
+	}
+
+	raffleWinners := remainingTickets[0:prizesCount]
+	slices.Reverse(raffleWinners)
+
+	if err := service.repository.createRaffleWinners(raffle, raffleWinners); err != nil {
+		return &ServerError{message: "storing raffle winners", cause: err}
+	}
+
+	return nil
 }
 
 func (service *RaffleService) getPrizeWinners(raffle *Raffle) []RafflePrizeWinners {

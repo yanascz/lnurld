@@ -75,7 +75,7 @@ var (
 
 	config                *Config
 	repository            *Repository
-	lndClient             *LndClient
+	lndClient             LndClient
 	authenticationService *AuthenticationService
 	withdrawalService     *WithdrawalService
 	raffleService         *RaffleService
@@ -741,22 +741,11 @@ func authRaffleHandler(context *gin.Context) {
 		return
 	}
 
+	raffleStats := raffleService.getRaffleStats(raffle)
 	drawAvailable := repository.isRaffleDrawAvailable(raffle)
 	drawFinished := repository.isRaffleDrawFinished(raffle)
 	withdrawalFinished := repository.isRaffleWithdrawalFinished(raffle)
 	locked := repository.isRaffleLocked(raffle)
-
-	var ticketsIssued int
-	var ticketsPaid int
-	var totalSatsReceived int64
-	for _, tickets := range repository.getRaffleTickets(raffle) {
-		ticketsIssued += tickets.quantity
-		invoice := lndClient.getInvoice(tickets.paymentHash)
-		if invoice != nil && invoice.isSettled() {
-			ticketsPaid += tickets.quantity
-			totalSatsReceived += invoice.amount
-		}
-	}
 
 	context.HTML(http.StatusOK, "raffle.gohtml", gin.H{
 		"Id":                 raffle.Id,
@@ -764,10 +753,10 @@ func authRaffleHandler(context *gin.Context) {
 		"TicketPrice":        raffle.TicketPrice,
 		"FiatCurrency":       raffle.FiatCurrency,
 		"PrizesCount":        raffle.PrizesCount(),
-		"TicketsIssued":      ticketsIssued,
-		"TicketsPaid":        ticketsPaid,
-		"TotalSatsReceived":  totalSatsReceived,
-		"TotalFiatReceived":  ratesService.satsToFiat(raffle.FiatCurrency, totalSatsReceived),
+		"TicketsIssued":      raffleStats.ticketsIssued,
+		"TicketsPaid":        raffleStats.ticketsPaid,
+		"TotalSatsReceived":  raffleStats.totalSatsReceived,
+		"TotalFiatReceived":  ratesService.satsToFiat(raffle.FiatCurrency, raffleStats.totalSatsReceived),
 		"DrawAvailable":      drawAvailable,
 		"DrawFinished":       drawFinished,
 		"Withdrawable":       drawFinished && !withdrawalFinished && !locked,
@@ -791,8 +780,9 @@ func authRaffleDrawHandler(context *gin.Context) {
 		return
 	}
 
-	raffleDraw := getRaffleDraw(context, raffle)
-	if raffleDraw == nil {
+	drawnTickets, err := raffleService.getDrawnTickets(raffle)
+	if err != nil {
+		abortWithErrorResponse(context, err)
 		return
 	}
 
@@ -800,7 +790,7 @@ func authRaffleDrawHandler(context *gin.Context) {
 		"Id":           raffle.Id,
 		"Title":        raffle.Title,
 		"Prizes":       raffle.prizes(),
-		"DrawnTickets": raffleService.getDrawnTickets(raffleDraw),
+		"DrawnTickets": drawnTickets,
 	})
 }
 
@@ -1007,10 +997,6 @@ func apiRaffleDrawCommitHandler(context *gin.Context) {
 	if raffle == nil {
 		return
 	}
-	if !repository.isRaffleDrawAvailable(raffle) || repository.isRaffleDrawFinished(raffle) {
-		abortWithBadRequestResponse(context, "not commitable")
-		return
-	}
 
 	var raffleDrawCommit RaffleDrawCommit
 	if err := context.BindJSON(&raffleDrawCommit); err != nil {
@@ -1018,27 +1004,8 @@ func apiRaffleDrawCommitHandler(context *gin.Context) {
 		return
 	}
 
-	raffleDraw := repository.getRaffleDraw(raffle)
-	skippedTickets := raffleDrawCommit.SkippedTickets
-	remainingTickets := slices.DeleteFunc(raffleDraw, func(ticket RaffleTicket) bool {
-		if slices.Contains(skippedTickets, ticket.String()) {
-			skippedTickets = skippedTickets[1:]
-			return true
-		}
-		return false
-	})
-
-	prizesCount := raffle.PrizesCount()
-	if len(remainingTickets) < prizesCount || len(skippedTickets) > 0 {
-		abortWithBadRequestResponse(context, "invalid commit request")
-		return
-	}
-
-	raffleWinners := remainingTickets[0:prizesCount]
-	slices.Reverse(raffleWinners)
-
-	if err := repository.createRaffleWinners(raffle, raffleWinners); err != nil {
-		abortWithInternalServerErrorResponse(context, fmt.Errorf("storing raffle winners: %w", err))
+	if err := raffleService.commitRaffleDraw(raffle, raffleDrawCommit.SkippedTickets); err != nil {
+		abortWithErrorResponse(context, err)
 		return
 	}
 
@@ -1241,37 +1208,6 @@ func getRaffleThumbnail(raffle *Raffle) *Thumbnail {
 	return thumbnail
 }
 
-func getRaffleDraw(context *gin.Context, raffle *Raffle) []RaffleTicket {
-	raffleDraw := repository.getRaffleDraw(raffle)
-	if len(raffleDraw) > 0 {
-		return raffleDraw
-	}
-
-	for _, tickets := range repository.getRaffleTickets(raffle) {
-		invoice := lndClient.getInvoice(tickets.paymentHash)
-		if invoice != nil && invoice.isSettled() {
-			for i := 0; i < tickets.quantity; i++ {
-				raffleDraw = append(raffleDraw, RaffleTicket{tickets.paymentHash, i})
-			}
-		}
-	}
-
-	if len(raffleDraw) < raffle.PrizesCount() {
-		abortWithBadRequestResponse(context, "not enough tickets")
-		return nil
-	}
-
-	shuffleRaffleTickets(raffleDraw) // separates tickets related to one invoice
-	shuffleRaffleTickets(raffleDraw) // prepares the final draw
-
-	if err := repository.createRaffleDraw(raffle, raffleDraw); err != nil {
-		abortWithInternalServerErrorResponse(context, fmt.Errorf("storing raffle draw: %w", err))
-		return nil
-	}
-
-	return raffleDraw
-}
-
 func getRequestedQuantity(context *gin.Context) int {
 	quantityString := context.DefaultQuery(quantityParam, "1")
 	quantity, err := strconv.ParseInt(quantityString, 10, 32)
@@ -1393,6 +1329,14 @@ func abortWithBadRequestResponse(context *gin.Context, reason string) {
 func abortWithInternalServerErrorResponse(context *gin.Context, err error) {
 	context.AbortWithStatusJSON(http.StatusInternalServerError, lnurl.ErrorResponse("internal server error"))
 	context.Error(err)
+}
+
+func abortWithErrorResponse(context *gin.Context, err error) {
+	if clientError, _ := err.(*ClientError); clientError != nil {
+		abortWithBadRequestResponse(context, clientError.message)
+	} else {
+		abortWithInternalServerErrorResponse(context, err)
+	}
 }
 
 func parseAmount(amount string) (int64, error) {
