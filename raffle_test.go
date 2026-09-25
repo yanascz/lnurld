@@ -279,11 +279,9 @@ func TestSortRaffles(t *testing.T) {
 
 	t.Run("concurrency", func(t *testing.T) {
 		var waitGroup sync.WaitGroup
-		for i := 0; i < 8; i++ {
-			waitGroup.Add(1)
-			go func() {
-				defer waitGroup.Done()
-				for j := 0; j < 200; j++ {
+		for range 8 {
+			waitGroup.Go(func() {
+				for range 200 {
 					sortRaffles([]*Raffle{
 						{Title: "Žluťoučký kůň"},
 						{Title: "Ampérmetr"},
@@ -291,7 +289,7 @@ func TestSortRaffles(t *testing.T) {
 						{Title: "Šiška"},
 					})
 				}
-			}()
+			})
 		}
 		waitGroup.Wait()
 	})

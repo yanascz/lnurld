@@ -1259,7 +1259,7 @@ func createInvoice(context *gin.Context, msats int64, comment string, descriptio
 }
 
 func awaitSettlement(zapRequest *nostr.Event, paymentHash PaymentHash) {
-	for i := 0; i < invoiceExpiryInSeconds; i++ {
+	for range invoiceExpiryInSeconds {
 		invoice := lndClient.getInvoice(paymentHash)
 		if invoice != nil && invoice.isSettled() {
 			go nostrService.publishZapReceipt(zapRequest, invoice)

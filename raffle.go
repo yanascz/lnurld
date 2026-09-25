@@ -52,7 +52,7 @@ func (raffle *Raffle) PrizesCount() int {
 func (raffle *Raffle) prizes() []string {
 	var prizes []string
 	for _, prize := range raffle.Prizes {
-		for i := 0; i < prize.Quantity; i++ {
+		for range prize.Quantity {
 			prizes = append(prizes, prize.Name)
 		}
 	}
@@ -92,7 +92,7 @@ func (tickets RaffleTickets) String() string {
 func (tickets RaffleTickets) numbers() string {
 	var numbers []string
 	symbols := raffleTicketSymbols(tickets.paymentHash)
-	for i := 0; i < tickets.quantity; i++ {
+	for i := range tickets.quantity {
 		numbers = append(numbers, raffleTicketNumber(symbols, i))
 	}
 	sort.Slice(numbers, func(i, j int) bool {
@@ -187,7 +187,7 @@ func (service *RaffleService) getRaffleDraw(raffle *Raffle) ([]RaffleTicket, err
 	for _, tickets := range service.repository.getRaffleTickets(raffle) {
 		invoice := service.lndClient.getInvoice(tickets.paymentHash)
 		if invoice != nil && invoice.isSettled() {
-			for i := 0; i < tickets.quantity; i++ {
+			for i := range tickets.quantity {
 				raffleDraw = append(raffleDraw, RaffleTicket{tickets.paymentHash, i})
 			}
 		}
@@ -259,7 +259,7 @@ func (service *RaffleService) getPrizeWinners(raffle *Raffle) []RafflePrizeWinne
 	raffleWinners := service.repository.getRaffleWinners(raffle)
 	for _, prize := range raffle.Prizes {
 		var tickets []RaffleDrawTicket
-		for i := 0; i < prize.Quantity; i++ {
+		for range prize.Quantity {
 			tickets = append(tickets, service.raffleDrawTicket(raffleWinners[0]))
 			raffleWinners = raffleWinners[1:]
 		}

@@ -53,16 +53,14 @@ func TestRatesService(t *testing.T) {
 
 	t.Run("concurrency", func(t *testing.T) {
 		var waitGroup sync.WaitGroup
-		for i := 0; i < 4; i++ {
-			waitGroup.Add(1)
-			go func() {
-				defer waitGroup.Done()
-				for j := 0; j < 1000; j++ {
+		for range 4 {
+			waitGroup.Go(func() {
+				for range 1000 {
 					service.getExchangeRates()
 					service.satsToFiat(CZK, 21_000)
 					service.fiatToSats(EUR, 4.2)
 				}
-			}()
+			})
 		}
 		waitGroup.Wait()
 	})
