@@ -5,11 +5,12 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"log"
+	"time"
+
 	"github.com/fiatjaf/go-lnurl"
 	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/mr-tron/base58"
-	"log"
-	"time"
 )
 
 type Identity string
@@ -103,7 +104,8 @@ func (service *AuthenticationService) verifyChallenge(k1 string, sig string, key
 }
 
 func (service *AuthenticationService) getIdentity(k1 string) Identity {
-	if identity, k1Valid := service.k1s.Get(k1); k1Valid {
+	if identity, k1Valid := service.k1s.Get(k1); k1Valid && identity != "" {
+		service.k1s.Remove(k1)
 		return identity
 	}
 	return ""

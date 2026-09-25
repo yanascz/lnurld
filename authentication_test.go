@@ -57,5 +57,6 @@ func TestAuthenticationService(t *testing.T) {
 		assert.Error(t, service.verifyChallenge(k1, "invalid", key))
 		assert.Error(t, service.verifyChallenge(k1, sig, "invalid"))
 		assert.Equal(t, Identity(key), service.getIdentity(k1))
+		assert.Empty(t, service.getIdentity(k1))
 	})
 }
