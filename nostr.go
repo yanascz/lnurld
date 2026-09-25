@@ -4,17 +4,31 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/nbd-wtf/go-nostr"
+	"iter"
 	"log"
 	"os"
+	"slices"
+
+	"github.com/nbd-wtf/go-nostr"
 )
 
-func tagP() []string { return []string{"p", ""} }
-func tagE() []string { return []string{"e", ""} }
-func tagA() []string { return []string{"a", ""} }
+const (
+	tagPublicKey   = "p"
+	tagEvent       = "e"
+	tagAddress     = "a"
+	tagRelays      = "relays"
+	tagAmount      = "amount"
+	tagBolt11      = "bolt11"
+	tagDescription = "description"
+)
 
-func tagRelays() []string { return []string{"relays", ""} }
-func tagAmount() []string { return []string{"amount", ""} }
+func countTags(tags iter.Seq[nostr.Tag]) int {
+	count := 0
+	for range tags {
+		count++
+	}
+	return count
+}
 
 func parseZapRequest(zapRequestJson string, amount string) (*nostr.Event, error) {
 	var zapRequest nostr.Event
@@ -25,16 +39,16 @@ func parseZapRequest(zapRequestJson string, amount string) (*nostr.Event, error)
 	if zapRequest.Kind != nostr.KindZapRequest {
 		return nil, errors.New("not a zap request")
 	}
-	if len(zapRequest.Tags.GetAll(tagP())) != 1 {
+	if countTags(zapRequest.Tags.FindAll(tagPublicKey)) != 1 {
 		return nil, errors.New("invalid number of 'p' tags")
 	}
-	if len(zapRequest.Tags.GetAll(tagE())) > 1 {
+	if countTags(zapRequest.Tags.FindAll(tagEvent)) > 1 {
 		return nil, errors.New("invalid number of 'e' tags")
 	}
-	if len(zapRequest.Tags.GetAll(tagRelays())) != 1 {
+	if countTags(zapRequest.Tags.FindAll(tagRelays)) != 1 {
 		return nil, errors.New("invalid number of 'relays' tags")
 	}
-	if tag := zapRequest.Tags.GetFirst(tagAmount()); tag != nil && tag.Value() != amount {
+	if tag := zapRequest.Tags.Find(tagAmount); tag != nil && tag[1] != amount {
 		return nil, errors.New("invalid 'amount' tag")
 	}
 	if valid, _ := zapRequest.CheckSignature(); !valid {
@@ -85,16 +99,16 @@ func (service *NostrService) publishZapReceipt(zapRequest *nostr.Event, invoice 
 		PubKey:    service.getPublicKey(),
 		CreatedAt: nostr.Timestamp(invoice.settleDate.Unix()),
 		Kind:      nostr.KindZap,
-		Tags:      zapRequest.Tags.GetAll(tagP()),
+		Tags:      slices.Collect(zapRequest.Tags.FindAll(tagPublicKey)),
 	}
-	if e := zapRequest.Tags.GetFirst(tagE()); e != nil {
-		zapReceipt.Tags = append(zapReceipt.Tags, *e)
+	if e := zapRequest.Tags.Find(tagEvent); e != nil {
+		zapReceipt.Tags = append(zapReceipt.Tags, e)
 	}
-	if a := zapRequest.Tags.GetFirst(tagA()); a != nil {
-		zapReceipt.Tags = append(zapReceipt.Tags, *a)
+	if a := zapRequest.Tags.Find(tagAddress); a != nil {
+		zapReceipt.Tags = append(zapReceipt.Tags, a)
 	}
-	zapReceipt.Tags = append(zapReceipt.Tags, nostr.Tag{"bolt11", invoice.paymentRequest})
-	zapReceipt.Tags = append(zapReceipt.Tags, nostr.Tag{"description", zapRequest.String()})
+	zapReceipt.Tags = append(zapReceipt.Tags, nostr.Tag{tagBolt11, invoice.paymentRequest})
+	zapReceipt.Tags = append(zapReceipt.Tags, nostr.Tag{tagDescription, zapRequest.String()})
 
 	if err := zapReceipt.Sign(service.privateKey); err != nil {
 		log.Println("error signing zap receipt:", err)
@@ -102,7 +116,7 @@ func (service *NostrService) publishZapReceipt(zapRequest *nostr.Event, invoice 
 	}
 
 	log.Println("publishing zap receipt", zapReceipt.ID, "for zap request", zapRequest.ID)
-	service.publishEvent(&zapReceipt, (*zapRequest.Tags.GetFirst(tagRelays()))[1:])
+	service.publishEvent(&zapReceipt, zapRequest.Tags.Find(tagRelays)[1:])
 }
 
 func (service *NostrService) publishEvent(event *nostr.Event, additionalRelays []string) {
