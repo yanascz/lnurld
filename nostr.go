@@ -10,6 +10,7 @@ import (
 	"slices"
 
 	"github.com/nbd-wtf/go-nostr"
+	"github.com/nbd-wtf/go-nostr/nip19"
 )
 
 const (
@@ -30,7 +31,15 @@ func countTags(tags iter.Seq[nostr.Tag]) int {
 	return count
 }
 
-func parseZapRequest(zapRequestJson string, amount string) (*nostr.Event, error) {
+func isValidNpub(npub string) bool {
+	prefix, value, err := nip19.Decode(npub)
+	if err != nil || prefix != "npub" {
+		return false
+	}
+	return nostr.IsValidPublicKey(value.(string))
+}
+
+func parseZapRequest(zapRequestJson string, npub string, amount string) (*nostr.Event, error) {
 	var zapRequest nostr.Event
 	if err := json.Unmarshal([]byte(zapRequestJson), &zapRequest); err != nil {
 		return nil, err
@@ -41,6 +50,9 @@ func parseZapRequest(zapRequestJson string, amount string) (*nostr.Event, error)
 	}
 	if countTags(zapRequest.Tags.FindAll(tagPublicKey)) != 1 {
 		return nil, errors.New("invalid number of 'p' tags")
+	}
+	if _, publicKey, _ := nip19.Decode(npub); zapRequest.Tags.Find(tagPublicKey)[1] != publicKey {
+		return nil, errors.New("invalid 'p' tag")
 	}
 	if countTags(zapRequest.Tags.FindAll(tagEvent)) > 1 {
 		return nil, errors.New("invalid number of 'e' tags")

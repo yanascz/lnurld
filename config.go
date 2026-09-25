@@ -2,12 +2,13 @@ package main
 
 import (
 	"crypto/rand"
-	"gopkg.in/yaml.v3"
 	"log"
 	"os"
 	"slices"
 	"strings"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
@@ -56,6 +57,7 @@ type Account struct {
 	IsAlsoEmail    bool   `yaml:"is-also-email"`
 	CommentAllowed uint16 `yaml:"comment-allowed"`
 	AllowsNostr    bool   `yaml:"allows-nostr"`
+	Npub           string `yaml:"npub"`
 	SuccessMessage string `yaml:"success-message"`
 	Archivable     bool
 }
@@ -163,6 +165,9 @@ func validateAccounts(config *Config) {
 		}
 		if strings.TrimSpace(account.Description) == "" {
 			logInvalidAccountValue(accountKey, "description", account.Description)
+		}
+		if account.AllowsNostr && !isValidNpub(account.Npub) {
+			logInvalidAccountValue(accountKey, "npub", account.Npub)
 		}
 		if account.CommentAllowed > 2000 {
 			logInvalidAccountValue(accountKey, "comment-allowed", account.CommentAllowed)

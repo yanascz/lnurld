@@ -265,7 +265,7 @@ func lnPayHandler(context *gin.Context) {
 			abortWithBadRequestResponse(context, "zap requests not allowed")
 			return
 		}
-		zapRequest, err = parseZapRequest(zapRequestJson, amountString)
+		zapRequest, err = parseZapRequest(zapRequestJson, account.Npub, amountString)
 		if err != nil {
 			abortWithBadRequestResponse(context, "invalid zap request")
 			return
