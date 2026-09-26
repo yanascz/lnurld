@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v3"
 )
 
@@ -115,12 +116,21 @@ func loadConfig(configFileName string) *Config {
 		config.DataDir += pathSeparator
 	}
 
+	validateCredentials(&config)
 	validateAdministrators(&config)
 	validateAccessControl(&config)
 	validateThumbnails(&config)
 	validateAccounts(&config)
 
 	return &config
+}
+
+func validateCredentials(config *Config) {
+	for user, hashedPassword := range config.Credentials {
+		if _, err := bcrypt.Cost([]byte(hashedPassword)); err != nil {
+			log.Fatal("Invalid bcrypt hash in property credentials.", user, ": ", hashedPassword)
+		}
+	}
 }
 
 func validateAdministrators(config *Config) {
