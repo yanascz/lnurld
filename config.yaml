@@ -32,8 +32,8 @@ nostr:
 # !!! MODIFY BEFORE PRODUCTION USE !!!
 # Map of users authorized to access the admin user interface.
 credentials:
-  satoshi: 4dm!nS3cr3t
-  barista: S3cr3t
+  satoshi: $2y$12$ezq59dhVRfONnQpENtee3.JF/rUalnqIY/kJW8kCyt5ibIrgG3suu
+  barista: $2y$12$qi5yY3t2UGvWtW/DQFAlsejAQ.L4fknoWoJ0SiSEVgGWxG4.CBRNi
 
 # List of admin users with access to all accounts, events and raffles.
 administrators: [satoshi]

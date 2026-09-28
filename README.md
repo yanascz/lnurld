@@ -40,12 +40,17 @@ $ go build
 ```shell
 $ sudo mkdir /etc/lnurld
 $ sudo cp config.yaml /etc/lnurld
-$ sudo sed -i s/S3cr3t/$(openssl rand -base64 12 | tr / -)/ /etc/lnurld/config.yaml
 ```
 
-**Make sure to review the config file before running `lnurld` in production!** 
+**Make sure to review the config file before running `lnurld` in production!**
 
-(Create image `satoshi.png` in `/etc/lnurld/thumbnails` if you want it served by `lnurld`.)
+To create bcrypt password hashes, use the `htpasswd` command:
+
+```shell
+$ htpasswd -nBC 12 username
+```
+
+Create image `satoshi.png` in `/etc/lnurld/thumbnails` if you want it served by `lnurld`.
 
 ### Create data directory
 
@@ -147,6 +152,12 @@ $ ./systemd/deploy.sh
 ```
 
 Alternatively checkout a specific branch/tag.
+
+When updating from revision `81b36e3` or earlier, migrate plaintext passwords to bcrypt hashes using `htpasswd`:
+
+```shell
+$ htpasswd -nBC 12 username
+```
 
 When updating from revision `4da3fcf` or earlier, run this account migration in your data directory:
 

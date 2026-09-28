@@ -11,6 +11,7 @@ import (
 	"github.com/fiatjaf/go-lnurl"
 	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/mr-tron/base58"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Identity string
@@ -51,8 +52,8 @@ func newAuthenticationService(credentials map[UserKey]string, config Authenticat
 	}
 
 	tokens := map[string]UserKey{}
-	for user, password := range credentials {
-		tokens[accessToken(user, password)] = user
+	for user, hashedPassword := range credentials {
+		tokens[accessToken(user, hashedPassword)] = user
 	}
 
 	return &AuthenticationService{
@@ -63,8 +64,10 @@ func newAuthenticationService(credentials map[UserKey]string, config Authenticat
 }
 
 func (service *AuthenticationService) verifyCredentials(user UserKey, password string) bool {
-	userPassword, userExists := service.credentials[user]
-	return userExists && password == userPassword
+	if hashedPassword, userExists := service.credentials[user]; userExists {
+		return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password)) == nil
+	}
+	return false
 }
 
 func (service *AuthenticationService) getUser(token string) UserKey {
@@ -72,8 +75,8 @@ func (service *AuthenticationService) getUser(token string) UserKey {
 }
 
 func (service *AuthenticationService) getToken(user UserKey) string {
-	if password, userExists := service.credentials[user]; userExists {
-		return accessToken(user, password)
+	if hashedPassword, userExists := service.credentials[user]; userExists {
+		return accessToken(user, hashedPassword)
 	}
 	return ""
 }
@@ -111,7 +114,7 @@ func (service *AuthenticationService) getIdentity(k1 string) Identity {
 	return ""
 }
 
-func accessToken(user UserKey, password string) string {
-	hash := sha256.Sum256([]byte(string(user) + ":" + password))
+func accessToken(user UserKey, hashedPassword string) string {
+	hash := sha256.Sum256([]byte(string(user) + ":" + hashedPassword))
 	return base64.StdEncoding.EncodeToString(hash[:])
 }

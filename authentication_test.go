@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestIdentity(t *testing.T) {
@@ -15,7 +16,7 @@ func TestIdentity(t *testing.T) {
 
 func TestAuthenticationService(t *testing.T) {
 	service := newAuthenticationService(
-		map[UserKey]string{"satoshi": "4dm!nS3cr3t"},
+		map[UserKey]string{"satoshi": "$2y$04$QLnI6iZy9PiXNmakRwI27.AeZEOG60xmAx2ffyyRQr8BdvrpCm9ZK"},
 		AuthenticationConfig{RequestExpiry: 1 * time.Minute},
 	)
 
@@ -29,13 +30,13 @@ func TestAuthenticationService(t *testing.T) {
 	})
 
 	t.Run("getToken", func(t *testing.T) {
-		assert.Equal(t, "S5a4FZNT7zUF2u5nKX+Ksozcy4QSO9umR9SiwfIWaxQ=", service.getToken("satoshi"))
+		assert.Equal(t, "acKMU/8Uzv22ZHpPtUMjsUxgLNnb9hNWlIb3JZe9I00=", service.getToken("satoshi"))
 		assert.Empty(t, service.getToken("csw"))
 		assert.Empty(t, service.getToken(""))
 	})
 
 	t.Run("getUser", func(t *testing.T) {
-		assert.Equal(t, UserKey("satoshi"), service.getUser("S5a4FZNT7zUF2u5nKX+Ksozcy4QSO9umR9SiwfIWaxQ="))
+		assert.Equal(t, UserKey("satoshi"), service.getUser("acKMU/8Uzv22ZHpPtUMjsUxgLNnb9hNWlIb3JZe9I00="))
 		assert.Empty(t, service.getUser("S5a4FZNT7zUF2u5nKX+Ksozcy4QSO9umR9SiwfIWaxQ+"))
 		assert.Empty(t, service.getUser(""))
 	})
