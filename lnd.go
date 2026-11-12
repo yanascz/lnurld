@@ -3,12 +3,14 @@ package main
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"log"
 	"os"
 	"time"
 
 	"github.com/hashicorp/golang-lru/v2"
 	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
 	"github.com/lightningnetwork/lnd/macaroons"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -16,6 +18,7 @@ import (
 )
 
 const invoiceExpiryInSeconds = 300
+const paymentTimeoutInSeconds = 60
 
 type LndConfig struct {
 	Address      string
@@ -62,9 +65,10 @@ type LndClient interface {
 }
 
 type LndRpcClient struct {
-	lnClient lnrpc.LightningClient
-	ctx      context.Context
-	invoices *lru.Cache[PaymentHash, Invoice]
+	lnClient     lnrpc.LightningClient
+	routerClient routerrpc.RouterClient
+	ctx          context.Context
+	invoices     *lru.Cache[PaymentHash, Invoice]
 }
 
 func newLndClient(config LndConfig) LndClient {
@@ -107,9 +111,10 @@ func newLndClient(config LndConfig) LndClient {
 	}
 
 	return &LndRpcClient{
-		lnClient: lnrpc.NewLightningClient(connection),
-		ctx:      context.Background(),
-		invoices: invoices,
+		lnClient:     lnrpc.NewLightningClient(connection),
+		routerClient: routerrpc.NewRouterClient(connection),
+		ctx:          context.Background(),
+		invoices:     invoices,
 	}
 }
 
@@ -178,12 +183,26 @@ func (client *LndRpcClient) decodePaymentRequest(paymentRequest string) (Payment
 }
 
 func (client *LndRpcClient) sendPayment(paymentRequest string, feeLimit int64) error {
-	sendRequest := lnrpc.SendRequest{
-		PaymentRequest:   paymentRequest,
-		FeeLimit:         &lnrpc.FeeLimit{Limit: &lnrpc.FeeLimit_Fixed{Fixed: feeLimit}},
-		AllowSelfPayment: true,
+	sendRequest := routerrpc.SendPaymentRequest{
+		PaymentRequest:    paymentRequest,
+		FeeLimitSat:       feeLimit,
+		TimeoutSeconds:    paymentTimeoutInSeconds,
+		NoInflightUpdates: true,
+		AllowSelfPayment:  true,
 	}
-	_, err := client.lnClient.SendPaymentSync(client.ctx, &sendRequest)
 
-	return err
+	stream, err := client.routerClient.SendPaymentV2(client.ctx, &sendRequest)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = stream.CloseSend() }()
+
+	payment, err := stream.Recv()
+	if err != nil {
+		return err
+	} else if payment.Status == lnrpc.Payment_FAILED {
+		return fmt.Errorf("payment failed: %s", payment.FailureReason)
+	}
+
+	return nil
 }

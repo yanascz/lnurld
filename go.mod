@@ -7,7 +7,7 @@ require (
 	github.com/gin-contrib/sessions v1.1.2
 	github.com/gin-gonic/gin v1.12.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
-	github.com/lightningnetwork/lnd v0.20.4-beta
+	github.com/lightningnetwork/lnd v0.21.3-beta
 	github.com/mr-tron/base58 v1.3.0
 	github.com/nbd-wtf/go-nostr v0.52.3
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
@@ -130,7 +130,7 @@ require (
 	github.com/lightningnetwork/lnd/healthcheck v1.2.6 // indirect
 	github.com/lightningnetwork/lnd/kvdb v1.4.16 // indirect
 	github.com/lightningnetwork/lnd/queue v1.2.0 // indirect
-	github.com/lightningnetwork/lnd/sqldb v1.0.12-0.20260113193010-8565d12e40b1 // indirect
+	github.com/lightningnetwork/lnd/sqldb v1.0.13 // indirect
 	github.com/lightningnetwork/lnd/ticker v1.1.1 // indirect
 	github.com/lightningnetwork/lnd/tlv v1.3.2 // indirect
 	github.com/lightningnetwork/lnd/tor v1.1.7 // indirect
